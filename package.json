@@ -2,6 +2,7 @@
   "name": "space-invaders",
   "version": "0.1.0",
   "description": "Space Invaders",
+  "license": "MIT",
   "main": "gulpfile.babel.js",
   "author": {
     "name": "Nathaniel Inman",
