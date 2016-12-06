@@ -1,5 +1,6 @@
 import 'file-loader?name=[name].html!./index.jade';
-import {Easel} from './vendor/easel';
+import './app.styl';
+import {easel} from './vendor/easel';
 import {makeItRain} from './common/main';
 
 /**
@@ -9,7 +10,7 @@ import {makeItRain} from './common/main';
 {
   let noscript = document.getElementById('noscript');
 
-  if(!Easel.activated){
+  if(!easel.activated){
     noscript.innerHTML = `
     <p class="browsehappy">
       You are using an outdated browser. Please

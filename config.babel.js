@@ -18,7 +18,7 @@ export default {
   },
 //  devtool: 'source-map',
   plugins:[
-    new commonsChunk('vendor'),
+    new commonsChunk('vendor.js'),
     new uglifyWebpack({minimize: true,mangle: false}),
     new webpack.DefinePlugin({
       'process.env': {
@@ -28,7 +28,7 @@ export default {
     new BrowserSync({
       host: 'localhost',
       port: 8000,
-      server: { baseDir: ['./'] } 
+      server: { baseDir: ['./dist'] }
     })
   ],
   output:{

@@ -365,3 +365,4 @@ export class Ion{
     });
   } //end Ion.getFrame()
 } //end class Ion
+export default {Ion};

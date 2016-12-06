@@ -1,14 +1,11 @@
 import {Ion} from '../vendor/ion';
+import * as bob from '../vendor/ion';
 import {generateInvader} from './generateInvader';
 
+console.log('debuggery',bob);
 export function makeItRain() {
   // The following will show at the bottom left of the screen
   var headerText = 'space-invaders Version 0.1.0 by Nathaniel Inman',
-      shirtWidth = 0, shirtLeft = 0, // ease logical checks at runtime by
-      logoWidth = 0, logoHeight = 0, // preprocessing the sizes of the images
-      shirt = new Image(),
-      logo = new Image(),
-      dollar = new Image(),
       makeItRain = new Ion(40),
       startingXLocations = [],
       startingYLocations = [];
@@ -40,7 +37,7 @@ export function makeItRain() {
     particle.sy = particle.dy;
     particle.d = Infinity;
   };
-  makeItRain.clear = ()=>{ //overriding the clear frame function
+  makeItRain.clear = ()=>{
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, v.w, v.h);
     ctx.font = '18px Courier New';
