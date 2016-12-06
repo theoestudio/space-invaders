@@ -25,116 +25,125 @@ export class Ion{
   // and the normalization of the transition between the two with respect to
   // starting time, a given duration, and the function to impose upon the
   // transition from that start position to it's destination.
-  //
-  // @param  {float}   b    Beginning value of the particle
-  // @param  {float}   c    Change between the beginning and destination value
-  // @param  {integer} t    Current time or position of the tween
-  // @param  {integer} d    total time of the tween
-  // @param  {float}   o    modification orientation strength
-  // @param  {integer} type specifies the tweening type
-  // @return {float}        current x or y location
-  ease(b,c,t,d,o,type){
-    let result;
+  ease(beginning,delta,time,totalTime,orientation,tweenType){
+    let result, //returns the current x or y location
+        b = beginning, //beginning value of the particle
+        c = delta, //change between the beginning and destination value
+        t = time, //current time or position of the tween
+        d = totalTime, //total time of the tween
+        o = orientation, //modification orientation strength
+        type = tweenType|0; //force integer in the case float is passed;
 
-    type=type|0; //force integer in the case float is passed
     if(type===0){ //linear
       result = c*t/d+b;
-    }else if(type==1){ //ease-in quad
+    }else if(type===1){ //ease-in quad
       result = c*(t/=d)*t+b;
-    }else if(type==2){ //ease-out quad
+    }else if(type===2){ //ease-out quad
       result = -c*(t/=d)*(t-2)+b;
-    }else if(type==3){ //ease-in-out quad
+    }else if(type===3){ //ease-in-out quad
       result = (t/=d/2)<1?c/2*t*t+b:-c/2*((--t)*(t-2)-1)+b;
-    }else if(type==4){ //ease-in cubic
+    }else if(type===4){ //ease-in cubic
       result = c*(t/=d)*t*t+b;
-    }else if(type==5){ //ease-out cubic
+    }else if(type===5){ //ease-out cubic
       result = c*((t=t/d-1)*t*t+1)+b;
-    }else if(type==6){ //ease-in-out cubic
+    }else if(type===6){ //ease-in-out cubic
       result = ((t/=d/2)<1)?c/2*t*t*t+b:c/2*((t-=2)*t*t+2)+b;
-    }else if(type==7){ //ease-in quart
+    }else if(type===7){ //ease-in quart
       result = c*(t/=d)*t*t*t+b;
-    }else if(type==8){ //ease-out quart
+    }else if(type===8){ //ease-out quart
       result = -c*((t=t/d-1)*t*t*t-1)+b;
-    }else if(type==9){ //ease-in-out quart
+    }else if(type===9){ //ease-in-out quart
       result = ((t/=d/2)<1)?c/2*t*t*t*t+b:-c/2*((t-=2)*t*t*t-2)+b;
-    }else if(type==10){ //ease-in quint
+    }else if(type===10){ //ease-in quint
       result = c*(t/=d)*t*t*t*t+b;
-    }else if(type==11){ //ease-out quint
+    }else if(type===11){ //ease-out quint
       result = c*((t=t/d-1)*t*t*t*t+1)+b;
-    }else if(type==12){ //ease-in-out quint
+    }else if(type===12){ //ease-in-out quint
       result = ((t/=d/2)<1)?c/2*t*t*t*t*t+b:c/2*((t-=2)*t*t*t*t+2)+b;
-    }else if(type==13){ //ease-in sine
+    }else if(type===13){ //ease-in sine
       result = -c*Math.cos(t/d*(Math.PI/2))+c+b;
-    }else if(type==14){ //ease-out sine
+    }else if(type===14){ //ease-out sine
       result = -c/2*(Math.cos(Math.PI*t/d)-1)+b;
-    }else if(type==15){ //ease-in exponential
+    }else if(type===15){ //ease-in exponential
       result = (t===0)?b:c*Math.pow(2,10*(t/d-1))+b;
-    }else if(type==16){ //ease-out exponential
-      result = (t==d)?b+c:c*(-Math.pow(2,-10*t/d)+1)+b;
-    }else if(type==17){ //ease-in-out exponential
+    }else if(type===16){ //ease-out exponential
+      result = (t===d)?b+c:c*(-Math.pow(2,-10*t/d)+1)+b;
+    }else if(type===17){ //ease-in-out exponential
       if(t===0){
         result = b;
-      }else if(t==d){
+      }else if(t===d){
         result = b+c;
       }else if((t/=d/2)<1){
         result = c/2*Math.pow(2,10*(t-1))+b;
       }else{
         result = c/2*(Math.pow(2,-10*--t)+2)+b;
       } //end if
-    }else if(type==18){ //ease-in circular
+    }else if(type===18){ //ease-in circular
       result = -c*(Math.sqrt(1-(t/=d)*t)-1)+b;
-    }else if(type==19){ //ease-out circular
+    }else if(type===19){ //ease-out circular
       result = c*Math.sqrt(1-(t=t/d-1)*t)+b;
-    }else if(type==20){ //ease-in-out circular
+    }else if(type===20){ //ease-in-out circular
       result = ((t/=d/2)<1)?-c/2*(Math.sqrt(1-t*t)-1)+b:c/2*(Math.sqrt(1-(t-=2)*t)+1)+b;
-    }else if(type==21){ //ease-in elastic loose
+    }else if(type===21){ //ease-in elastic loose
       result = this.ease(this,b,c,t,d,0.5,22);
-    }else if(type==22){ //ease-in elastic normal
-      result = (function(){
+    }else if(type===22){ //ease-in elastic normal
+      result = (()=>{
         var s=1.70158,p=0,a=c;
-        if (t===0) return b;
-        if ((t/=d)==1) return b+c;
-        if (!p) p=d*o;
-        if (a < Math.abs(c+0.1)) { a=c;s=p/4; }
-        else s = p/(2*Math.PI) * Math.asin (c/a);
+
+        if(t===0) return b;
+        if((t/=d)===1) return b+c;
+        if(!p) p=d*o;
+        if(a < Math.abs(c+0.1)){
+          a=c;s=p/4;
+        }else{
+          s = p/(2*Math.PI) * Math.asin(c/a);
+        } //end if
         return -(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
       })();
-    }else if(type==23){ //ease-in elastic strong
+    }else if(type===23){ //ease-in elastic strong
       result = this.ease(b,c,t,d,0.1,22);
-    }else if(type==24){ //ease-out elastic loose
+    }else if(type===24){ //ease-out elastic loose
       result = this.ease(b,c,t,d,0.5,25);
-    }else if(type==25){ //ease-out elastic normal
-      result = (function(){
+    }else if(type===25){ //ease-out elastic normal
+      result = (()=>{
         var s=1.70158,p=0,a=c;
+
         if (t===0) return b;
-        if ((t/=d)==1) return b+c;
+        if ((t/=d)===1) return b+c;
         if (!p) p=d*o;
-        if (a < Math.abs(c+0.1)) { a=c;s=p/4; }
-        else s = p/(2*Math.PI) * Math.asin (c/a);
+        if(a < Math.abs(c+0.1)){
+          a=c;s=p/4;
+        }else{
+          s = p/(2*Math.PI) * Math.asin(c/a);
+        } //end if
         return a*Math.pow(2,-10*t) * Math.sin( (t*d-s)*(2*Math.PI)/p ) + c + b;
       })();
-    }else if(type==26){ //ease-out elastic strong
+    }else if(type===26){ //ease-out elastic strong
       result = this.ease(b,c,t,d,0.1,25);
-    }else if(type==27){ //ease-in-out elastic loose
+    }else if(type===27){ //ease-in-out elastic loose
       result = this.ease(b,c,t,d,0.5,28);
-    }else if(type==28){ //ease-in-out elastic normal
-      result = (function(){
+    }else if(type===28){ //ease-in-out elastic normal
+      result = (()=>{
         var s=1.70158,p=0,a=c;
-        if (t===0) return b;
-        if ((t/=d/2)==2) return b+c;
-        if (!p) p=d*(o*1.5);
-        if (a < Math.abs(c+0.1)) { a=c;s=p/4; }
-        else s = p/(2*Math.PI) * Math.asin (c/a);
+
+        if(t===0) return b;
+        if((t/=d/2)===2) return b+c;
+        if(!p) p=d*(o*1.5);
+        if(a < Math.abs(c+0.1)){
+          a=c;s=p/4;
+        }else{
+          s = p/(2*Math.PI) * Math.asin(c/a);
+        } //end if
         if (t < 1) return -0.5*(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
         return a*Math.pow(2,-10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )*0.5 + c + b;
       })();
-    }else if(type==29){ //ease-in-out elastic strong(b,c,t,d,o,type)
+    }else if(type===29){ //ease-in-out elastic strong(b,c,t,d,o,type)
       result = this.ease(b,c,t,d,0.1,28);
-    }else if(type==30){ //ease-in back
+    }else if(type===30){ //ease-in back
       result = c*(t/=d)*t*((1.70158+1)*t - 1.70158) + b;
-    }else if(type==31){ //ease-out back
+    }else if(type===31){ //ease-out back
       result = c*((t=t/d-1)*t*((1.70158+1)*t + 1.70158) + 1) + b;
-    }else if(type==32){ //ease-in-out back
+    }else if(type===32){ //ease-in-out back
       let s = 1.70158;
 
       if((t/=d/2)<1){
@@ -142,9 +151,9 @@ export class Ion{
       }else{
         result = c/2*((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2) + b;
       } //end if
-    }else if(type==33){ //ease-in bounce
+    }else if(type===33){ //ease-in bounce
       result = c-this.ease(0,c,d-t,d,0,34)+b;
-    }else if(type==34){ //ease-out bounce
+    }else if(type===34){ //ease-out bounce
       if ((t/=d) < (1/2.75)) {
         result = c*(7.5625*t*t) + b;
       } else if (t < (2/2.75)) {
@@ -154,7 +163,7 @@ export class Ion{
       } else {
         result = c*(7.5625*(t-=(2.625/2.75))*t + 0.984375) + b;
       } //end if
-    }else if(type==35){ //ease-in-out bounce
+    }else if(type===35){ //ease-in-out bounce
       if(t<d/2){
         result = this.ease(0,c,t*2,d,0,33)*0.5+b;
       }else{
@@ -223,8 +232,8 @@ export class Ion{
   populate(wait){
     this.collection.push(this.getNew(this.collection.length));
     if(this.collection.length<this.quantity){
-      if(typeof wait == 'function'){
-        setTimeout(()=> this.populate(wait),wait())
+      if(typeof wait === 'function'){
+        setTimeout(()=> this.populate(wait),wait());
       }else{
         requestAnimationFrame(()=> this.populate());
       } //end if

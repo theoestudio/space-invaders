@@ -1,6 +1,10 @@
 # Distribution Files
 dist/
 
+# Vim temporary files
+*.swo
+*.swp
+
 # Logs
 logs
 *.log
