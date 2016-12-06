@@ -1,8 +1,6 @@
 import {Ion} from '../vendor/ion';
-import * as bob from '../vendor/ion';
 import {generateInvader} from './generateInvader';
 
-console.log('debuggery',bob);
 export function makeItRain() {
   // The following will show at the bottom left of the screen
   var headerText = 'space-invaders Version 0.1.0 by Nathaniel Inman',
