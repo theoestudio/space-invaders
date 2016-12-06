@@ -1,3 +1,4 @@
+import 'file-loader?name=[name].html!./index.jade';
 import {Easel} from './vendor/easel';
 import {makeItRain} from './common/main';
 

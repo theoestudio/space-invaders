@@ -3,18 +3,17 @@ import commonsChunk  from 'webpack/lib/optimize/CommonsChunkPlugin';
 import uglifyWebpack from 'webpack/lib/optimize/UglifyJsPlugin';
 import autoprefixer  from 'autoprefixer';
 import poststylus    from 'poststylus';
+import BrowserSync   from 'browser-sync-webpack-plugin';
 
 export default {
   watch: true,
   entry:{
     app: [
-      'webpack-dev-server/client?http://localhost:8080/',
-      'webpack/hot/dev-server',
       './src/app/app.js'
     ],
     vendor: [
-      'easel',
-      'ion'
+      './src/app/vendor/easel.js',
+      './src/app/vendor/ion.js'
     ]
   },
   devtool: 'source-map',
@@ -26,10 +25,15 @@ export default {
       'process.env': {
         NODE_ENV: JSON.stringify('production')
       }
+    }),
+    new BrowserSync({
+      host: 'localhost',
+      port: 8000,
+      server: { baseDir: ['./'] } 
     })
   ],
   output:{
-    path: '/dist',
+    path: './dist',
     publicPath: '/',
     filename:'[name].js',
     library: 'app',
@@ -42,7 +46,7 @@ export default {
     loaders: [
       {test: /\.js$/,   loaders: ['babel-loader','eslint-loader'], exclude: /node_modules/},
       {test: /\.styl$/, loaders: ['style-loader','css-loader','stylus-loader']},
-      {test: /\.jade$/, loader: 'jade'},
+      {test: /\.jade$/, loader: 'jade-static'},
       {test: /\.css$/,  loaders: ['style-loader','css-loader']},
       {test: /\.svg$/,  loader: 'url',
         query:{limit: '65000',mimetype: 'image/svg+xml'}},
@@ -56,10 +60,7 @@ export default {
         query:{limit: '65000',mimetype: 'application/vnd.ms-fontobject'}}
     ]
   },
-  stylus: {
-    use: [
-      poststylus(['autoprefixer'])
-    ]
-  }
+  jade: {pretty: false},
+  stylus: {use: [poststylus(['autoprefixer'])]}
 };
 
