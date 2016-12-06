@@ -16,9 +16,8 @@ export default {
       './src/app/vendor/ion.js'
     ]
   },
-  devtool: 'source-map',
+//  devtool: 'source-map',
   plugins:[
-    new webpack.HotModuleReplacementPlugin(),
     new commonsChunk('vendor'),
     new uglifyWebpack({minimize: true,mangle: false}),
     new webpack.DefinePlugin({
@@ -36,12 +35,10 @@ export default {
     path: './dist',
     publicPath: '/',
     filename:'[name].js',
-    library: 'app',
-    libraryTarget: 'this'
   },
   module:{
     preLoaders: [
-      {test: /\.js$/, loader: 'source-map-loader'}
+//      {test: /\.js$/, loader: 'source-map-loader'}
     ],
     loaders: [
       {test: /\.js$/,   loaders: ['babel-loader','eslint-loader'], exclude: /node_modules/},

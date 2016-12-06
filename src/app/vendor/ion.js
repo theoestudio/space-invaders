@@ -170,27 +170,26 @@ export class Ion{
   // @param  {Integer} atom Particle index
   // @return {Object}       The particle object is returned
   getNew(atom){
-    console.log('get new',atom);
     var sx,sy;
 
     this.onCreate(); //even fired as a new particle is created
-    sx=typeof this.sx=='function'?this.sx():this.sx;
-    sy=typeof this.sy=='function'?this.sy():this.sy;
+    sx=typeof this.sx==='function'?this.sx():this.sx;
+    sy=typeof this.sy==='function'?this.sy():this.sy;
     return {
       id: atom, //be able to reference each particle individually outside of the class
       sx: sx,
       sy: sy,
       x:  sx,
       y:  sy,
-      dx: typeof this.dx=='function'?this.dx():this.dx,
-      dy: typeof this.dy=='function'?this.dy():this.dy,
-      c:  typeof this.tween_current=='function'?this.tween_current():this.tween_current,
-      d:  (typeof this.tween_duration=='function'?this.tween_duration():this.tween_duration)|0,
-      tt: typeof this.tween_type=='function'?this.tween_type():this.tween_type,
-      s:  typeof this.size=='function'?this.size():this.size,
-      wx: typeof this.wx=='function'?this.wx():this.wx,
-      wy: typeof this.wy=='function'?this.wy():this.wy,
-      image: typeof this.image=='function'?this.image():this.image,
+      dx: typeof this.dx==='function'?this.dx():this.dx,
+      dy: typeof this.dy==='function'?this.dy():this.dy,
+      c:  typeof this.tween_current==='function'?this.tween_current():this.tween_current,
+      d:  (typeof this.tween_duration==='function'?this.tween_duration():this.tween_duration)|0,
+      tt: typeof this.tween_type==='function'?this.tween_type():this.tween_type,
+      s:  typeof this.size==='function'?this.size():this.size,
+      wx: typeof this.wx==='function'?this.wx():this.wx,
+      wy: typeof this.wy==='function'?this.wy():this.wy,
+      image: typeof this.image==='function'?this.image():this.image,
       imageWidth: this.imageWidth,
       imageHeight: this.imageHeight
     };
@@ -206,10 +205,10 @@ export class Ion{
   // @param  {Integer} atom Particle index
   // @return {Void}         Function doesn't return a value
   reset(particle){
-    particle.x = particle.sx = (typeof this.sx=='function'?this.sx():this.sx);
-    particle.y = particle.sy = (typeof this.sy=='function'?this.sy():this.sy);
-    particle.dx = (typeof this.dx=='function'?this.dx():this.dx);
-    particle.dy = (typeof this.dy=='function'?this.dy():this.dy);
+    particle.x = particle.sx = (typeof this.sx==='function'?this.sx():this.sx);
+    particle.y = particle.sy = (typeof this.sy==='function'?this.sy():this.sy);
+    particle.dx = (typeof this.dx==='function'?this.dx():this.dx);
+    particle.dy = (typeof this.dy==='function'?this.dy():this.dy);
     particle.c  = 0;
   } //end Ion.reset()
 
@@ -319,7 +318,7 @@ export class Ion{
   //
   // @return {Void} Function doesn't return a value
   process(){
-    if(typeof this.clear == 'function'){ //override clear function, use it instead
+    if(typeof this.clear === 'function'){ //override clear function, use it instead
       this.clear();
     } else if(this.clear){ //sent as some truthy value, likely boolean true
       ctx.fillStyle=this.clearColor;
@@ -332,7 +331,7 @@ export class Ion{
     if(this.tween_speed===1){
       requestAnimationFrame(()=>this.process());
     }else{
-      setTimeout(()=>this.process(),this.tween_speed)
+      setTimeout(()=>this.process(),this.tween_speed);
     } //end if
   } //end Ion.process()
 
@@ -351,9 +350,9 @@ export class Ion{
       this.modulate(p);
       if(p.x<0||p.y<0||p.x>v.w||p.y>v.h)this.onEscape(p);
       p.c++; //increment the current iteration of the tween by one
-      if(p.c==p.d)this.onEnd(p); //movement process finished
-      if((p.x)|0!==(p.dx)|0)p.x=this.ease(p.sx,p.dx-p.sx,p.c,p.d,0.3,p.tt);
-      if((p.y)|0!==(p.dy)|0)p.y=this.ease(p.sy,p.dy-p.sy,p.c,p.d,0.3,p.tt);
+      if(p.c===p.d)this.onEnd(p); //movement process finished
+      if((p.x|0)!==(p.dx|0))p.x=this.ease(p.sx,p.dx-p.sx,p.c,p.d,0.3,p.tt);
+      if((p.y|0)!==(p.dy|0))p.y=this.ease(p.sy,p.dy-p.sy,p.c,p.d,0.3,p.tt);
     });
   } //end Ion.getFrame()
 } //end class Ion

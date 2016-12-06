@@ -35,15 +35,12 @@ export function makeItRain() {
   makeItRain.imageHeight = 40;
   makeItRain.tween_duration = 100;
   makeItRain.tween_type = 19;
-  makeItRain.onEnd = function(particle){
+  makeItRain.onEnd = (particle)=>{
     particle.sx = particle.dx;
     particle.sy = particle.dy;
     particle.d = Infinity;
   };
-  makeItRain.onEscape = function(particle){
-    //this.collection.splice(particle.id, 1, this.getNew(particle.id));
-  };
-  makeItRain.clear = function () { //overriding the clear frame function
+  makeItRain.clear = ()=>{ //overriding the clear frame function
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, v.w, v.h);
     ctx.font = '18px Courier New';
