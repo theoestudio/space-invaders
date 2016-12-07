@@ -1,23 +1,23 @@
 export class Ion{
-  constructor(q,s,x,y,dx,dy){
+  constructor(quantity,size,x1,y1,x2,y2){
     this.collection=[];
     this.clear=true;
     this.quantity=q||1;
-    this.sx=x||0;
-    this.sy=y||0;
-    this.dx=dx||1;
-    this.dy=dy||1;
-    this.wx=0;
-    this.wy=0;
+    this.startX=x||0;
+    this.startY=y||0;
+    this.endX=dx||1;
+    this.endY=dy||1;
+    this.windX=0;
+    this.windY=0;
     this.m=0; //modulation factor - only runs if it's set explicitly
     this.color='#48F';
     this.clearColor='#000';
     this.retain=null; //this can be set as a function for a draw after clear screen
-    this.size=s||1;
-    this.tween_type=0;
-    this.tween_current=0;
-    this.tween_duration=1000;
-    this.tween_speed=1;
+    this.size=size||1;
+    this.tweenType=0;
+    this.tweenCurrent=0;
+    this.tweenDuration=1000;
+    this.tweenSpeed=1;
   }
 
   // Ease is a tweening function using Robert Penner's equations to identify
@@ -25,15 +25,21 @@ export class Ion{
   // and the normalization of the transition between the two with respect to
   // starting time, a given duration, and the function to impose upon the
   // transition from that start position to it's destination.
-  ease(beginning,delta,time,totalTime,orientation,tweenType){
+  ease(particle,axis){
     let result, //returns the current x or y location
-        b = beginning, //beginning value of the particle
-        c = delta, //change between the beginning and destination value
-        t = time, //current time or position of the tween
-        d = totalTime, //total time of the tween
-        o = orientation, //modification orientation strength
-        type = tweenType|0; //force integer in the case float is passed;
+        t = particle.tweenCurrent,
+        d = particle.tweenDuration,
+        o = 0.3, //modification orientation strength
+        type = particle.tweenType,
+        b,c; //beginning position and change in position
 
+    if(axis==='x'){
+      b = particle.startX;
+      c = particle.endX-particle.startX;
+    }else{
+      b = particle.startY;
+      c = particle.endY-particle.startY;
+    } //end if
     if(type===0){ //linear
       result = c*t/d+b;
     }else if(type===1){ //ease-in quad
@@ -175,33 +181,44 @@ export class Ion{
 
   // getNew will create a new particle and return that result. It's possible to override the
   // function to develop a custom particle generator for more specific applications.
-  //
-  // @param  {Integer} atom Particle index
-  // @return {Object}       The particle object is returned
-  getNew(atom){
-    var sx,sy;
+  getNew(id){
+    var ttc = this.tweenCurrent,
+        ttd = this.tweenDuration,
+        ttt = this.tweenType,
+        tsx = this.startX,
+        tsy = this.startY,
+        tdx = this.endX,
+        tdy = this.endY
+        sx = typeof tsx==='function'?tsx():tsx,
+        sy = typeof tsy==='function'?tsy():tsy,
+        dx = typeof tdx==='function'?tdx():tdx,
+        dy = typeof tdy==='function'?tdy():tdy,
+        c = typeof tc==='function'?ttc():ttc,
+        d = typeof td==='function'?ttd():ttd,
+        tt = typeof ttt==='function'?ttt():ttt,
+        s = typeof this.size==='function'?this.size():this.size,
+        image = typeof this.image==='function'?this.image():this.image,
+        particle = {};
 
     this.onCreate(); //even fired as a new particle is created
-    sx=typeof this.sx==='function'?this.sx():this.sx;
-    sy=typeof this.sy==='function'?this.sy():this.sy;
-    return {
-      id: atom, //be able to reference each particle individually outside of the class
-      sx: sx,
-      sy: sy,
-      x:  sx,
-      y:  sy,
-      dx: typeof this.dx==='function'?this.dx():this.dx,
-      dy: typeof this.dy==='function'?this.dy():this.dy,
-      c:  typeof this.tween_current==='function'?this.tween_current():this.tween_current,
-      d:  (typeof this.tween_duration==='function'?this.tween_duration():this.tween_duration)|0,
-      tt: typeof this.tween_type==='function'?this.tween_type():this.tween_type,
-      s:  typeof this.size==='function'?this.size():this.size,
-      wx: typeof this.wx==='function'?this.wx():this.wx,
-      wy: typeof this.wy==='function'?this.wy():this.wy,
-      image: typeof this.image==='function'?this.image():this.image,
-      imageWidth: this.imageWidth,
-      imageHeight: this.imageHeight
-    };
+    particle.id = id; //for referencing each particle outside library
+    particle.startX = sx;
+    particle.startY = sy;
+    particle.x = sx;
+    particle.y = sy;
+    particle.endX = dx;
+    particle.endY = dy;
+    particle.terminalX = particle.dx; //original destiation x
+    particle.terminalY = particle.dy; //original destination y
+    particle.tweenCurrent = c;
+    particle.tweenDuration = d;
+    particle.tweenType = tt;
+    particle.size = s; //the particle size
+    particle.windX = this.windX||0; //wind functions are ran at runtime
+    particle.windY = this.windY||0; //wind function are ran at runtime
+    particle.image = image; //can be an image or a draw function
+    particle.imageWidth = this.imageWidth; //width in pixels
+    particle.imageHeight = this.imageHeight; //height in pixels
   } //end Ion.getNew()
 
   // Reset will perform a small number of operations to reset a particle back
@@ -210,25 +227,18 @@ export class Ion{
   // that have been computed thus far. It's further helpful because it can be
   // overridden to perform other operations post-completion of the particles
   // duration.
-  //
-  // @param  {Integer} atom Particle index
-  // @return {Void}         Function doesn't return a value
   reset(particle){
-    particle.x = particle.sx = (typeof this.sx==='function'?this.sx():this.sx);
-    particle.y = particle.sy = (typeof this.sy==='function'?this.sy():this.sy);
-    particle.dx = (typeof this.dx==='function'?this.dx():this.dx);
-    particle.dy = (typeof this.dy==='function'?this.dy():this.dy);
-    particle.c  = 0;
+    particle.x = particle.sx;
+    particle.y = particle.sy;
+    particle.endX = particle.terminalX; //wind may have corrupted endX
+    particle.endY = particle.terminalY; //wind may have corrupted endY
+    particle.tweenCurrent = 0;
   } //end Ion.reset()
 
   // Populate pushes a new particle into the particles array then checks to see
   // if the specified particle number has been reached, if it hasn't, then it
   // queues up itself asynchronously to create another particle. This recursive
   // action continues until the total particle quantity is reached.
-  //
-  // @param wait Function passed that will return a integer in milliseconds to
-  // force population wait between ions
-  // @return {Void} Function doesn't return a value
   populate(wait){
     this.collection.push(this.getNew(this.collection.length));
     if(this.collection.length<this.quantity){
@@ -244,23 +254,34 @@ export class Ion{
   // instead of them performing their tweening operations unhindered. This
   // gives a more dynamic feel to their movement. The wind patterns and
   // function can be overridden to be dynamic or conditional as desired.
-  //
-  // @param  {Integer} atom Particle index
-  // @return {Void}         Function doesn't return a value
   wind(particle){
-    particle.dx += particle.wx;
-    particle.dy += particle.wy;
-    particle.sx += particle.wx;
-    particle.sy += particle.wy;
+    if(typeof particle.windX === 'function'){
+      particle.endX += particle.windX(particle);
+    }else{
+      particle.endX += particle.windX;
+    } //end if
+    if(typeof particle.windY === 'function'){
+      particle.endY += particle.windY(particle);
+    }else{
+      particle.endY += particle.windY;
+    } //end if
+    if(typeof particle.windX === 'function'){
+      particle.startX += particle.windX(particle);
+    }else{
+      particle.startX += particle.windX;
+    } //end if
+    if(typeof particle.windX === 'function'){
+      particle.startY += particle.windY(particle);
+    }else{
+      particle.startY += particle.windY;
+    } //end if
   } //end Ion.wind()
 
   // Draw simply draws a particle indicated by its index number
-  //
-  // @param  {Integer} atom Particle index
-  // @return {Void}         Function doesn't return a value
   draw(particle){
     let p = particle,
-        image = p.image;
+        image = p.image,
+        s = p.size;
 
     if(image && image instanceof Array && image.length){
       let scaleX = p.imageWidth/image[0].length,
@@ -268,7 +289,7 @@ export class Ion{
 
       image.forEach((yo,y)=>{
         yo.forEach((xo,x)=>{
-          if(xo) ctx.fillRect(p.x+x*scaleX,p.y+y*scaleY,p.s*scaleX,p.s*scaleY);
+          if(xo) ctx.fillRect(p.x+x*scaleX,p.y+y*scaleY,s*scaleX,s*scaleY);
         });
       });
     }else if(image){ //image was passed, use it instead of a pixel particle
@@ -281,7 +302,7 @@ export class Ion{
         ctx.drawImage(image,px,py);
       } //end if
     }else{
-      ctx.fillRect(p.x,p.y,particle.s,p.s);
+      ctx.fillRect(p.x,p.y,s,s);
     } //end if
   } //end Ion.draw()
 
@@ -289,34 +310,22 @@ export class Ion{
   // it runs the function specified and sends it the current atom, in the
   // case that the function utilizes case-specific information. It also
   // sends the cx,cy,dx, and dy variables
-  //
-  // @param  {Integer} atom Particle index
-  // @return {Void}         Function doesn't return a value
   modulate(particle){
     if(typeof this.m !== 'function') return;
-    this.m(particle.id,particle.x,particle.y,particle.dx,particle.dy);
+    this.m(particle.id,particle.x,particle.y,particle.endX,particle.endY);
   } //end Ion.modulate()
 
   // OnCreate function is called when a particle is created for the first
   // time. This allows one to keep track of how far into the creation of all
   // the particles one is given the particle total that they already control.
-  //
-  // @return {Void} Function doesn't return a value, but can be overriden to
-  // make a callback as desired
   onCreate(){}
 
   // OnEnd function is called after a particle finishes its tweening motion.
   // This is merely a template function that is required to be overridden.
-  //
-  // @return {Void} Function doesn't return a value, but can be overridden
-  // to make a callback as desired
   onEnd(){}
 
   // OnEscape function is called after a particle leaves the view space.
   // This is merely a template function that is required to be overridden.
-  //
-  // @return {Void} Function doesn't return a value, but can be overridden
-  // to make a callback as desired
   onEscape(){}
 
   // Process is the automatic function that calls the getFrame main
@@ -324,8 +333,6 @@ export class Ion{
   // also auto-clear. This function is mostly used for testing a single
   // Ion instance. Most mock-ups of Ion should be done using the getFrame
   // function and manually resetting the canvas as needed
-  //
-  // @return {Void} Function doesn't return a value
   process(){
     if(typeof this.clear === 'function'){ //override clear function, use it instead
       this.clear();
@@ -337,10 +344,10 @@ export class Ion{
       this.retain(); //if there is a retaining script, run it
     } //end if
     this.getFrame(); //call getFrame() to receive and flip all pixel information for next update
-    if(this.tween_speed===1){
+    if(this.tweenSpeed===1){
       requestAnimationFrame(()=>this.process());
     }else{
-      setTimeout(()=>this.process(),this.tween_speed);
+      setTimeout(()=>this.process(),this.tweenSpeed);
     } //end if
   } //end Ion.process()
 
@@ -349,8 +356,6 @@ export class Ion{
   // is no clearing of pixels, it superimposes onto what's already available
   // on the screen so any clearing will have to be done through the process
   // function or manually.
-  //
-  // @return {Void} Function doesn't return a value
   getFrame(){
     ctx.fillStyle=this.color;
     this.collection.forEach(p=>{
@@ -358,10 +363,10 @@ export class Ion{
       this.draw(p);
       this.modulate(p);
       if(p.x<0||p.y<0||p.x>v.w||p.y>v.h)this.onEscape(p);
-      p.c++; //increment the current iteration of the tween by one
-      if(p.c===p.d)this.onEnd(p); //movement process finished
-      if((p.x|0)!==(p.dx|0))p.x=this.ease(p.sx,p.dx-p.sx,p.c,p.d,0.3,p.tt);
-      if((p.y|0)!==(p.dy|0))p.y=this.ease(p.sy,p.dy-p.sy,p.c,p.d,0.3,p.tt);
+      p.tweenCurrent++;
+      if(p.tweenCurrent===p.tweenDuration)this.onEnd(p);
+      if((p.x|0)!==(p.dx|0)) p.x=this.ease(p,'x');
+      if((p.y|0)!==(p.dy|0)) p.y=this.ease(p,'y');
     });
   } //end Ion.getFrame()
 } //end class Ion

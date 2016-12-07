@@ -19,21 +19,21 @@ export function makeItRain() {
   } //end for
 
   // Declare and initialize the scene
-  makeItRain.sx = ()=> r(1, v.w, 1);
-  makeItRain.sy = 15;
-  makeItRain.dx = ()=> startingXLocations.pop();
-  makeItRain.dy = ()=> startingYLocations.pop();
-  makeItRain.wx = ()=> 0 - 0.0025;
-  makeItRain.wy = 0;
+  makeItRain.startX = ()=> r(1, v.w, 1);
+  makeItRain.startY = 15;
+  makeItRain.endX = ()=> startingXLocations.pop();
+  makeItRain.endY = ()=> startingYLocations.pop();
+  makeItRain.windX = ()=> r(0.02)-0.01;
+  makeItRain.windY = ()=> r(0.02)-0.01;
   makeItRain.image = ()=> generateInvader();
   makeItRain.imageWidth = 40;
   makeItRain.imageHeight = 40;
   makeItRain.tween_duration = 100;
   makeItRain.tween_type = 19;
   makeItRain.onEnd = (particle)=>{
-    particle.sx = particle.dx;
-    particle.sy = particle.dy;
-    particle.d = Infinity;
+    particle.startX = particle.endX;
+    particle.startY = particle.endY;
+    particle.duration = Infinity;
   };
   makeItRain.clear = ()=>{
     ctx.fillStyle = '#000';
