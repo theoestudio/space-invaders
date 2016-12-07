@@ -188,7 +188,7 @@ export class Ion{
         tsx = this.startX,
         tsy = this.startY,
         tdx = this.endX,
-        tdy = this.endY
+        tdy = this.endY,
         sx = typeof tsx==='function'?tsx():tsx,
         sy = typeof tsy==='function'?tsy():tsy,
         dx = typeof tdx==='function'?tdx():tdx,
