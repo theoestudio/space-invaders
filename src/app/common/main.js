@@ -28,12 +28,12 @@ export function makeItRain() {
   makeItRain.image = ()=> generateInvader();
   makeItRain.imageWidth = 40;
   makeItRain.imageHeight = 40;
-  makeItRain.tween_duration = 100;
-  makeItRain.tween_type = 19;
+  makeItRain.tweenDuration = 100;
+  makeItRain.tweenType = 'ease-out-circular';
   makeItRain.onEnd = (particle)=>{
     particle.startX = particle.endX;
     particle.startY = particle.endY;
-    particle.duration = Infinity;
+    particle.tweenDuration = Infinity;
   };
   makeItRain.clear = ()=>{
     ctx.fillStyle = '#000';

@@ -2,11 +2,11 @@ export class Ion{
   constructor(quantity,size,x1,y1,x2,y2){
     this.collection=[];
     this.clear=true;
-    this.quantity=q||1;
-    this.startX=x||0;
-    this.startY=y||0;
-    this.endX=dx||1;
-    this.endY=dy||1;
+    this.quantity=quantity||1;
+    this.startX=x1||0;
+    this.startY=y1||0;
+    this.endX=x2||1;
+    this.endY=y2||1;
     this.windX=0;
     this.windY=0;
     this.m=0; //modulation factor - only runs if it's set explicitly
@@ -40,41 +40,41 @@ export class Ion{
       b = particle.startY;
       c = particle.endY-particle.startY;
     } //end if
-    if(type===0){ //linear
+    if(type===0||type==='linear'){
       result = c*t/d+b;
-    }else if(type===1){ //ease-in quad
+    }else if(type===1||type==='ease-in-quad'){
       result = c*(t/=d)*t+b;
-    }else if(type===2){ //ease-out quad
+    }else if(type===2||type==='ease-out-quad'){
       result = -c*(t/=d)*(t-2)+b;
-    }else if(type===3){ //ease-in-out quad
+    }else if(type===3||type==='ease-in-out-quad'){
       result = (t/=d/2)<1?c/2*t*t+b:-c/2*((--t)*(t-2)-1)+b;
-    }else if(type===4){ //ease-in cubic
+    }else if(type===4||type==='ease-in-cubic'){
       result = c*(t/=d)*t*t+b;
-    }else if(type===5){ //ease-out cubic
+    }else if(type===5||type==='ease-out-cubic'){
       result = c*((t=t/d-1)*t*t+1)+b;
-    }else if(type===6){ //ease-in-out cubic
+    }else if(type===6||type==='ease-in-out-cubic'){
       result = ((t/=d/2)<1)?c/2*t*t*t+b:c/2*((t-=2)*t*t+2)+b;
-    }else if(type===7){ //ease-in quart
+    }else if(type===7||type==='ease-in-quart'){
       result = c*(t/=d)*t*t*t+b;
-    }else if(type===8){ //ease-out quart
+    }else if(type===8||type==='ease-out-quart'){
       result = -c*((t=t/d-1)*t*t*t-1)+b;
-    }else if(type===9){ //ease-in-out quart
+    }else if(type===9||type==='ease-in-out-quart'){
       result = ((t/=d/2)<1)?c/2*t*t*t*t+b:-c/2*((t-=2)*t*t*t-2)+b;
-    }else if(type===10){ //ease-in quint
+    }else if(type===10||type==='ease-in-quint'){
       result = c*(t/=d)*t*t*t*t+b;
-    }else if(type===11){ //ease-out quint
+    }else if(type===11||type==='ease-out-quint'){
       result = c*((t=t/d-1)*t*t*t*t+1)+b;
-    }else if(type===12){ //ease-in-out quint
+    }else if(type===12||type==='ease-in-out-quint'){
       result = ((t/=d/2)<1)?c/2*t*t*t*t*t+b:c/2*((t-=2)*t*t*t*t+2)+b;
-    }else if(type===13){ //ease-in sine
+    }else if(type===13||type==='ease-in-sine'){
       result = -c*Math.cos(t/d*(Math.PI/2))+c+b;
-    }else if(type===14){ //ease-out sine
+    }else if(type===14||type==='ease-out-sine'){
       result = -c/2*(Math.cos(Math.PI*t/d)-1)+b;
-    }else if(type===15){ //ease-in exponential
+    }else if(type===15||type==='ease-in-exponential'){
       result = (t===0)?b:c*Math.pow(2,10*(t/d-1))+b;
-    }else if(type===16){ //ease-out exponential
+    }else if(type===16||type==='ease-out-exponential'){
       result = (t===d)?b+c:c*(-Math.pow(2,-10*t/d)+1)+b;
-    }else if(type===17){ //ease-in-out exponential
+    }else if(type===17||type==='ease-in-out-exponential'){
       if(t===0){
         result = b;
       }else if(t===d){
@@ -84,15 +84,15 @@ export class Ion{
       }else{
         result = c/2*(Math.pow(2,-10*--t)+2)+b;
       } //end if
-    }else if(type===18){ //ease-in circular
+    }else if(type===18||type==='ease-in-circular'){
       result = -c*(Math.sqrt(1-(t/=d)*t)-1)+b;
-    }else if(type===19){ //ease-out circular
+    }else if(type===19||type==='ease-out-circular'){
       result = c*Math.sqrt(1-(t=t/d-1)*t)+b;
-    }else if(type===20){ //ease-in-out circular
+    }else if(type===20||type==='ease-in-out-circular'){
       result = ((t/=d/2)<1)?-c/2*(Math.sqrt(1-t*t)-1)+b:c/2*(Math.sqrt(1-(t-=2)*t)+1)+b;
-    }else if(type===21){ //ease-in elastic loose
+    }else if(type===21||type==='ease-in-elastic-loose'){
       result = this.ease(this,b,c,t,d,0.5,22);
-    }else if(type===22){ //ease-in elastic normal
+    }else if(type===22||type==='ease-in-elastic-normal'){
       result = (()=>{
         var s=1.70158,p=0,a=c;
 
@@ -106,11 +106,11 @@ export class Ion{
         } //end if
         return -(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
       })();
-    }else if(type===23){ //ease-in elastic strong
+    }else if(type===23||type==='ease-in-elastic-string'){
       result = this.ease(b,c,t,d,0.1,22);
-    }else if(type===24){ //ease-out elastic loose
+    }else if(type===24||type==='ease-out-elastic-loose'){
       result = this.ease(b,c,t,d,0.5,25);
-    }else if(type===25){ //ease-out elastic normal
+    }else if(type===25||type==='ease-out-elastic-normal'){
       result = (()=>{
         var s=1.70158,p=0,a=c;
 
@@ -124,11 +124,11 @@ export class Ion{
         } //end if
         return a*Math.pow(2,-10*t) * Math.sin( (t*d-s)*(2*Math.PI)/p ) + c + b;
       })();
-    }else if(type===26){ //ease-out elastic strong
+    }else if(type===26||type==='ease-out-elastic-strong'){
       result = this.ease(b,c,t,d,0.1,25);
-    }else if(type===27){ //ease-in-out elastic loose
+    }else if(type===27||type==='ease-in-out-elastic-loose'){
       result = this.ease(b,c,t,d,0.5,28);
-    }else if(type===28){ //ease-in-out elastic normal
+    }else if(type===28||type==='ease-in-out-elastic-normal'){
       result = (()=>{
         var s=1.70158,p=0,a=c;
 
@@ -143,13 +143,13 @@ export class Ion{
         if (t < 1) return -0.5*(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
         return a*Math.pow(2,-10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )*0.5 + c + b;
       })();
-    }else if(type===29){ //ease-in-out elastic strong(b,c,t,d,o,type)
+    }else if(type===29||type==='ease-in-out-elastic-strong'){
       result = this.ease(b,c,t,d,0.1,28);
-    }else if(type===30){ //ease-in back
+    }else if(type===30||type==='ease-in-back'){
       result = c*(t/=d)*t*((1.70158+1)*t - 1.70158) + b;
-    }else if(type===31){ //ease-out back
+    }else if(type===31||type==='ease-out-back'){
       result = c*((t=t/d-1)*t*((1.70158+1)*t + 1.70158) + 1) + b;
-    }else if(type===32){ //ease-in-out back
+    }else if(type===32||type==='ease-in-out-back'){
       let s = 1.70158;
 
       if((t/=d/2)<1){
@@ -157,9 +157,9 @@ export class Ion{
       }else{
         result = c/2*((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2) + b;
       } //end if
-    }else if(type===33){ //ease-in bounce
+    }else if(type===33||type==='ease-in-bounce'){
       result = c-this.ease(0,c,d-t,d,0,34)+b;
-    }else if(type===34){ //ease-out bounce
+    }else if(type===34||type==='ease-out-bounce'){
       if ((t/=d) < (1/2.75)) {
         result = c*(7.5625*t*t) + b;
       } else if (t < (2/2.75)) {
@@ -169,7 +169,7 @@ export class Ion{
       } else {
         result = c*(7.5625*(t-=(2.625/2.75))*t + 0.984375) + b;
       } //end if
-    }else if(type===35){ //ease-in-out bounce
+    }else if(type===35||type==='ease-in-out-bounce'){
       if(t<d/2){
         result = this.ease(0,c,t*2,d,0,33)*0.5+b;
       }else{
@@ -219,6 +219,7 @@ export class Ion{
     particle.image = image; //can be an image or a draw function
     particle.imageWidth = this.imageWidth; //width in pixels
     particle.imageHeight = this.imageHeight; //height in pixels
+    return particle;
   } //end Ion.getNew()
 
   // Reset will perform a small number of operations to reset a particle back
