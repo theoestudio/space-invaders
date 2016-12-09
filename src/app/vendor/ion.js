@@ -9,7 +9,7 @@ export class Ion{
     this.endY=y2||1;
     this.windX=0;
     this.windY=0;
-    this.m=0; //modulation factor - only runs if it's set explicitly
+    this.modulate=0; //only runs if it's set explicitly
     this.color='#48F';
     this.clearColor='#000';
     this.retain=null; //this can be set as a function for a draw after clear screen
@@ -193,8 +193,8 @@ export class Ion{
         sy = typeof tsy==='function'?tsy():tsy,
         dx = typeof tdx==='function'?tdx():tdx,
         dy = typeof tdy==='function'?tdy():tdy,
-        c = typeof tc==='function'?ttc():ttc,
-        d = typeof td==='function'?ttd():ttd,
+        c = typeof ttc==='function'?ttc():ttc,
+        d = typeof ttd==='function'?ttd():ttd,
         tt = typeof ttt==='function'?ttt():ttt,
         s = typeof this.size==='function'?this.size():this.size,
         image = typeof this.image==='function'?this.image():this.image,
@@ -204,12 +204,14 @@ export class Ion{
     particle.id = id; //for referencing each particle outside library
     particle.startX = sx;
     particle.startY = sy;
+    particle.originX = particle.startX;
+    particle.originY = particle.startY;
     particle.x = sx;
     particle.y = sy;
     particle.endX = dx;
     particle.endY = dy;
-    particle.terminalX = particle.dx; //original destiation x
-    particle.terminalY = particle.dy; //original destination y
+    particle.terminalX = particle.endX; //original destiation x
+    particle.terminalY = particle.endY; //original destination y
     particle.tweenCurrent = c;
     particle.tweenDuration = d;
     particle.tweenType = tt;
@@ -229,8 +231,8 @@ export class Ion{
   // overridden to perform other operations post-completion of the particles
   // duration.
   reset(particle){
-    particle.x = particle.sx;
-    particle.y = particle.sy;
+    particle.x = particle.startX = particle.originX;
+    particle.y = particle.startY = particle.originY;
     particle.endX = particle.terminalX; //wind may have corrupted endX
     particle.endY = particle.terminalY; //wind may have corrupted endY
     particle.tweenCurrent = 0;
@@ -307,15 +309,6 @@ export class Ion{
     } //end if
   } //end Ion.draw()
 
-  // This function exits early if it wasn't explicitly declared, otherwise
-  // it runs the function specified and sends it the current atom, in the
-  // case that the function utilizes case-specific information. It also
-  // sends the cx,cy,dx, and dy variables
-  modulate(particle){
-    if(typeof this.m !== 'function') return;
-    this.m(particle.id,particle.x,particle.y,particle.endX,particle.endY);
-  } //end Ion.modulate()
-
   // OnCreate function is called when a particle is created for the first
   // time. This allows one to keep track of how far into the creation of all
   // the particles one is given the particle total that they already control.
@@ -362,7 +355,7 @@ export class Ion{
     this.collection.forEach(p=>{
       this.wind(p);
       this.draw(p);
-      this.modulate(p);
+      if(typeof this.modulate ==='function') this.modulate(p);
       if(p.x<0||p.y<0||p.x>v.w||p.y>v.h)this.onEscape(p);
       p.tweenCurrent++;
       if(p.tweenCurrent===p.tweenDuration)this.onEnd(p);
