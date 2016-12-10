@@ -15,7 +15,7 @@ export class IonCloud{
     this.clouds = clouds;
   }
   make(type){
-    if(typeof type === 'String'){
+    if(typeof type === 'string'){
       this.collection.push(this.clouds[type].apply(this,arguments));
     }else{
       this.collection.push(type.apply(this,arguments));
