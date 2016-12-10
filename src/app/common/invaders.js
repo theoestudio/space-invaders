@@ -35,6 +35,8 @@ for(let y=0;y<4;y++){
         dy = Math.floor(y*v.h/3*2/10+v.h/10);
 
     invaders.push(new Invader(invaders.length,(invaders.length/10)|0,dx,dy));
+    break;
   } //end for
+  break;
 } //end for
 export {invaders};
