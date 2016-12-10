@@ -1,7 +1,7 @@
 import {zoomIntoSpace} from './zoomIntoSpace';
 import {IonCloud} from '../vendor/ionCloud';
 
-export function makeItRain() {
+export function spaceInvaders() {
   let scene = new IonCloud();
 
   scene.make(zoomIntoSpace);

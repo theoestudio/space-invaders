@@ -1,7 +1,7 @@
 import 'file-loader?name=[name].html!./index.jade';
 import './app.styl';
 import {easel} from './vendor/easel';
-import {makeItRain} from './common/main';
+import {spaceInvaders} from './common/spaceInvaders';
 
 /**
  * Launch application if easel was able to create a canvas,
@@ -20,6 +20,6 @@ import {makeItRain} from './common/main';
     </p>`;
   }else{
     noscript.style.visibility='hidden';
-    makeItRain();
+    spaceInvaders();
   } //end if
 }
