@@ -16,13 +16,8 @@ class Invader{
     this.tweenDuration = 100;
     this.tweenType = 'ease-out-circular';
     this.size = 1;
-    if(type<0||type>types){ //backup plan
-      this.color = colors[0];
-      this.image = images[0];
-    }else{
-      this.color = colors[type];
-      this.image = images[type];
-    } //end if
+    this.color = colors[type];
+    this.image = images[type];
     this.windX = ()=> r(0.02)-0.01;
     this.windY = ()=> r(0.02)-0.01;
     this.imageWidth = 40;
