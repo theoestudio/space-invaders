@@ -18,10 +18,14 @@ class Invader{
     this.size = 1;
     this.color = colors[type];
     this.image = images[type];
-    this.windX = ()=> r(0.02)-0.01;
-    this.windY = ()=> r(0.02)-0.01;
+    this.windX = 0; //()=> r(0.02)-0.01;
+    this.windY = 0; //()=> r(0.02)-0.01;
     this.imageWidth = 40;
     this.imageHeight = 40;
+    this.onEnd = function invaderFinished(invader){
+      this.status--; //decrement the number left to finish
+      if(this.status===0) this.finished = true;
+    }
   }
 }
 

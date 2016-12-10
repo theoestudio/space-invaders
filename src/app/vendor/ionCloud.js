@@ -29,6 +29,7 @@ export class IonCloud{
     this.clearScene();
     this.collection.forEach((animation,index,collection)=>{
       if(animation.finished){
+        if(typeof animation.onFinished === 'function') animation.onFinished();
         collection.splice(index,1);
       }else{
         animation.getFrame();

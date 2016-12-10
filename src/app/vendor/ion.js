@@ -377,7 +377,7 @@ export class Ion{
       if(typeof this.modulate ==='function') this.modulate(p);
       if(p.x<0||p.y<0||p.x>v.w||p.y>v.h)this.onEscape(p);
       p.tweenCurrent++;
-      if(p.tweenCurrent===p.tweenDuration)this.onEnd(p);
+      if(p.tweenCurrent===p.tweenDuration)p.onEnd.call(this,p);
       if((p.x|0)!==(p.dx|0)) p.x=this.ease(p,'x');
       if((p.y|0)!==(p.dy|0)) p.y=this.ease(p,'y');
     });
