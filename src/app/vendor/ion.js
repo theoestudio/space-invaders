@@ -239,7 +239,7 @@ export class Ion{
   }
 
   // Reevaluate will instead of reseting the particle, reevaluate the starting
-  // conditions of the particle; that is, it may only reset if the starting 
+  // conditions of the particle; that is, it may only reset if the starting
   // conditions aren't functions
   reevaluate(particle){
     particle.x = particle.originX = particle.startX = this.startX();

@@ -49,7 +49,7 @@ export function makeItRain() {
   */
   let scene = new IonCloud();
 
-  scene.make('fire',250,200,100,120,'rgba(250,50,0,0.05)',100);
+  scene.make('flame',250,200,100,120,'rgba(250,50,0,0.05)',100);
   scene.make('vortex',-250,-250,400,()=>{
     scene.make('laser',-250,-250,-150,250);
   });
@@ -69,6 +69,6 @@ export function makeItRain() {
     }else{
       scene.camera.x++;
     } //end if
-    if(scene.camera.x<100||scene.camera.x>v.w-500)scene.camera.dx^=1;
+    if(scene.camera.x<v.w/4||scene.camera.x>v.w/4*3)scene.camera.dx^=1;
   },10);
 } //end app()
