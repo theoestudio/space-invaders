@@ -197,7 +197,8 @@ export class Ion{
         d = typeof ttd==='function'?ttd():ttd,
         tt = typeof ttt==='function'?ttt():ttt,
         s = typeof this.size==='function'?this.size():this.size,
-        image = typeof this.image==='function'?this.image():this.image,
+        image = typeof this.image==='function'?this.image(id):this.image,
+        color = typeof this.color==='function'?this.color(id):this.color,
         particle = {};
 
     this.onCreate(); //even fired as a new particle is created
@@ -218,7 +219,8 @@ export class Ion{
     particle.size = s; //the particle size
     particle.windX = this.windX||0; //wind functions are ran at runtime
     particle.windY = this.windY||0; //wind function are ran at runtime
-    particle.image = image; //can be an image or a draw function
+    particle.color = color; //each particle can be rendered with a diff color
+    particle.image = image; //can be an image or a bit-array
     particle.imageWidth = this.imageWidth; //width in pixels
     particle.imageHeight = this.imageHeight; //height in pixels
     return particle;
@@ -255,8 +257,8 @@ export class Ion{
   // action continues until the total particle quantity is reached.
   populate(wait){
     if(!wait){
-      this.collection = Array.from(new Array(this.quantity),()=>{
-        return this.getNew(this.collection.length);
+      this.collection = Array.from(new Array(this.quantity),(ignore,index)=>{
+        return this.getNew(index);
       });
     }else{
       this.collection.push(this.getNew(this.collection.length));
@@ -368,8 +370,8 @@ export class Ion{
   // on the screen so any clearing will have to be done through the process
   // function or manually.
   getFrame(){
-    ctx.fillStyle=this.color;
     this.collection.forEach(p=>{
+      ctx.fillStyle=p.color;
       this.wind(p);
       this.draw(p);
       if(typeof this.modulate ==='function') this.modulate(p);
