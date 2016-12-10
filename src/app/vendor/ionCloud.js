@@ -15,7 +15,11 @@ export class IonCloud{
     this.clouds = clouds;
   }
   make(type){
-    this.collection.push(this.clouds[type].apply(this,arguments));
+    if(typeof type === 'String'){
+      this.collection.push(this.clouds[type].apply(this,arguments));
+    }else{
+      this.collection.push(type.apply(this,arguments));
+    } //end if
   }
   clearScene(){
     ctx.fillStyle='#000';

@@ -254,12 +254,18 @@ export class Ion{
   // queues up itself asynchronously to create another particle. This recursive
   // action continues until the total particle quantity is reached.
   populate(wait){
-    this.collection.push(this.getNew(this.collection.length));
-    if(this.collection.length<this.quantity){
-      if(typeof wait === 'function'){
-        setTimeout(()=> this.populate(wait),wait());
-      }else{
-        requestAnimationFrame(()=> this.populate());
+    if(!wait){
+      this.collection = Array.from(new Array(this.quantity),()=>{
+        return this.getNew(this.collection.length);
+      });
+    }else{
+      this.collection.push(this.getNew(this.collection.length));
+      if(this.collection.length<this.quantity){
+        if(typeof wait === 'function'){
+          setTimeout(()=> this.populate(wait),wait());
+        }else{
+          requestAnimationFrame(()=> this.populate());
+        } //end if
       } //end if
     } //end if
   }
