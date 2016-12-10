@@ -49,10 +49,10 @@ export function makeItRain() {
   */
   let scene = new IonCloud();
 
-  scene.make('flame',250,200,100,120,'rgba(250,50,0,0.05)',100);
-  scene.make('vortex',-250,-250,400,()=>{
-    scene.make('laser',-250,-250,-150,250);
-  });
+  scene.make('vortex',0,0,v.w,320);
+  //scene.make('vortex',-250,-250,400,()=>{
+  //  scene.make('laser',-250,-250,-150,250);
+  //});
   scene.draw();
   scene.clearScene=()=>{
     // Clear screen
@@ -63,6 +63,7 @@ export function makeItRain() {
     ctx.fillStyle='rgba(10,80,10,0.7)';
     ctx.fillRect(0,v.h/4*3,v.w,v.h/4);
   };
+  /*
   setInterval(()=>{
     if(scene.camera.dx===0){
       scene.camera.x--;
@@ -71,4 +72,5 @@ export function makeItRain() {
     } //end if
     if(scene.camera.x<v.w/4||scene.camera.x>v.w/4*3)scene.camera.dx^=1;
   },10);
+  */
 } //end app()

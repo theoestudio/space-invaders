@@ -1,8 +1,9 @@
 import {Ion} from '../ion';
 
-export function vortex(name,sx,sy,s,callback){
-  let status = 200,
-      cloud = new Ion(status),
+export function vortex(name,sx,sy,s,d,t,callback){
+  let iterations = t || Infinity,
+      density = d || 200,
+      cloud = new Ion(density),
       startX = sx || 0,
       startY = sy || 0,
       size = s || 300;
@@ -17,13 +18,13 @@ export function vortex(name,sx,sy,s,callback){
   cloud.tweenType = 'ease-out-circular';
   cloud.tweenDuration = ()=> r(100,200,true);
   cloud.onEnd = function onEnd(particle){
-    if(status<50&&status>0){
-      callback();
-      status--;
-    }else if(status>0){
-      status--;
+    if(iterations<50&&iterations>0){
+      if(typeof callback === 'function') callback();
+      iterations--;
+    }else if(iterations>0){
+      iterations--;
       this.reevaluate(particle);
-    }else if(status===0){
+    }else if(iterations===0){
       cloud.finished = true;
     }//end if
   };
