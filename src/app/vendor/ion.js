@@ -177,7 +177,7 @@ export class Ion{
       } //end if
     }//end if
     return result;
-  } //end Ion.ease()
+  }
 
   // getNew will create a new particle and return that result. It's possible to override the
   // function to develop a custom particle generator for more specific applications.
@@ -222,7 +222,7 @@ export class Ion{
     particle.imageWidth = this.imageWidth; //width in pixels
     particle.imageHeight = this.imageHeight; //height in pixels
     return particle;
-  } //end Ion.getNew()
+  }
 
   // Reset will perform a small number of operations to reset a particle back
   // to a starting state instead of actually generating a new particle. This
@@ -236,7 +236,18 @@ export class Ion{
     particle.endX = particle.terminalX; //wind may have corrupted endX
     particle.endY = particle.terminalY; //wind may have corrupted endY
     particle.tweenCurrent = 0;
-  } //end Ion.reset()
+  }
+
+  // Reevaluate will instead of reseting the particle, reevaluate the starting
+  // conditions of the particle; that is, it may only reset if the starting 
+  // conditions aren't functions
+  reevaluate(particle){
+    particle.x = particle.originX = particle.startX = this.startX();
+    particle.y = particle.originY = particle.startY = this.startY();
+    particle.endX = particle.terminalX = this.endX();
+    particle.endY = particle.terminalY = this.endY();
+    particle.tweenCurrent = 0;
+  }
 
   // Populate pushes a new particle into the particles array then checks to see
   // if the specified particle number has been reached, if it hasn't, then it
@@ -251,7 +262,7 @@ export class Ion{
         requestAnimationFrame(()=> this.populate());
       } //end if
     } //end if
-  } //end Ion.populate()
+  }
 
   // Wind applies noise values on the movement patterns of the particles
   // instead of them performing their tweening operations unhindered. This
@@ -278,7 +289,7 @@ export class Ion{
     }else{
       particle.startY += particle.windY;
     } //end if
-  } //end Ion.wind()
+  }
 
   // Draw simply draws a particle indicated by its index number
   draw(particle){
@@ -307,7 +318,7 @@ export class Ion{
     }else{
       ctx.fillRect(p.x,p.y,s,s);
     } //end if
-  } //end Ion.draw()
+  }
 
   // OnCreate function is called when a particle is created for the first
   // time. This allows one to keep track of how far into the creation of all
@@ -343,7 +354,7 @@ export class Ion{
     }else{
       setTimeout(()=>this.process(),this.tweenSpeed);
     } //end if
-  } //end Ion.process()
+  }
 
   // getFrame is the main function that performs operations on each particle.
   // It immediately flips those variables after they've been computed. There
@@ -362,6 +373,6 @@ export class Ion{
       if((p.x|0)!==(p.dx|0)) p.x=this.ease(p,'x');
       if((p.y|0)!==(p.dy|0)) p.y=this.ease(p,'y');
     });
-  } //end Ion.getFrame()
+  }
 } //end class Ion
 export default {Ion};

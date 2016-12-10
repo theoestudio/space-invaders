@@ -47,13 +47,14 @@ export function makeItRain() {
   makeItRain.populate(()=> r(1,250));
   makeItRain.process(); //begin processing the scene
   */
-  var scene = new IonCloud();
+  let scene = new IonCloud();
+
   scene.make('fire',250,200,100,120,'rgba(250,50,0,0.05)',100);
-  scene.make('vortex',-250,-250,400,function(){
+  scene.make('vortex',-250,-250,400,()=>{
     scene.make('laser',-250,-250,-150,250);
   });
   scene.draw();
-  scene.clearScene=function(){
+  scene.clearScene=()=>{
     // Clear screen
     ctx.fillStyle='#000';
     ctx.fillRect(0,0,v.w,v.h);
@@ -62,7 +63,7 @@ export function makeItRain() {
     ctx.fillStyle='rgba(10,80,10,0.7)';
     ctx.fillRect(0,v.h/4*3,v.w,v.h/4);
   };
-  setInterval(function(){
+  setInterval(()=>{
     if(scene.camera.dx===0){
       scene.camera.x--;
     }else{

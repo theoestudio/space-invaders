@@ -14,13 +14,13 @@ export class IonCloud{
     };
     this.objects=[];
     this.template={
-      fire(name,x,y,width,height,color,quality){
-        let flame = new Ion(2*(quality||100));
+      fire(name,sx,sy,w,h,color,quality){
+        let flame = new Ion(2*(quality||100)),
+            x = sx||0,
+            y = sy||0,
+            width= w||20,
+            height= h||100;
 
-        x=x||0;
-        y=y||0;
-        width=width||20;
-        height=height||100;
         flame.clear = false;
         flame.color = color||'rgba(250,170,0,0.2)';
         flame.startX = ()=> this.camera.x+x+r(0,width)-width/2;
@@ -31,10 +31,8 @@ export class IonCloud{
         flame.windY = ()=> r(0,2)-2;
         flame.tweenType = ()=> r(10,20,true);
         flame.tweenDuration = ()=> r(300,600,false);
-        flame.onEscape = function onEscape(particle){
-          this.onEnd(particle); 
-        }
-        flame.onEnd =  flame.reset;
+        flame.onEscape = function onEscape(p){ this.onEnd(p); };
+        flame.onEnd =  flame.reevaluate;
         flame.modulate = function modulate(particle){
           let size=(height+width)/4;
 
@@ -48,13 +46,13 @@ export class IonCloud{
         flame.populate();
         return flame;
       },
-      vortex(name,startX,startY,size,callback){
+      vortex(name,sx,sy,s,callback){
         let status = 200,
-            cloud = new Ion(status);
+            cloud = new Ion(status),
+            startX = sx || 0,
+            startY = sy || 0,
+            size = s || 300;
 
-        startX = startX || 0;
-        startY = startY || 0;
-        size = size || 300;
         cloud.clear = false;
         cloud.color = 'rgba(200,200,255,0.7)';
         cloud.startX = ()=> this.camera.x+r(-1*size/2,size/2)+startX;
@@ -62,16 +60,17 @@ export class IonCloud{
         cloud.endX = ()=> this.camera.x+startX;
         cloud.endY = ()=> this.camera.y+startY;
         cloud.size = ()=> r(1,5);
-        cloud.tweenType = ()=> r(19,19,false);
-        cloud.tweenDuration = ()=> r(100,200,false);
+        cloud.tweenType = 'ease-out-circular';
+        cloud.tweenDuration = ()=> r(100,200,true);
         cloud.onEnd = function onEnd(particle){
-          status--;
-          if(status<20&&status>0){
+          if(status<50&&status>0){
+            cloud.color = `rgba(200,200,255,${1/20*status})`;
             callback();
-            status=-1;
-          }else if(status>20){
-            particle.tweenCurrent--;
-          } //end if
+            status--;
+          }else if(status>0){
+            status--;
+            this.reset(particle);
+          }//end if
         };
         cloud.modulate = function modulate(particle){
           particle.endX = cloud.endX();
@@ -80,15 +79,15 @@ export class IonCloud{
         cloud.populate();
         return cloud;
       },
-      laser(name,startX,startY,endX,endY,size){
+      laser(name,sx,sy,dx,dy,s){
         let status = 200,
-            beam = new Ion(status);
+            beam = new Ion(status),
+            startX = sx || 0,
+            startY = sy || 0,
+            endX = dx || 0,
+            endY = dy || 0,
+            size = s || 10;
 
-        startX = startX||0;
-        startY = startY||0;
-        endX = endX||0;
-        endY = endY||0;
-        size = size||10;
         beam.clear = false;
         beam.color = 'rgba(250,250,150,0.5)';
         beam.startX = ()=> this.camera.x+endX;
@@ -100,24 +99,24 @@ export class IonCloud{
         beam.size = ()=> r(2,4);
         beam.tweenType = ()=> r(10,15,false);
         beam.tweenDuration = ()=> r(100,150,false);
-        beam.onEscape = function onEscape(p){ this.onEnd(p); }
+        beam.onEscape = function onEscape(p){ this.onEnd(p); };
         beam.onEnd = function onEnd(){};
         beam.onCreate = ()=> status--;
         beam.populate();
         return {
-          getFrame(){
+          getFrame: ()=>{
             ctx.strokeStyle='rgba(100,100,250,'+0.1/200*status+')';
             ctx.lineWidth=17;
             if(status>0){
               ctx.beginPath();
-              ctx.moveTo(that.camera.x+startX+3,that.camera.y+startY);
-              ctx.lineTo(that.camera.x+endX+3,that.camera.y+endY);
+              ctx.moveTo(this.camera.x+startX+3,this.camera.y+startY);
+              ctx.lineTo(this.camera.x+endX+3,this.camera.y+endY);
               ctx.stroke();
               ctx.strokeStyle='#DDF';
               ctx.lineWidth=2;
               ctx.beginPath();
-              ctx.moveTo(that.camera.x+startX+3,that.camera.y+startY);
-              ctx.lineTo(that.camera.x+endX+3,that.camera.y+endY);
+              ctx.moveTo(this.camera.x+startX+3,this.camera.y+startY);
+              ctx.lineTo(this.camera.x+endX+3,this.camera.y+endY);
               ctx.stroke();
             } //end if
             beam.getFrame();
