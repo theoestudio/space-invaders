@@ -378,8 +378,8 @@ export class Ion{
       if(p.x<0||p.y<0||p.x>v.w||p.y>v.h)this.onEscape(p);
       p.tweenCurrent++;
       if(p.tweenCurrent===p.tweenDuration)p.onEnd.call(this,p);
-      if((p.x|0)!==(p.dx|0)) p.x=this.ease(p,'x');
-      if((p.y|0)!==(p.dy|0)) p.y=this.ease(p,'y');
+      if((p.x|0)!==(p.endX|0)) p.x=this.ease(p,'x');
+      if((p.y|0)!==(p.endY|0)) p.y=this.ease(p,'y');
     });
   }
 } //end class Ion
