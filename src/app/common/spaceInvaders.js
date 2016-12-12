@@ -32,7 +32,7 @@ function missileAttacks(){
     m.id = missiles.length;
     m.x = m.originX = m.startX = m.terminalX = m.endX = invader.x;
     m.y = m.originY = m.startY = invader.y;
-    m.endY = m.terminalY = v.h;
+    m.endY = m.terminalY = m.y+v.h;
     m.tweenCurrent = 0;
     m.tweenDuration = 200;
     m.tweenType = 'linear';
