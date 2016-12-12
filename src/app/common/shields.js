@@ -1,50 +1,47 @@
+const brickWidth = 10, brickHeight = 5;
+
 class Brick{
   constructor(x,y){
     this.x = x||0;
     this.y = y||0;
-    this.width = 10;
-    this.height = 5;
+    this.width = brickWidth;
+    this.height = brickHeight;
   }
 }
 class Stack{
-  constructor(x,y,layers){
+  constructor(x,y){
     this.bricks = [];
-    this.layers = layers || 2;
-    this.width = 0;
-    this.height = 0;
+    this.brickHeight = 10;
     this.x = x;
     this.y = y;
-    for(let i=0,brick,cy=y;i<this.layers;i++){
+    for(let i=0,brick,cy=y;i<this.brickHeight;i++){
       brick = new Brick(this.x,cy);
-      cy += brick.height;
-      this.width = brick.width;
-      this.height += brick.height;
+      cy += brickHeight;
       this.bricks.push(brick);
     } //end for
   }
 }
 class Shield{
-  constructor(x,y,depth){
+  constructor(x,y){
     this.stacks = [];
-    this.depth = depth || 10;
-    this.width = 0;
-    this.height = 0;
+    this.stackWidth = 12;
+    this.width = brickWidth*this.stackWidth;
+    this.arcRadius = 30;
     this.x = x;
     this.y = y;
-    for(let i=0,stack,cx=x;i<this.depth;i++){
-      stack = new Stack(cx,this.y,10);
-      cx += stack.width;
-      this.width += stack.width;
-      this.height += stack.height;
+    for(let i=0,stack,cx=this.x,cy;i<=this.stackWidth;i++){
+      cy = this.y-this.arcRadius*Math.sin(Math.PI/this.width*(brickWidth*i));
+      stack = new Stack(cx,cy);
+      cx += brickWidth;
       this.stacks.push(stack);
     } //end for
   }
 }
 
 let shields = [
-  new Shield(v.w/4,v.h-200),
-  new Shield(v.w/4*2,v.h-200),
-  new Shield(v.w/4*3,v.h-200)
+  new Shield(v.w/4,v.h-130),
+  new Shield(v.w/4*2,v.h-130),
+  new Shield(v.w/4*3,v.h-130)
 ];
 
 export {shields};

@@ -23,12 +23,30 @@ export function spaceInvaders() {
     ctx.fillStyle='rgba(10,80,10,0.7)';
     ctx.fillRect(0,v.h-10,v.w,10);
 
+    // Detect missile collision
+    missiles.forEach((m,mi,mo)=>{
+      if(m.y>v.h-200){ //don't even bother until low enough
+        shields.some(s=>{ //shield
+          return s.stacks.some((s,si,so)=>{ //stack
+            let b = s.bricks[0]; //only top brick can ever be hit
+
+            if(b.x<=m.x&&b.y<=m.y&&b.x+b.width>=m.x&&b.y+b.height>=m.y){
+              s.bricks.shift();
+              mo.splice(mi,1);
+              if(s.bricks.length===0) so.splice(si,1);
+              return true; //found right stack bricks missile would be hit
+            } //end if
+          });
+        });
+      } //end if
+    });
+
     // Draw shields
     ctx.fillStyle='#2dbfd4';
     shields.forEach(shield=>{
       shield.stacks.forEach(stack=>{
-        stack.bricks.forEach(brick=>{
-          ctx.fillRect(brick.x,brick.y,brick.width,brick.height);
+        stack.bricks.forEach(b=>{ //render brick
+          ctx.fillRect(b.x,b.y,b.width,b.height);
         });
       });
     });
@@ -66,7 +84,7 @@ function missileAttacks(){
       this.collection.forEach((p,i)=> p.id=i); //re-index array
     };
     missiles.push(m);
-    setTimeout(generateMissile,r(500,2000,true));
+    setTimeout(generateMissile,r(50,100,true));
   })();
   missileAttacks.collection = missiles;
   return missileAttacks;
