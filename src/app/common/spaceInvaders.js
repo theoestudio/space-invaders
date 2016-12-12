@@ -14,7 +14,7 @@ export function spaceInvaders() {
   });
   scene.clearScene = function clearScene(){
     // Clear screen
-    ctx.fillStyle='#000';
+    ctx.fillStyle='rgba(0,0,0,0.1)';
     ctx.fillRect(0,0,v.w,v.h);
 
     // Draw a ground
@@ -82,7 +82,7 @@ function missileAttacks(){
       this.collection.forEach((p,i)=> p.id=i); //re-index array
     };
     missiles.push(m);
-    setTimeout(generateMissile,r(50,100,true));
+    setTimeout(generateMissile,r(100,500,true));
   })();
   missileAttacks.collection = missiles;
   return missileAttacks;

@@ -1,19 +1,17 @@
 export class Ion{
-  constructor(quantity,size,x1,y1,x2,y2){
+  constructor(quantity,size,startX,startY,endX,endY){
     this.collection=[];
-    this.clear=true;
+    this.clearFrame=true;
     this.quantity=quantity||1;
-    this.startX=x1||0;
-    this.startY=y1||0;
-    this.endX=x2||1;
-    this.endY=y2||1;
+    this.size=size||1;
+    this.startX=startX||0;
+    this.startY=startY||0;
+    this.endX=endX||1;
+    this.endY=endY||1;
     this.windX=0;
     this.windY=0;
-    this.modulate=0; //only runs if it's set explicitly
     this.color='#48F';
     this.clearColor='#000';
-    this.retain=null; //this can be set as a function for a draw after clear screen
-    this.size=size||1;
     this.tweenType=0;
     this.tweenCurrent=0;
     this.tweenDuration=1000;
@@ -25,12 +23,12 @@ export class Ion{
   // and the normalization of the transition between the two with respect to
   // starting time, a given duration, and the function to impose upon the
   // transition from that start position to it's destination.
-  ease(particle,axis){
+  tween(particle,axis,optionalOrientation,optionalType,optionalTime){
     let result, //returns the current x or y location
-        t = particle.tweenCurrent,
+        t = optionalTime||particle.tweenCurrent,
         d = particle.tweenDuration,
-        o = 0.3, //modification orientation strength
-        type = particle.tweenType,
+        o = optionalOrientation||0.3, //modification orientation strength
+        type = optionalType||particle.tweenType,
         b,c; //beginning position and change in position
 
     if(axis==='x'){
@@ -91,7 +89,7 @@ export class Ion{
     }else if(type===20||type==='ease-in-out-circular'){
       result = ((t/=d/2)<1)?-c/2*(Math.sqrt(1-t*t)-1)+b:c/2*(Math.sqrt(1-(t-=2)*t)+1)+b;
     }else if(type===21||type==='ease-in-elastic-loose'){
-      result = this.ease(this,b,c,t,d,0.5,22);
+      result = this.tween(particle,axis,0.5,'ease-in-elastic-normal');
     }else if(type===22||type==='ease-in-elastic-normal'){
       result = (()=>{
         var s=1.70158,p=0,a=c;
@@ -107,9 +105,9 @@ export class Ion{
         return -(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )) + b;
       })();
     }else if(type===23||type==='ease-in-elastic-string'){
-      result = this.ease(b,c,t,d,0.1,22);
+      result = this.tween(particle,axis,0.1,'ease-in-elastic-normal');
     }else if(type===24||type==='ease-out-elastic-loose'){
-      result = this.ease(b,c,t,d,0.5,25);
+      result = this.tween(particle,axis,0.5,'ease-out-elastic-normal');
     }else if(type===25||type==='ease-out-elastic-normal'){
       result = (()=>{
         var s=1.70158,p=0,a=c;
@@ -125,9 +123,9 @@ export class Ion{
         return a*Math.pow(2,-10*t) * Math.sin( (t*d-s)*(2*Math.PI)/p ) + c + b;
       })();
     }else if(type===26||type==='ease-out-elastic-strong'){
-      result = this.ease(b,c,t,d,0.1,25);
+      result = this.tween(particle,axis,0.1,'ease-out-elastic-normal');
     }else if(type===27||type==='ease-in-out-elastic-loose'){
-      result = this.ease(b,c,t,d,0.5,28);
+      result = this.tween(particle,axis,0.5,'ease-in-out-elastic-normal');
     }else if(type===28||type==='ease-in-out-elastic-normal'){
       result = (()=>{
         var s=1.70158,p=0,a=c;
@@ -144,7 +142,7 @@ export class Ion{
         return a*Math.pow(2,-10*(t-=1)) * Math.sin( (t*d-s)*(2*Math.PI)/p )*0.5 + c + b;
       })();
     }else if(type===29||type==='ease-in-out-elastic-strong'){
-      result = this.ease(b,c,t,d,0.1,28);
+      result = this.tween(particle,axis,0.1,'ease-in-out-elastic-normal');
     }else if(type===30||type==='ease-in-back'){
       result = c*(t/=d)*t*((1.70158+1)*t - 1.70158) + b;
     }else if(type===31||type==='ease-out-back'){
@@ -158,7 +156,7 @@ export class Ion{
         result = c/2*((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2) + b;
       } //end if
     }else if(type===33||type==='ease-in-bounce'){
-      result = c-this.ease(0,c,d-t,d,0,34)+b;
+      result = c-this.tween(particle,axis,0,'ease-out-bounce')+b;
     }else if(type===34||type==='ease-out-bounce'){
       if ((t/=d) < (1/2.75)) {
         result = c*(7.5625*t*t) + b;
@@ -171,16 +169,17 @@ export class Ion{
       } //end if
     }else if(type===35||type==='ease-in-out-bounce'){
       if(t<d/2){
-        result = this.ease(0,c,t*2,d,0,33)*0.5+b;
+        result = this.tween(particle,axis,0,'ease-in-bounce',t*2)*0.5+b;
       }else{
-        result = this.ease(0,c,t*2-d,d,0,34)*0.5+c*0.5+b;
+        result = this.tween(particle,axis,0,'ease-out-bounce',t*2-d)*0.5+c*0.5+b;
       } //end if
     }//end if
     return result;
   }
 
-  // getNew will create a new particle and return that result. It's possible to override the
-  // function to develop a custom particle generator for more specific applications.
+  // getNew will create a new particle and return that result. It's possible
+  // to override the function to develop a custom particle generator for more
+  // specific applications.
   getNew(id){
     var ttc = this.tweenCurrent,
         ttd = this.tweenDuration,
@@ -227,11 +226,8 @@ export class Ion{
   }
 
   // Reset will perform a small number of operations to reset a particle back
-  // to a starting state instead of actually generating a new particle. This
-  // can be helpful if you want to retain it's current location or properties
-  // that have been computed thus far. It's further helpful because it can be
-  // overridden to perform other operations post-completion of the particles
-  // duration.
+  // to its starting state instead of actually generating a new particle. This
+  // can be helpful if you want to retain it's original starting location.
   reset(particle){
     particle.x = particle.startX = particle.originX;
     particle.y = particle.startY = particle.originY;
@@ -244,10 +240,15 @@ export class Ion{
   // conditions of the particle; that is, it may only reset if the starting
   // conditions aren't functions
   reevaluate(particle){
-    particle.x = particle.originX = particle.startX = this.startX();
-    particle.y = particle.originY = particle.startY = this.startY();
-    particle.endX = particle.terminalX = this.endX();
-    particle.endY = particle.terminalY = this.endY();
+    let startX = typeof this.startX==='function'?this.startX():this.startX,
+        startY = typeof this.startY==='function'?this.startY():this.startY,
+        endX = typeof this.endX==='function'?this.endX():this.endX,
+        endY = typeof this.endY==='function'?this.endY():this.endY;
+
+    particle.x = particle.originX = particle.startX = startX;
+    particle.y = particle.originY = particle.startY = startY;
+    particle.endX = particle.terminalX = endX;
+    particle.endY = particle.terminalY = endY;
     particle.tweenCurrent = 0;
   }
 
@@ -265,9 +266,11 @@ export class Ion{
       if(this.collection.length<this.quantity){
         if(typeof wait === 'function'){
           setTimeout(()=> this.populate(wait),wait());
-        }else{
-          requestAnimationFrame(()=> this.populate());
-        } //end if
+        }else if(typeof wait === 'number'){
+          setTimeout(()=> this.populate(),wait);
+        }else{ //assume its boolean or invalid and allow generic wait
+          setTimeout(()=> this.populate(),1);
+        }//end if
       } //end if
     } //end if
   }
@@ -299,19 +302,31 @@ export class Ion{
     } //end if
   }
 
-  // Draw simply draws a particle indicated by its index number
-  draw(particle){
+  // OnMove function is called right before a particle is moved
+  onMove(particle){}
+
+  // Draw simply draws a particle
+  draw(particle,isClear){
     let p = particle,
         image = p.image,
         s = p.size;
 
+    if(isClear){
+      ctx.fillStyle = this.clearColor;
+    }else{
+      ctx.fillStyle = particle.color;
+    } //end if
     if(image && image instanceof Array && image.length){
       let scaleX = p.imageWidth/image[0].length,
           scaleY = p.imageHeight/image.length;
 
       image.forEach((yo,y)=>{
         yo.forEach((xo,x)=>{
-          if(xo) ctx.fillRect(p.x+x*scaleX,p.y+y*scaleY,s*scaleX,s*scaleY);
+          if(isClear&&xo){
+            ctx.fillRect(p.x+x*scaleX-1,p.y+y*scaleY-1,s*scaleX+1,s*scaleY+1);
+          }else if(xo){
+            ctx.fillRect(p.x+x*scaleX,p.y+y*scaleY,s*scaleX,s*scaleY);
+          } //end if
         });
       });
     }else if(image){ //image was passed, use it instead of a pixel particle
@@ -326,6 +341,11 @@ export class Ion{
     }else{
       ctx.fillRect(p.x,p.y,s,s);
     } //end if
+  }
+
+  // Clear simply clears a particle
+  clear(particle){
+    this.draw(particle,true);
   }
 
   // OnCreate function is called when a particle is created for the first
@@ -345,18 +365,10 @@ export class Ion{
   // function and after updating, queues the next update frame. It will
   // also auto-clear. This function is mostly used for testing a single
   // Ion instance. Most mock-ups of Ion should be done using the getFrame
-  // function and manually resetting the canvas as needed
   process(){
-    if(typeof this.clear === 'function'){ //override clear function, use it instead
-      this.clear();
-    } else if(this.clear){ //sent as some truthy value, likely boolean true
-      ctx.fillStyle=this.clearColor;
-      ctx.fillRect(0,0,v.w,v.h);
-    } //end if
-    if(this.clear && this.retain){
-      this.retain(); //if there is a retaining script, run it
-    } //end if
-    this.getFrame(); //call getFrame() to receive and flip all pixel information for next update
+    this.clearFrame();
+    this.getFrame();
+    this.afterDraw();
     if(this.tweenSpeed===1){
       requestAnimationFrame(()=>this.process());
     }else{
@@ -364,22 +376,28 @@ export class Ion{
     } //end if
   }
 
-  // getFrame is the main function that performs operations on each particle.
-  // It immediately flips those variables after they've been computed. There
-  // is no clearing of pixels, it superimposes onto what's already available
-  // on the screen so any clearing will have to be done through the process
-  // function or manually.
+  // afterDraw function is called after an entire frame has finished rendering
+  afterDraw(){}
+
+  // this clears everything on the screen
+  clearFrame(){
+    ctx.fillStyle=this.clearColor;
+    ctx.fillRect(0,0,v.w,v.h);
+  }
+
+  // getFrame is what operates on the tweening functions for the particles,
+  // it calls the draw function for each particle after its operations
   getFrame(){
     this.collection.forEach(p=>{
-      ctx.fillStyle=p.color;
+      if(p.imageClear) this.clear(p);
       this.wind(p);
-      this.draw(p);
-      if(typeof this.modulate ==='function') this.modulate(p);
+      this.onMove(p);
       if(p.x<0||p.y<0||p.x>v.w||p.y>v.h)this.onEscape(p);
+      if((p.x|0)!==(p.endX|0)) p.x=this.tween(p,'x');
+      if((p.y|0)!==(p.endY|0)) p.y=this.tween(p,'y');
       p.tweenCurrent++;
       if(p.tweenCurrent===p.tweenDuration)p.onEnd.call(this,p);
-      if((p.x|0)!==(p.endX|0)) p.x=this.ease(p,'x');
-      if((p.y|0)!==(p.endY|0)) p.y=this.ease(p,'y');
+      this.draw(p);
     });
   }
 } //end class Ion

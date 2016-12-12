@@ -22,6 +22,7 @@ class Invader{
     this.windY = ()=> r(0.02)-0.01;
     this.imageWidth = 40;
     this.imageHeight = 40;
+    this.imageClear = true;
     this.onEnd = function invaderFinished(invader){
       this.status--; //decrement the number left to finish
       if(this.status===0) this.finished = true;
