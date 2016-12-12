@@ -39,7 +39,10 @@ function missileAttacks(){
     m.size = 5;
     m.color = '#f00';
     m.windX = m.windY = 0;
-    m.onEnd = ()=>{};
+    m.onEnd = function onEnd(particle){
+      this.collection.splice(particle.id,1);
+      this.collection.forEach((p,i)=> p.id=i); //re-index array
+    };
     missiles.push(m);
     setTimeout(generateMissile,r(1000,3000,true));
     console.log(missiles.length);
