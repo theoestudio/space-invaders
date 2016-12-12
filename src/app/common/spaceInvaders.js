@@ -39,7 +39,7 @@ function missileAttacks(){
     m.size = 5;
     m.color = '#f00';
     m.windX = m.windY = 0;
-    m.onEnd = function(){}
+    m.onEnd = ()=>{};
     missiles.push(m);
     setTimeout(generateMissile,r(1000,3000,true));
     console.log(missiles.length);

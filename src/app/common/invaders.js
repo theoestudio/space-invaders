@@ -37,7 +37,5 @@ for(let y=0;y<4;y++){
     invaders.push(new Invader(invaders.length,(invaders.length/10)|0,dx,dy));
   } //end for
 } //end for
-invaders.getRandom = function(){
-  return invaders[r(0,invaders.length,true)];
-};
+invaders.getRandom = ()=> invaders[r(0,invaders.length,true)];
 export {invaders};
