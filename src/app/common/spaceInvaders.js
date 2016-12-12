@@ -2,10 +2,15 @@ import {invaders} from './invaders';
 import {IonCloud} from '../vendor/ionCloud';
 import {Ion} from '../vendor/ion';
 
+let missiles = [];
+
 export function spaceInvaders() {
   let scene = new IonCloud();
 
-  scene.make(zoomIntoSpace,()=> scene.make(zigZag));
+  scene.make(zoomIntoSpace,()=>{
+    scene.make(zigZag);
+    scene.make(missileAttacks);
+  });
   scene.draw();
 } //end app()
 
@@ -17,6 +22,31 @@ function zoomIntoSpace(__this,callback){
   zoomIntoSpace.onFinished = callback;
   return zoomIntoSpace;
 } //end zoomIntoSpace()
+
+function missileAttacks(){
+  let missileAttacks = new Ion();
+
+  (function generateMissile(){
+    let m = {}, invader = invaders.getRandom();
+
+    m.id = missiles.length;
+    m.x = m.originX = m.startX = m.terminalX = m.endX = invader.x;
+    m.y = m.originY = m.startY = invader.y;
+    m.endY = m.terminalY = v.h;
+    m.tweenCurrent = 0;
+    m.tweenDuration = 200;
+    m.tweenType = 'linear';
+    m.size = 5;
+    m.color = '#f00';
+    m.windX = m.windY = 0;
+    m.onEnd = function(){}
+    missiles.push(m);
+    setTimeout(generateMissile,r(1000,3000,true));
+    console.log(missiles.length);
+  })();
+  missileAttacks.collection = missiles;
+  return missileAttacks;
+} //end missiles()
 
 function zigZag(){
   let zigZag = new Ion();
