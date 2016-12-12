@@ -1,6 +1,9 @@
 import {invaders} from './invaders';
 import {IonCloud} from '../vendor/ionCloud';
 import {Ion} from '../vendor/ion';
+import {shields} from './shields';
+
+console.log('shields',shields);
 
 let missiles = [];
 
@@ -11,6 +14,25 @@ export function spaceInvaders() {
     scene.make(zigZag);
     scene.make(missileAttacks);
   });
+  scene.clearScene = function clearScene(){
+    // Clear screen
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,v.w,v.h);
+
+    // Draw a ground
+    ctx.fillStyle='rgba(10,80,10,0.7)';
+    ctx.fillRect(0,v.h-10,v.w,10);
+
+    // Draw shields
+    ctx.fillStyle='#2dbfd4';
+    shields.forEach(shield=>{
+      shield.stacks.forEach(stack=>{
+        stack.bricks.forEach(brick=>{
+          ctx.fillRect(brick.x,brick.y,brick.width,brick.height);
+        });
+      });
+    });
+  };
   scene.draw();
 } //end app()
 
@@ -44,8 +66,7 @@ function missileAttacks(){
       this.collection.forEach((p,i)=> p.id=i); //re-index array
     };
     missiles.push(m);
-    setTimeout(generateMissile,r(1000,3000,true));
-    console.log(missiles.length);
+    setTimeout(generateMissile,r(500,2000,true));
   })();
   missileAttacks.collection = missiles;
   return missileAttacks;
