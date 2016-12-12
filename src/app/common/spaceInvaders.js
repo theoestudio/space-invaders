@@ -3,8 +3,6 @@ import {IonCloud} from '../vendor/ionCloud';
 import {Ion} from '../vendor/ion';
 import {shields} from './shields';
 
-console.log('shields',shields);
-
 let missiles = [];
 
 export function spaceInvaders() {
@@ -34,7 +32,7 @@ export function spaceInvaders() {
               s.bricks.shift();
               mo.splice(mi,1);
               if(s.bricks.length===0) so.splice(si,1);
-              return true; //found right stack bricks missile would be hit
+              return true; //deleted a brick, short circuit
             } //end if
           });
         });

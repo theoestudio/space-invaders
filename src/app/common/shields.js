@@ -30,7 +30,7 @@ class Shield{
     this.x = x;
     this.y = y;
     for(let i=0,stack,cx=this.x,cy;i<=this.stackWidth;i++){
-      cy = this.y-this.arcRadius*Math.sin(Math.PI/this.width*(brickWidth*i));
+      cy = this.y-this.arcRadius*Math.sin(Math.PI/this.width*brickWidth*i);
       stack = new Stack(cx,cy);
       cx += brickWidth;
       this.stacks.push(stack);
