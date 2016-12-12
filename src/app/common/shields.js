@@ -22,12 +22,12 @@ class Stack{
   }
 }
 class Shield{
-  constructor(x,y){
+  constructor(xPercentage,y){
     this.stacks = [];
     this.stackWidth = 12;
     this.width = brickWidth*this.stackWidth;
     this.arcRadius = 30;
-    this.x = x;
+    this.x = xPercentage*v.w-this.width/2;
     this.y = y;
     for(let i=0,stack,cx=this.x,cy;i<=this.stackWidth;i++){
       cy = this.y-this.arcRadius*Math.sin(Math.PI/this.width*brickWidth*i);
@@ -39,9 +39,9 @@ class Shield{
 }
 
 let shields = [
-  new Shield(v.w/4,v.h-130),
-  new Shield(v.w/4*2,v.h-130),
-  new Shield(v.w/4*3,v.h-130)
+  new Shield(1/4,v.h-130),
+  new Shield(1/2,v.h-130),
+  new Shield(3/4,v.h-130)
 ];
 
 export {shields};

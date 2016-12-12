@@ -23,14 +23,16 @@ export function spaceInvaders() {
 
     // Detect missile collision
     missiles.forEach((m,mi,mo)=>{
-      if(m.y>v.h-200){ //don't even bother until low enough
+      if(m.y>v.h-10){ //missile hit the ground
+        mo.splice(mi,1); //remove missile
+      }else if(m.y>v.h-200){ //don't even bother until low enough
         shields.some(s=>{ //shield
           return s.stacks.some((s,si,so)=>{ //stack
             let b = s.bricks[0]; //only top brick can ever be hit
 
             if(b.x<=m.x&&b.y<=m.y&&b.x+b.width>=m.x&&b.y+b.height>=m.y){
-              s.bricks.shift();
-              mo.splice(mi,1);
+              s.bricks.shift(); //remove destroyed brick
+              mo.splice(mi,1); //remove missile
               if(s.bricks.length===0) so.splice(si,1);
               return true; //deleted a brick, short circuit
             } //end if
@@ -43,9 +45,7 @@ export function spaceInvaders() {
     ctx.fillStyle='#2dbfd4';
     shields.forEach(shield=>{
       shield.stacks.forEach(stack=>{
-        stack.bricks.forEach(b=>{ //render brick
-          ctx.fillRect(b.x,b.y,b.width,b.height);
-        });
+        stack.bricks.forEach(b=> ctx.fillRect(b.x,b.y,b.width,b.height));
       });
     });
   };
