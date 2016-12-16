@@ -26,24 +26,25 @@ export function spaceInvaders() {
       if(i.y+i.imageHeight>v.h-200){ //don't bother if not low enough
         shields.forEach(s=>{ //shield
           s.stacks.forEach((s,si,so)=>{ //stack
-            s.bricks.forEach((b,bi,bo)=>{ //brick
-              let l1 = b.x,         l2 = i.x,
-                  r1 = b.x+b.width, r2 = i.x+i.width,
-                  t1 = b.y,         t2 = i.y,
-                  b1 = b.y+b.height,b2 = i.y+i.height,
+            s.bricks.every((b,bi,bo)=>{ //brick
+              let l1 = i.x,              l2 = b.x,
+                  r1 = i.x+i.imageWidth, r2 = b.x+b.width,
+                  t1 = i.y,              t2 = b.y,
+                  b1 = i.y+i.imageHeight,b2 = b.y+b.height,
                   result = false;
 
               // for collision, need to check all corners of one square
               // to see if any of the corners are within the other
               if(r1>=l2 && b1>=t2 && t1<=t2 && l1<=l2){
-                result = true;bo.splice(bi,1);console.log('killed brick');
+                result = true;bo.splice(bi,1);
               }else if(r1>=r2 && b1>=t2 && t1<=t2 && l1<=r2){
-                result = true;bo.splice(bi,1);console.log('killed brick');
+                result = true;bo.splice(bi,1);
               }else if(r1>=l2 && b1>=b2 && t1<=b2 && l1<=l2){
-                result = true;bo.splice(bi,1);console.log('killed brick');
+                result = true;bo.splice(bi,1);
               }else if(r1>=r2 && b1>=b2 && t1<=b2 && l1<=r2){
-                result = true;bo.splice(bi,1);console.log('killed brick');
+                result = true;bo.splice(bi,1);
               } //end if
+              if(s.bricks.length===0) so.splice(si,1); //remove empty stack
               return true;
             });
           });
