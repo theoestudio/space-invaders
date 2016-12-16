@@ -16,13 +16,12 @@ class Invader{
     this.tweenDuration = 100;
     this.tweenType = 'ease-out-circular';
     this.size = 1;
-    this.color = colors[type];
-    this.image = images[type];
     this.windX = ()=> r(0.02)-0.01;
     this.windY = ()=> r(0.02)-0.01;
+    this.color = colors[type];
+    this.image = images[type];
     this.imageWidth = 40;
     this.imageHeight = 40;
-    this.imageClear = true;
     this.onEnd = function invaderFinished(invader){
       this.status--; //decrement the number left to finish
       if(this.status===0) this.finished = true;
@@ -36,7 +35,9 @@ for(let y=0;y<4;y++){
         dy = Math.floor(y*v.h/3*2/10+v.h/10);
 
     invaders.push(new Invader(invaders.length,(invaders.length/10)|0,dx,dy));
+    break;
   } //end for
+  break;
 } //end for
 invaders.getRandom = ()=> invaders[r(0,invaders.length,true)];
 export {invaders};
