@@ -2,6 +2,7 @@ import {invaders} from './invaders';
 import {IonCloud} from '../vendor/ionCloud';
 import {Ion} from '../vendor/ion';
 import {shields} from './shields';
+import {player} from './player';
 
 let missiles = [];
 
@@ -79,6 +80,19 @@ export function spaceInvaders() {
         stack.bricks.forEach(b=> ctx.fillRect(b.x,b.y,b.width,b.height));
       });
     });
+
+    // Draw Player
+    let p = player,
+        scaleX = p.width/p.image[0].length,
+        scaleY = p.height/p.image.length;
+
+    ctx.fillStyle=p.color;
+    p.image.forEach((yo,y)=>{
+      yo.forEach((xo,x)=>{
+        if(xo) ctx.fillRect(p.x+x*scaleX,p.y+y*scaleY,scaleX,scaleY);
+      });
+    });
+
   };
   scene.draw();
 } //end app()
