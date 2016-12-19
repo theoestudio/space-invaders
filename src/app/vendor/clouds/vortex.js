@@ -1,23 +1,24 @@
 import {Ion} from '../ion';
 
-export function vortex(name,sx,sy,s,d,t,callback){
-  let iterations = t || Infinity,
-      density = d || 200,
-      cloud = new Ion(density),
-      startX = sx || 0,
-      startY = sy || 0,
-      size = s || 300;
+export function vortex(name,parameters){
+  let {startX,startY,size,density,iterations,callback} = parameters,
+      vortex = new Ion(density||200);
 
-  cloud.clear = false;
-  cloud.color = 'rgba(200,200,255,0.7)';
-  cloud.startX = ()=> Math.abs(this.camera.x+r(-1*size/2,size/2)+startX)+1;
-  cloud.startY = ()=> Math.abs(this.camera.y+r(-1*size/2,size/2)+startY)+1;
-  cloud.endX = ()=> this.camera.x+startX;
-  cloud.endY = ()=> this.camera.y+startY;
-  cloud.size = ()=> r(1,5);
-  cloud.tweenType = 'ease-out-circular';
-  cloud.tweenDuration = ()=> r(100,200,true);
-  cloud.onEnd = function onEnd(particle){
+  startX = startX || 0;
+  startY = startY || 0;
+  size = size || 300;
+  iterations = iterations || Infinity;
+  vortex.states = ['initial'];
+  vortex.clear = false;
+  vortex.color = 'rgba(200,200,255,0.7)';
+  vortex.startX = ()=> Math.abs(this.camera.x+r(-1*size/2,size/2)+startX)+1;
+  vortex.startY = ()=> Math.abs(this.camera.y+r(-1*size/2,size/2)+startY)+1;
+  vortex.endX = ()=> this.camera.x+startX;
+  vortex.endY = ()=> this.camera.y+startY;
+  vortex.size = ()=> r(1,5);
+  vortex.tweenType = 'ease-out-circular';
+  vortex.tweenDuration = ()=> r(100,200,true);
+  vortex.onEnd = function onEnd(particle){
     if(iterations<50&&iterations>0){
       if(typeof callback === 'function') callback();
       iterations--;
@@ -25,13 +26,13 @@ export function vortex(name,sx,sy,s,d,t,callback){
       iterations--;
       this.reevaluate(particle);
     }else if(iterations===0){
-      cloud.finished = true;
+      vortex.finished = true;
     }//end if
   };
-  cloud.modulate = function modulate(particle){
-    particle.endX = cloud.endX();
-    particle.endY = cloud.endY();
+  vortex.onMove = function onMove(particle){
+    particle.endX = vortex.endX();
+    particle.endY = vortex.endY();
   };
-  cloud.populate();
-  return cloud;
+  vortex.populate();
+  return vortex;
 } //end vortex()
