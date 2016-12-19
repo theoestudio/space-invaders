@@ -8,7 +8,6 @@ class Missile{
         sx = origin.x+origin.imageWidth/2,
         sy = origin.y+(player?0:origin.imageHeight);
 
-    console.log('player',player,sx,sy);
     this.id = missiles.length;
     this.x = this.originX = this.startX = this.terminalX = this.endX = sx;
     this.y = this.originY = this.startY = sy;

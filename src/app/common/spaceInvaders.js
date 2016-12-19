@@ -8,11 +8,12 @@ import {missiles} from './missiles';
 export function spaceInvaders() {
   let scene = new IonCloud();
 
+  scene.make(playerMovement);
   scene.make(zoomIntoSpace,()=>{
-    missiles.startGeneration();
+    scene.state = 'started';
     scene.make(zigZag);
     scene.make(missileAttacks);
-    scene.make(playerMovement);
+    missiles.startGeneration();
   });
   scene.clearScene = function clearScene(){
     // Clear screen
@@ -54,11 +55,19 @@ export function spaceInvaders() {
       } //end if
     });
 
-    // Detect missile collision with shields
+    // Detect missile collision
     missiles.forEach((m,mi,mo)=>{
       if(m.y>v.h-10){ //missile hit the ground
         mo.splice(mi,1); //remove missile
-      }else if(m.y>v.h-200){ //don't even bother until at shield level
+      }else if(m.y<v.h-200&&m.y>m.endY){ //detecting missile/invader collision
+        invaders.some((i,ii,io)=>{ //invader
+          if(i.x<=m.x&&i.y<=m.y&&i.x+i.imageWidth>=m.x&&i.y+i.imageHeight>=m.y){
+            io.splice(ii,1); //destroy invader
+            mo.splice(mi,1); //destroy missile
+            return true; //collision detected, short circuit
+          } //end if
+        });
+      }else if(m.y>v.h-200){ //detecting shield collision
         shields.some(s=>{ //shield
           return s.stacks.some((s,si,so)=>{ //stack
             if(m.y<m.endY){ //invader missile
@@ -99,7 +108,7 @@ export function spaceInvaders() {
 function playerMovement(__this,callback){
   let playerMovement = new Ion();
 
-  zoomIntoSpace.status = 1;
+  playerMovement.states = ['initial','started'];
   playerMovement.collection = [player];
   playerMovement.onFinished = callback;
   return playerMovement;
@@ -108,6 +117,7 @@ function playerMovement(__this,callback){
 function zoomIntoSpace(__this,callback){
   let zoomIntoSpace = new Ion();
 
+  zoomIntoSpace.states = ['initial'];
   zoomIntoSpace.status = invaders.length;
   zoomIntoSpace.collection = invaders;
   zoomIntoSpace.onFinished = callback;
@@ -117,6 +127,7 @@ function zoomIntoSpace(__this,callback){
 function missileAttacks(){
   let missileAttacks = new Ion();
 
+  missileAttacks.states = ['started'];
   missileAttacks.collection = missiles;
   return missileAttacks;
 } //end missiles()
@@ -160,6 +171,7 @@ function zigZag(){
       invader.tweenCurrent = 0;
     };
   });
+  zigZag.states = ['started'];
   zigZag.collection = invaders;
   return zigZag;
 } //end zigZag()

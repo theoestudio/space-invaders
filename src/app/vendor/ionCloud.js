@@ -13,6 +13,7 @@ export class IonCloud{
     };
     this.collection=[];
     this.clouds = clouds;
+    this.state = 'initial';
   }
   make(type){
     if(typeof type === 'string'){
@@ -28,11 +29,13 @@ export class IonCloud{
   draw(){
     this.clearScene();
     this.collection.forEach((animation,index,collection)=>{
-      if(animation.finished){
-        if(typeof animation.onFinished === 'function') animation.onFinished();
-        collection.splice(index,1);
-      }else{
-        animation.getFrame();
+      if(animation.states.includes(this.state)){ //only render if its in current state
+        if(animation.finished){
+          if(typeof animation.onFinished === 'function') animation.onFinished();
+          collection.splice(index,1);
+        }else{
+          animation.getFrame();
+        } //end if
       } //end if
     });
     requestAnimationFrame(()=> this.draw());
