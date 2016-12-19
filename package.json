@@ -54,6 +54,6 @@
   "readmeFilename": "README.md",
   "homepage": "https://github.com/Nathaniel Inman/space-invaders",
   "dependencies": {
-    "ion-cloud": "^0.1.5"
+    "ion-cloud": "^0.1.6"
   }
 }
