@@ -3,13 +3,13 @@ import {IonCloud} from '../vendor/ionCloud';
 import {Ion} from '../vendor/ion';
 import {shields} from './shields';
 import {player} from './player';
-
-let missiles = [];
+import {missiles} from './missiles';
 
 export function spaceInvaders() {
   let scene = new IonCloud();
 
   scene.make(zoomIntoSpace,()=>{
+    missiles.startGeneration();
     scene.make(zigZag);
     scene.make(missileAttacks);
     scene.make(playerMovement);
@@ -106,28 +106,6 @@ function zoomIntoSpace(__this,callback){
 function missileAttacks(){
   let missileAttacks = new Ion();
 
-  (function generateMissile(){
-    let m = {}, invader = invaders.getRandom(),
-        sx = invader.x+invader.imageWidth/2,
-        sy = invader.y+invader.imageHeight;
-
-    m.id = missiles.length;
-    m.x = m.originX = m.startX = m.terminalX = m.endX = sx;
-    m.y = m.originY = m.startY = sy;
-    m.endY = m.terminalY = m.y+v.h;
-    m.tweenCurrent = 0;
-    m.tweenDuration = 200;
-    m.tweenType = 'linear';
-    m.color = '#ffA';
-    m.size = 3;
-    m.windX = m.windY = 0;
-    m.onEnd = function onEnd(particle){
-      this.collection.splice(particle.id,1);
-      this.collection.forEach((p,i)=> p.id=i); //re-index array
-    };
-    missiles.push(m);
-    setTimeout(generateMissile,r(100,500,true));
-  })();
   missileAttacks.collection = missiles;
   return missileAttacks;
 } //end missiles()
