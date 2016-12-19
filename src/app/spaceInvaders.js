@@ -1,6 +1,7 @@
 import {IonCloud} from './vendor/ionCloud';
 import * as animations from './animations/';
 import * as states from './states/';
+import {missiles} from './missiles';
 
 export function spaceInvaders() {
   let scene = new IonCloud();

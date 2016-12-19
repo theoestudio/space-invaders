@@ -1,5 +1,5 @@
 import {Ion} from './ion';
-import {clouds} from './clouds/index';
+import * as clouds from './clouds/';
 
 // Ion Cloud is a library of ion preconfigured clouds. These help in creating
 // particle effects common in many applications
