@@ -3,9 +3,11 @@ import * as animations from './animations/';
 import * as states from './states/';
 import {missiles} from './missiles';
 
-export function spaceInvaders() {
-  let scene = new IonCloud();
+let scene = new IonCloud();
 
+export {scene};
+
+export function spaceInvaders() {
   scene.animate(animations.playerMovement);
   scene.animate(animations.zoomIntoSpace,()=>{
     scene.state = 'started';

@@ -2,6 +2,7 @@ import {invaders} from '../invaders';
 import {missiles} from '../missiles';
 import {player} from '../player';
 import {shields} from '../shields';
+import {scene} from '../spaceInvaders';
 
 export function started(){
   // Draw a ground
