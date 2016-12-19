@@ -282,22 +282,22 @@ export class Ion{
   wind(particle){
     if(typeof particle.windX === 'function'){
       particle.endX += particle.windX(particle);
-    }else{
+    }else if(particle.windX){
       particle.endX += particle.windX;
     } //end if
     if(typeof particle.windY === 'function'){
       particle.endY += particle.windY(particle);
-    }else{
+    }else if(particle.windY){
       particle.endY += particle.windY;
     } //end if
     if(typeof particle.windX === 'function'){
       particle.startX += particle.windX(particle);
-    }else{
+    }else if(particle.windX){
       particle.startX += particle.windX;
     } //end if
-    if(typeof particle.windX === 'function'){
+    if(typeof particle.windY === 'function'){
       particle.startY += particle.windY(particle);
-    }else{
+    }else if(particle.windY){
       particle.startY += particle.windY;
     } //end if
   }

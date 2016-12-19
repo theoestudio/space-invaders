@@ -9,10 +9,12 @@ let missiles = [];
 export function spaceInvaders() {
   let scene = new IonCloud();
 
+  console.log('prepare zoom into space');
   scene.make(zoomIntoSpace,()=>{
+    console.log('zoom into space');
     scene.make(zigZag);
     scene.make(missileAttacks);
-    scene.make(playerMovement);
+    //scene.make(playerMovement);
   });
   scene.clearScene = function clearScene(){
     // Clear screen
@@ -88,6 +90,7 @@ export function spaceInvaders() {
 function playerMovement(__this,callback){
   let playerMovement = new Ion();
 
+  zoomIntoSpace.status = 1;
   playerMovement.collection = [player];
   playerMovement.onFinished = callback;
   return playerMovement;
@@ -96,6 +99,7 @@ function playerMovement(__this,callback){
 function zoomIntoSpace(__this,callback){
   let zoomIntoSpace = new Ion();
 
+  console.log('zooming into awesome space');
   zoomIntoSpace.status = invaders.length;
   zoomIntoSpace.collection = invaders;
   zoomIntoSpace.onFinished = callback;
