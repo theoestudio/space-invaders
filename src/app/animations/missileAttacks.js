@@ -1,4 +1,4 @@
-import {Ion} from '../vendor/ion';
+import {Ion} from 'ion-cloud';
 import {missiles} from '../missiles';
 
 export function missileAttacks(){

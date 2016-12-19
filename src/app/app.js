@@ -1,12 +1,10 @@
 import 'file-loader?name=[name].html!./index.jade';
 import './app.styl';
-import {easel} from './vendor/easel';
+import {easel} from 'ion-cloud';
 import {spaceInvaders} from './spaceInvaders';
 
-/**
- * Launch application if easel was able to create a canvas,
- * if it wasn't then we know canvas isn't supported
- */
+// Launch application if easel was able to create a canvas,
+// if it wasn't then we know canvas isn't supported
 {
   let noscript = document.getElementById('noscript');
 
