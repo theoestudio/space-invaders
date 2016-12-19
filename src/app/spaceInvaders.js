@@ -1,7 +1,8 @@
-import {IonCloud} from './vendor/ionCloud';
+import * as debuggery from 'ion-cloud';
 import * as animations from './animations/';
 import * as states from './states/';
 import {missiles} from './missiles';
+console.log('debuggery',debuggery);
 
 let scene = new IonCloud();
 

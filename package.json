@@ -52,5 +52,8 @@
     "webpack-dev-server": "^1.16.2"
   },
   "readmeFilename": "README.md",
-  "homepage": "https://github.com/Nathaniel Inman/space-invaders"
+  "homepage": "https://github.com/Nathaniel Inman/space-invaders",
+  "dependencies": {
+    "ion-cloud": "^0.1.2"
+  }
 }
