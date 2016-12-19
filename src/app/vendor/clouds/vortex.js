@@ -18,9 +18,12 @@ export function vortex(name,parameters){
   vortex.size = ()=> r(1,5);
   vortex.tweenType = 'ease-out-circular';
   vortex.tweenDuration = ()=> r(100,200,true);
-  vortex.onEnd = function onEnd(particle){
+  vortex.onParticleEnd = function onParticleEnd(particle){
     if(iterations<50&&iterations>0){
-      if(typeof callback === 'function') callback();
+      if(typeof callback === 'function'){
+        callback();
+        callback = undefined; //clear so doesn't run again
+      } //end if
       iterations--;
     }else if(iterations>0){
       iterations--;
@@ -33,6 +36,6 @@ export function vortex(name,parameters){
     particle.endX = vortex.endX();
     particle.endY = vortex.endY();
   };
-  vortex.populate();
+  vortex.populate(150);
   return vortex;
 } //end vortex()

@@ -215,6 +215,7 @@ export class Ion{
     particle.tweenCurrent = c;
     particle.tweenDuration = d;
     particle.tweenType = tt;
+    particle.onEnd = this.onParticleEnd;
     particle.size = s; //the particle size
     particle.windX = this.windX||0; //wind functions are ran at runtime
     particle.windY = this.windY||0; //wind function are ran at runtime
@@ -267,7 +268,7 @@ export class Ion{
         if(typeof wait === 'function'){
           setTimeout(()=> this.populate(wait),wait());
         }else if(typeof wait === 'number'){
-          setTimeout(()=> this.populate(),wait);
+          setTimeout(()=> this.populate(--wait),wait);
         }else{ //assume its boolean or invalid and allow generic wait
           setTimeout(()=> this.populate(),1);
         }//end if
@@ -353,9 +354,10 @@ export class Ion{
   // the particles one is given the particle total that they already control.
   onCreate(){}
 
-  // OnEnd function is called after a particle finishes its tweening motion.
-  // This is merely a template function that is required to be overridden.
-  onEnd(){}
+  // OnParticleEnd function is called after a particle finishes its tweening
+  // motion. This is merely a template function that is required to be
+  // overridden.
+  onParticleEnd(){}
 
   // OnEscape function is called after a particle leaves the view space.
   // This is merely a template function that is required to be overridden.

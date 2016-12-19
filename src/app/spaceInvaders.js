@@ -23,6 +23,7 @@ export function spaceInvaders(){
     density: 200,
     iterations: 300,
     callback: function(){
+      console.log('callback called');
       scene.animate('laser',{
         startX: -250,
         startY: -250,
@@ -48,7 +49,7 @@ export function spaceInvaders(){
     }else{
       scene.camera.x++;
     } //end if
-    if(scene.camera.x<100||scene.camera.x>v.w-500)scene.camera.dx^=1;
+    if(scene.camera.x<(v.w/2-100)||scene.camera.x>(v.w/2+100))scene.camera.dx^=1;
   },10);
   /*
   scene.animate(animations.playerMovement);

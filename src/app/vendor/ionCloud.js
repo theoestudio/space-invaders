@@ -7,8 +7,8 @@ export class IonCloud{
     this.camera = {
       x:v.w/2,
       y:v.h/2,
-      dx:0,
-      dy:0
+      dx:0, //direction x
+      dy:0 //direction y
     };
     this.collection=[];
     this.beforeDraw={};
