@@ -12,6 +12,7 @@ export function spaceInvaders() {
   scene.make(zoomIntoSpace,()=>{
     scene.make(zigZag);
     scene.make(missileAttacks);
+    scene.make(playerMovement);
   });
   scene.clearScene = function clearScene(){
     // Clear screen
@@ -80,22 +81,17 @@ export function spaceInvaders() {
         stack.bricks.forEach(b=> ctx.fillRect(b.x,b.y,b.width,b.height));
       });
     });
-
-    // Draw Player
-    let p = player,
-        scaleX = p.width/p.image[0].length,
-        scaleY = p.height/p.image.length;
-
-    ctx.fillStyle=p.color;
-    p.image.forEach((yo,y)=>{
-      yo.forEach((xo,x)=>{
-        if(xo) ctx.fillRect(p.x+x*scaleX,p.y+y*scaleY,scaleX,scaleY);
-      });
-    });
-
   };
   scene.draw();
 } //end app()
+
+function playerMovement(__this,callback){
+  let playerMovement = new Ion();
+
+  playerMovement.collection = [player];
+  playerMovement.onFinished = callback;
+  return playerMovement;
+} //end playerMovement()
 
 function zoomIntoSpace(__this,callback){
   let zoomIntoSpace = new Ion();
