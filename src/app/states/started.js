@@ -46,12 +46,15 @@ export function started(){
       mo.splice(mi,1); //remove missile
     }else if(m.y<v.h-200&&m.y>m.endY){ //detecting missile/invader collision
       invaders.some((i,ii,io)=>{ //invader
+        let invaderResult = false;
+
         if(i.x<=m.x&&i.y<=m.y&&i.x+i.imageWidth>=m.x&&i.y+i.imageHeight>=m.y){
           io.splice(ii,1); //destroy invader
           mo.splice(mi,1); //destroy missile
           if(io.length===0) scene.state = 'won';
-          return true; //collision detected, short circuit
+          invaderResult = true; //collision detected, short circuit
         } //end if
+        return invaderResult;
       });
     }else if(m.y>v.h-200){ //detecting shield collision
       let p = player;
@@ -62,6 +65,8 @@ export function started(){
       } //end if
       shields.some(s=>{ //shield
         return s.stacks.some((s,si,so)=>{ //stack
+          let stackResult = false;
+
           if(m.y<m.endY){ //invader missile
             let b = s.bricks[0]; //only top brick can ever be hit
 
@@ -69,7 +74,7 @@ export function started(){
               s.bricks.shift(); //remove destroyed brick
               mo.splice(mi,1); //remove missile
               if(s.bricks.length===0) so.splice(si,1);
-              return true; //deleted a brick, short circuit
+              stackResult = true; //deleted a brick, short circuit
             } //end if
           }else{ //player missile
             let b = s.bricks[s.bricks.length-1]; //only bottom brick can hit
@@ -78,12 +83,14 @@ export function started(){
               s.bricks.pop(); //remove destroyed brick
               mo.splice(mi,1); //remove missile
               if(s.bricks.length===0) so.splice(si,1);
-              return true; //deleted a brick, short circuit
+              stackResult = true; //deleted a brick, short circuit
             } //end if
           } //end if
+          return stackResult;
         });
       });
     } //end if
+    return true;
   });
 
   // Draw shields
