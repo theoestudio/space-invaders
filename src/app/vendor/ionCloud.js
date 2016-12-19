@@ -12,15 +12,19 @@ export class IonCloud{
       dy:0
     };
     this.collection=[];
+    this.beforeDraw={};
     this.clouds = clouds;
     this.state = 'initial';
   }
-  make(type){
+  animate(type){
     if(typeof type === 'string'){
       this.collection.push(this.clouds[type].apply(this,arguments));
     }else{
       this.collection.push(type.apply(this,arguments));
     } //end if
+  }
+  makeState(state,beforeDraw){
+    this.beforeDraw[state]=beforeDraw; //mapper
   }
   clearScene(){
     ctx.fillStyle='#000';
@@ -28,6 +32,7 @@ export class IonCloud{
   }
   draw(){
     this.clearScene();
+    if(this.beforeDraw[this.state]) this.beforeDraw[this.state]();
     this.collection.forEach((animation,index,collection)=>{
       if(animation.states.includes(this.state)){ //only render if its in current state
         if(animation.finished){

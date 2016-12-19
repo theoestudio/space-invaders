@@ -6,7 +6,7 @@ class Missile{
   constructor(player){
     let origin = player?player:invaders.getRandom(),
         sx = origin.x+origin.imageWidth/2,
-        sy = origin.y+(player?0:origin.imageHeight);
+        sy = origin.y+(player?-2:origin.imageHeight);
 
     this.id = missiles.length;
     this.x = this.originX = this.startX = this.terminalX = this.endX = sx;
@@ -29,12 +29,12 @@ class Missile{
 }
 
 missiles.startGeneration = function generateMissile(){
-  this.push(new Missile);
+  if(invaders.length) this.push(new Missile);
   setTimeout(()=>generateMissile.call(this),r(100,500,true));
 };
 
 missiles.shootFrom = function shootFrom(player){
-  this.push(new Missile(player));
+  if(invaders.length) this.push(new Missile(player));
 };
 
 export {missiles};

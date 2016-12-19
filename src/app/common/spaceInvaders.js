@@ -8,18 +8,16 @@ import {missiles} from './missiles';
 export function spaceInvaders() {
   let scene = new IonCloud();
 
-  scene.make(playerMovement);
-  scene.make(zoomIntoSpace,()=>{
+  scene.animate(playerMovement);
+  scene.animate(zoomIntoSpace,()=>{
     scene.state = 'started';
-    scene.make(zigZag);
-    scene.make(missileAttacks);
+    scene.animate(zigZag);
+    scene.animate(missileAttacks);
     missiles.startGeneration();
   });
-  scene.clearScene = function clearScene(){
-    // Clear screen
-    ctx.fillStyle='#000';
-    ctx.fillRect(0,0,v.w,v.h);
-
+  scene.makeState('initial',function beforeDraw(){
+  });
+  scene.makeState('started',function beforeDraw(){
     // Draw a ground
     ctx.fillStyle='rgb(10,80,10)';
     ctx.fillRect(0,v.h-10,v.w,10);
@@ -64,10 +62,17 @@ export function spaceInvaders() {
           if(i.x<=m.x&&i.y<=m.y&&i.x+i.imageWidth>=m.x&&i.y+i.imageHeight>=m.y){
             io.splice(ii,1); //destroy invader
             mo.splice(mi,1); //destroy missile
+            if(io.length===0) scene.state = 'won';
             return true; //collision detected, short circuit
           } //end if
         });
       }else if(m.y>v.h-200){ //detecting shield collision
+        let p = player;
+
+        if(p.x<=m.x&&p.y<=m.y&&p.x+p.imageWidth>=m.x&&p.y+p.imageHeight>=m.y){
+          scene.state = 'lost';
+          return true;
+        } //end if
         shields.some(s=>{ //shield
           return s.stacks.some((s,si,so)=>{ //stack
             if(m.y<m.endY){ //invader missile
@@ -101,7 +106,21 @@ export function spaceInvaders() {
         stack.bricks.forEach(b=> ctx.fillRect(b.x,b.y,b.width,b.height));
       });
     });
-  };
+  });
+  scene.makeState('won',function beforeDraw(){
+    ctx.fillStyle='#9F9';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font = '48px Arial';
+    ctx.fillText('You Won!',v.w/2,v.h/2);
+  });
+  scene.makeState('lost',function beforeDraw(){
+    ctx.fillStyle='#F99';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font = '48px Arial';
+    ctx.fillText('You Lost!',v.w/2,v.h/2);
+  });
   scene.draw();
 } //end app()
 
