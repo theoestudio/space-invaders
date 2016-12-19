@@ -1,4 +1,4 @@
-import {Ion} from '../../vendor/ion';
+import {Ion} from '../vendor/ion';
 import {missiles} from '../missiles';
 
 function missileAttacks(){

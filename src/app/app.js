@@ -1,7 +1,7 @@
 import 'file-loader?name=[name].html!./index.jade';
 import './app.styl';
 import {easel} from './vendor/easel';
-import {spaceInvaders} from './common/spaceInvaders';
+import {spaceInvaders} from './spaceInvaders';
 
 /**
  * Launch application if easel was able to create a canvas,

@@ -1,4 +1,4 @@
-import {Ion} from '../../vendor/ion';
+import {Ion} from '../vendor/ion';
 import {player} from '../player';
 
 export function playerMovement(__this,callback){

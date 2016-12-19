@@ -1,5 +1,4 @@
-import {Ion} from '../vendor/ion';
-import {IonCloud} from '../vendor/ionCloud';
+import {IonCloud} from './vendor/ionCloud';
 import * as animations from './animations/';
 import * as states from './states/';
 
