@@ -13,14 +13,15 @@ class Player{
     this.image = generateInvader();
     this.imageWidth = 40;
     this.imageHeight = 40;
-    this.size = 1;
   }
   moveRight(){
-    this.terminalX = this.endX = this.x+=50;
+    this.startX = this.originX = this.x;
+    this.terminalX = this.endX+=50;
     this.tweenCurrent = 0;
   }
   moveLeft(){
-    this.terminalX = this.endX = this.x-=50;
+    this.startX = this.originX = this.x;
+    this.terminalX = this.endX-=50;
     this.tweenCurrent = 0;
   }
 }

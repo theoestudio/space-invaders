@@ -309,7 +309,7 @@ export class Ion{
   draw(particle,isClear){
     let p = particle,
         image = p.image,
-        s = p.size;
+        s = p.size||1; //fallback of one if they made it custom & ignored
 
     if(isClear){
       ctx.fillStyle = this.clearColor;
@@ -396,7 +396,7 @@ export class Ion{
       if((p.x|0)!==(p.endX|0)) p.x=this.tween(p,'x');
       if((p.y|0)!==(p.endY|0)) p.y=this.tween(p,'y');
       p.tweenCurrent++;
-      if(p.tweenCurrent===p.tweenDuration)p.onEnd.call(this,p);
+      if(p.tweenCurrent===p.tweenDuration&&p.onEnd)p.onEnd.call(this,p);
       this.draw(p);
     });
   }
