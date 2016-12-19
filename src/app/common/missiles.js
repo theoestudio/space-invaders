@@ -3,15 +3,20 @@ import {invaders} from './invaders';
 let missiles = [];
 
 class Missile{
-  constructor(){
-    let invader = invaders.getRandom(),
-        sx = invader.x+invader.imageWidth/2,
-        sy = invader.y+invader.imageHeight;
+  constructor(player){
+    let origin = player?player:invaders.getRandom(),
+        sx = origin.x+origin.imageWidth/2,
+        sy = origin.y+(player?0:origin.imageHeight);
 
+    console.log('player',player,sx,sy);
     this.id = missiles.length;
     this.x = this.originX = this.startX = this.terminalX = this.endX = sx;
     this.y = this.originY = this.startY = sy;
-    this.endY = this.terminalY = this.y+v.h;
+    if(player){
+      this.endY = this.terminalY = this.y-v.h;
+    }else{
+      this.endY = this.terminalY = this.y+v.h;
+    } //end if
     this.tweenCurrent = 0;
     this.tweenDuration = 200;
     this.tweenType = 'linear';
@@ -27,6 +32,10 @@ class Missile{
 missiles.startGeneration = function generateMissile(){
   this.push(new Missile);
   setTimeout(()=>generateMissile.call(this),r(100,500,true));
+};
+
+missiles.shootFrom = function shootFrom(player){
+  this.push(new Missile(player));
 };
 
 export {missiles};

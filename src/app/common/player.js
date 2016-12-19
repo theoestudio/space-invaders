@@ -1,4 +1,5 @@
 import {generateInvader} from './generateInvader';
+import {missiles} from './missiles';
 
 class Player{
   constructor(){
@@ -33,6 +34,8 @@ document.addEventListener('keydown', e=>{
     player.moveRight();
   }else if(e.code==='ArrowLeft'){
     player.moveLeft();
+  }else if(e.code==='Space'){
+    missiles.shootFrom(player);
   } //end if
 });
 

@@ -1,8 +1,8 @@
-import {invaders} from './invaders';
-import {IonCloud} from '../vendor/ionCloud';
 import {Ion} from '../vendor/ion';
-import {shields} from './shields';
+import {IonCloud} from '../vendor/ionCloud';
 import {player} from './player';
+import {shields} from './shields';
+import {invaders} from './invaders';
 import {missiles} from './missiles';
 
 export function spaceInvaders() {
@@ -58,16 +58,27 @@ export function spaceInvaders() {
     missiles.forEach((m,mi,mo)=>{
       if(m.y>v.h-10){ //missile hit the ground
         mo.splice(mi,1); //remove missile
-      }else if(m.y>v.h-200){ //don't even bother until low enough
+      }else if(m.y>v.h-200){ //don't even bother until at shield level
         shields.some(s=>{ //shield
           return s.stacks.some((s,si,so)=>{ //stack
-            let b = s.bricks[0]; //only top brick can ever be hit
+            if(m.y<m.endY){ //invader missile
+              let b = s.bricks[0]; //only top brick can ever be hit
 
-            if(b.x<=m.x&&b.y<=m.y&&b.x+b.width>=m.x&&b.y+b.height>=m.y){
-              s.bricks.shift(); //remove destroyed brick
-              mo.splice(mi,1); //remove missile
-              if(s.bricks.length===0) so.splice(si,1);
-              return true; //deleted a brick, short circuit
+              if(b.x<=m.x&&b.y<=m.y&&b.x+b.width>=m.x&&b.y+b.height>=m.y){
+                s.bricks.shift(); //remove destroyed brick
+                mo.splice(mi,1); //remove missile
+                if(s.bricks.length===0) so.splice(si,1);
+                return true; //deleted a brick, short circuit
+              } //end if
+            }else{ //player missile
+              let b = s.bricks[s.bricks.length-1]; //only bottom brick can hit
+
+              if(b.x<=m.x&&b.y<=m.y&&b.x+b.width>=m.x&&b.y+b.height>=m.y){
+                s.bricks.pop(); //remove destroyed brick
+                mo.splice(mi,1); //remove missile
+                if(s.bricks.length===0) so.splice(si,1);
+                return true; //deleted a brick, short circuit
+              } //end if
             } //end if
           });
         });
