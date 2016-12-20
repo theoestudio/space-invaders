@@ -1,6 +1,7 @@
 import 'file-loader?name=[name].html!./index.jade';
 import './app.styl';
 import {easel} from 'ion-cloud';
+import {randomHex,ink} from './ink';
 
 // Launch application if easel was able to create a canvas,
 // if it wasn't then we know canvas isn't supported
@@ -16,7 +17,7 @@ if(!easel.activated){
   </p>`;
 }else{
   noscript.style.visibility='hidden';
-  let color = {cur: rndHex(), tar: rndHex()};
+  let color = {cur: randomHex(), tar: randomHex()};
 
   easel.config = ()=>{
     ctx.fontRatio = 0.2;
@@ -32,18 +33,18 @@ if(!easel.activated){
   };
   (function main(){
     if(color.cur!==color.tar){
-      let c = ink(color.cur,{o:1}),
-          t = ink(color.tar,{o:1});
+      let c = ink(color.cur,{object:true}),
+          t = ink(color.tar,{object:true});
 
       c.r=c.r<t.r?++c.r:c.r>t.r?--c.r:c.r;
       c.g=c.g<t.g?++c.g:c.g>t.g?--c.g:c.g;
       c.b=c.b<t.b?++c.b:c.b>t.b?--c.b:c.b;
       color.cur='#'+[c.r,c.g,c.b].map(x=>x.toString(16)).map(x=>x.length<2?'0'+x:x).join('');
-      if(!(c.r^t.r&&c.g^t.g&&c.b^t.b))color.tar=rndHex();
+      if(!(c.r^t.r&&c.g^t.g&&c.b^t.b))color.tar=randomHex();
     }else{
-      color.tar=rndHex();
+      color.tar=randomHex();
     } //end if
     easel.redraw();
-    requestAnimationFrame(main);
+    setTimeout(main,100);
   })();
 } //end if
