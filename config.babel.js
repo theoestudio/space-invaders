@@ -6,7 +6,6 @@ import poststylus    from 'poststylus';
 import BrowserSync   from 'browser-sync-webpack-plugin';
 
 export default {
-  watch: true,
   entry:{
     app: [
       './src/app/app.js'

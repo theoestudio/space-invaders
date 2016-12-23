@@ -20,7 +20,9 @@
     "build:assets": "cp -rf src/assets/* ./dist",
     "build": "npm run build:clean && npm run build:assets",
     "prestart": "npm run build",
-    "start": "node ./node_modules/webpack/bin/webpack.js --config ./config.babel.js"
+    "start": "node ./node_modules/webpack/bin/webpack.js --config ./config.babel.js --watch",
+    "preproduction": "npm run build",
+    "production": "node ./node_modules/webpack/bin/webpack.js --config ./config.babel.js"
   },
   "devDependencies": {
     "autoprefixer": "^6.5.4",
