@@ -14,6 +14,7 @@ class Player{
     this.image = generateInvader();
     this.imageWidth = 40;
     this.imageHeight = 40;
+    this.score = 0;
   }
   moveRight(){
     this.startX = this.originX = this.x;

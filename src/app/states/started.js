@@ -25,12 +25,28 @@ let topColor = {
     dayCycle = new Phaser(500,'dawn',colors,ctx,drawFn,gradientFn);
 
 export function started(){
+  // Draw background
+  dayCycle.drawNext(true);
+
   // Draw a ground
   ctx.fillStyle='rgb(10,80,10)';
   ctx.fillRect(0,v.h-10,v.w,10);
 
-  // Draw background
-  dayCycle.drawNext(true);
+  // Draw score
+  {
+    let bgColor = ctx.getImageData(15,15,1,1).data,
+        average = (bgColor[0]+bgColor[1]+bgColor[2])/3/255;
+
+    ctx.textAlign = 'left';
+    ctx.font = '24px Orbitron';
+    ctx.textBaseline = 'top';
+    if(average>0.5){
+      ctx.fillStyle='#000';
+    }else{
+      ctx.fillStyle='#fff';
+    } //end if
+    ctx.fillText(`SCORE: ${player.score}`,15,15);
+  }
 
   // Detect invader collision with shields
   invaders.forEach((i,ii,io)=>{
@@ -90,6 +106,7 @@ export function started(){
         if(i.x<=m.x&&i.y<=m.y&&i.x+i.imageWidth>=m.x&&i.y+i.imageHeight>=m.y){
           io.splice(ii,1); //destroy invader
           mo.splice(mi,1); //destroy missile
+          player.score+=100;
           if(io.length===0) scene.state = 'won';
           invaderResult = true; //collision detected, short circuit
         } //end if
