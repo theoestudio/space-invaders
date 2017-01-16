@@ -22,7 +22,8 @@
     "prestart": "npm run build",
     "start": "node ./node_modules/webpack/bin/webpack.js --config ./config.babel.js --watch",
     "preproduction": "npm run build",
-    "production": "node ./node_modules/webpack/bin/webpack.js --config ./config.babel.js"
+    "production": "node ./node_modules/webpack/bin/webpack.js --config ./config.babel.js",
+    "deploy": "./deploy.sh"
   },
   "devDependencies": {
     "autoprefixer": "^6.5.4",
