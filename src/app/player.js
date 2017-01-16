@@ -40,4 +40,18 @@ document.addEventListener('keydown', e=>{
   } //end if
 });
 
+document.addEventListener('touchstart',clickEvent,false);
+document.addEventListener('click',clickEvent,false);
+
+function clickEvent(e){
+  let delta = Math.abs(player.x-e.clientX);
+
+  if(delta>50&&e.clientX>player.x){
+    player.moveRight();
+  }else if(delta>50&&e.clientX<player.x){
+    player.moveLeft();
+  } //end if
+  missiles.shootFrom(player);
+} //end clickEvent()
+
 export {player};
