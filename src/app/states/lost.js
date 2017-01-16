@@ -16,6 +16,11 @@ export function lost(){
   ctx.font = '48px Orbitron';
   ctx.fillText('GAME OVER',v.w/2,v.h/2);
 
+  // Draw play again text
+  ctx.fillStyle = '#ff9';
+  ctx.font = '18px Orbitron';
+  ctx.fillText('[PRESS OR CLICK SCREEN TO PLAY AGAIN]',v.w/2,v.h/4*3);
+
   // Draw score
   let bgColor = ctx.getImageData(15,15,1,1).data,
       average = (bgColor[0]+bgColor[1]+bgColor[2])/3/255;

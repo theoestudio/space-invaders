@@ -1,3 +1,4 @@
+import {scene} from './spaceInvaders';
 import {generateInvader} from './generateInvader';
 import {missiles} from './missiles';
 
@@ -42,16 +43,21 @@ document.addEventListener('keydown', e=>{
 
 document.addEventListener('touchstart',clickEvent,false);
 document.addEventListener('click',clickEvent,false);
+window.addEventListener('resize', ()=> window.location.reload(), false);
 
 function clickEvent(e){
-  let delta = Math.abs(player.x-e.clientX);
+  if(scene.state==='lost'){
+    window.location.reload();
+  }else{
+    let delta = Math.abs(player.x-e.clientX);
 
-  if(delta>50&&e.clientX>player.x){
-    player.moveRight();
-  }else if(delta>50&&e.clientX<player.x){
-    player.moveLeft();
+    if(delta>50&&e.clientX>player.x){
+      player.moveRight();
+    }else if(delta>50&&e.clientX<player.x){
+      player.moveLeft();
+    } //end if
+    missiles.shootFrom(player);
   } //end if
-  missiles.shootFrom(player);
 } //end clickEvent()
 
 export {player};
