@@ -19,7 +19,11 @@ export function lost(){
   // Draw play again text
   ctx.fillStyle = '#ff9';
   ctx.font = '18px Orbitron';
-  ctx.fillText('[PRESS OR CLICK SCREEN TO PLAY AGAIN]',v.w/2,v.h/4*3);
+  if(v.w<800){
+    ctx.fillText('[TOUCH SCREEN TO PLAY AGAIN]',v.w/2,v.h/4*3);
+  }else{
+    ctx.fillText('[CLICK SCREEN TO PLAY AGAIN]',v.w/2,v.h/4*3);
+  } //end if
 
   // Draw score
   let bgColor = ctx.getImageData(15,15,1,1).data,
