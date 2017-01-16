@@ -78,21 +78,11 @@ export function started(){
 
   // Detect missile collision
   missiles.forEach((m,mi,mo)=>{
+
+    // Start with detecting the players or invaders missiles collding
+    // with the shields, ground or the player
     if(m.y>v.h-10){ //missile hit the ground
       mo.splice(mi,1); //remove missile
-    }else if(m.y<v.h-200&&m.y>m.endY){ //detecting missile/invader collision
-      invaders.some((i,ii,io)=>{ //invader
-        let invaderResult = false;
-
-        if(i.x<=m.x&&i.y<=m.y&&i.x+i.imageWidth>=m.x&&i.y+i.imageHeight>=m.y){
-          io.splice(ii,1); //destroy invader
-          mo.splice(mi,1); //destroy missile
-          player.score+=100;
-          if(io.length===0) scene.state = 'won';
-          invaderResult = true; //collision detected, short circuit
-        } //end if
-        return invaderResult;
-      });
     }else if(m.y>v.h-200){ //detecting shield collision
       let p = player;
 
@@ -125,6 +115,22 @@ export function started(){
           } //end if
           return stackResult;
         });
+      });
+    } //end if
+
+    // Now detect players missiles colliding with invaders
+    if(m.y>m.endY){ //detecting missile/invader collision
+      invaders.some((i,ii,io)=>{ //invader
+        let invaderResult = false;
+
+        if(i.x<=m.x&&i.y<=m.y&&i.x+i.imageWidth>=m.x&&i.y+i.imageHeight>=m.y){
+          io.splice(ii,1); //destroy invader
+          mo.splice(mi,1); //destroy missile
+          player.score+=100;
+          if(io.length===0) scene.state = 'won';
+          invaderResult = true; //collision detected, short circuit
+        } //end if
+        return invaderResult;
       });
     } //end if
     return true;

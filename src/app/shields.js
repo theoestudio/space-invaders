@@ -40,8 +40,9 @@ class Shield{
 
 let shields = [
   new Shield(1/4,v.h-130),
-  new Shield(1/2,v.h-130),
   new Shield(3/4,v.h-130)
 ];
+
+if(v.w>500) shields.push(new Shield(1/2,v.h-130));
 
 export {shields};

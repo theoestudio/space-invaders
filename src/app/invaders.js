@@ -17,8 +17,13 @@ class Invader{
     this.tweenType = 'ease-out-circular';
     this.color = colors[type];
     this.image = images[type];
-    this.imageWidth = 40;
-    this.imageHeight = 40;
+    if(v.w>800){
+      this.imageWidth = 40;
+      this.imageHeight = 40;
+    }else{
+      this.imageWidth = 20;
+      this.imageHeight = 20;
+    } //end if
     this.onEnd = function invaderFinished(invader){
       this.status--; //decrement the number left to finish
       if(this.status===0) this.finished = true;
