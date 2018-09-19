@@ -1,6 +1,6 @@
-import {Phaser} from 'ion-cloud';
+import {Phaser} from 'ion-cloud/src/lib';
 
-export function generateBackground(){
+export function generateBackground(easel){
   const topColor = {
           current: {r:  0,g:  0,b:  0},
           dawn:    {r:119,g:153,b:187},
@@ -10,14 +10,20 @@ export function generateBackground(){
         },
         bottomColor = {
           current: {r:  0,g:  0,b:  0},
-          dawn:    {r: 85,g: 85,b: 120},
+          dawn:    {r: 85,g: 85,b:120},
           daytime: {r: 50,g: 85,b:170},
           dusk:    {r:  0,g: 17,b: 34},
           midnight:{r:153,g: 87,b: 22}
         },
-        colors = [topColor,bottomColor],
-        drawFn = ()=> [0,0,v.w,v.h],
-        gradientFn = ()=> ctx.createLinearGradient(0,0,0,v.h/5*4);
+        colors = [topColor,bottomColor];
 
-  return new Phaser(500,'dawn',colors,ctx,drawFn,gradientFn);
+  return new Phaser(easel,{
+    interval: 500,
+    phase: 'dawn',
+    colors,
+    x: 0, y: 0, w: easel.viewport.w, h: easel.viewport.h,
+    makeGradient(){
+      return ctx.createLinearGradient(0,0,0,easel.viewport.h/5*4);
+    }
+  });
 } //end generateBackground()

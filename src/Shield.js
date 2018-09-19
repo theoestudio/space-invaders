@@ -22,12 +22,12 @@ class Stack{
   }
 }
 export class Shield{
-  constructor(xPercentage,y){
+  constructor(easel,xPercentage,y){
     this.stacks = [];
     this.stackWidth = 12;
     this.width = brickWidth*this.stackWidth;
     this.arcRadius = 30;
-    this.x = xPercentage*v.w-this.width/2;
+    this.x = xPercentage*easel.viewport.w-this.width/2;
     this.y = y;
     for(let i=0,stack,cx=this.x,cy;i<=this.stackWidth;i++){
       cy = this.y-this.arcRadius*Math.sin(Math.PI/this.width*brickWidth*i);
