@@ -1,7 +1,5 @@
-import {dayCycle} from '../background';
-import {player} from '../player';
-
 export function lost(){
+  console.log('lost state',this);
   // Draw background
   dayCycle.drawNext(true);
 

@@ -1,7 +1,5 @@
-import {shields} from '../shields';
-import {dayCycle} from '../background';
-
 export function initial(){
+  console.log('initial state',this);
   // Draw background
   dayCycle.drawNext(true);
 

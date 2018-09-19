@@ -1,7 +1,5 @@
-import {Ion} from 'ion-cloud';
-import {invaders} from '../invaders';
-
-export function zoomIntoSpace(__this,callback){
+export function zoomIntoSpace(){
+  console.log('zoom into space animation',this);
   const zoomIntoSpace = new Ion();
 
   zoomIntoSpace.states = ['initial'];

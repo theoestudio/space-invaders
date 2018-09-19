@@ -1,7 +1,5 @@
-import {Ion} from 'ion-cloud';
-import {player} from '../player';
-
-export function playerMovement(__this,callback){
+export function playerMovement(){
+  console.log('player movement animation',this);
   const playerMovement = new Ion();
 
   playerMovement.states = ['initial','started'];

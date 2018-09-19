@@ -21,7 +21,7 @@ class Stack{
     } //end for
   }
 }
-class Shield{
+export class Shield{
   constructor(xPercentage,y){
     this.stacks = [];
     this.stackWidth = 12;
@@ -37,12 +37,3 @@ class Shield{
     } //end for
   }
 }
-
-const shields = [
-  new Shield(1/4,v.h-130),
-  new Shield(3/4,v.h-130)
-];
-
-if(v.w>500) shields.push(new Shield(1/2,v.h-130));
-
-export {shields};

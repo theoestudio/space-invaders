@@ -1,7 +1,5 @@
-import {Ion} from 'ion-cloud';
-import {invaders} from '../invaders';
-
 export function zigZag(){
+  console.log('zigzag animation',this);
   const zigZag = new Ion();
 
   // eslint-disable-next-line array-callback-return

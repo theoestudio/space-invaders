@@ -1,11 +1,5 @@
-import {invaders} from '../invaders';
-import {missiles} from '../missiles';
-import {player} from '../player';
-import {shields} from '../shields';
-import {scene} from '../spaceInvaders';
-import {dayCycle} from '../background';
-
 export function started(){
+  console.log('started scene',this);
   // Draw background
   dayCycle.drawNext(true);
 

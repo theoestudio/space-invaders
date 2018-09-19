@@ -1,6 +1,5 @@
-import {dayCycle} from '../background';
-
 export function won(){
+  console.log('won scene',this);
   // Draw background
   dayCycle.drawNext(true);
 

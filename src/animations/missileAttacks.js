@@ -1,7 +1,5 @@
-import {Ion} from 'ion-cloud';
-import {missiles} from '../missiles';
-
 export function missileAttacks(){
+  console.log('missile attacks animation',this);
   const missileAttacks = new Ion();
 
   missileAttacks.states = ['started'];

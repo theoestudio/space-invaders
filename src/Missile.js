@@ -1,20 +1,17 @@
-import {invaders} from './invaders';
-
-const missiles = [];
-
-class Missile{
-  constructor(player){
+export class Missile{
+  constructor(easel,player,missiles,invaders){
     const origin = player?player:invaders.getRandom(),
           sx = origin.x+origin.imageWidth/2,
           sy = origin.y+(player?-2:origin.imageHeight);
 
+    this.easel = easel;
     this.id = missiles.length;
     this.x = this.originX = this.startX = this.terminalX = this.endX = sx;
     this.y = this.originY = this.startY = sy;
     if(player){
-      this.endY = this.terminalY = this.y-v.h;
+      this.endY = this.terminalY = this.y-this.easel.viewport.h;
     }else{
-      this.endY = this.terminalY = this.y+v.h;
+      this.endY = this.terminalY = this.y+this.easel.viewport.h;
     } //end if
     this.tweenCurrent = 0;
     this.tweenDuration = 200;
@@ -30,13 +27,15 @@ class Missile{
   }
 }
 
-missiles.startGeneration = function generateMissile(){
-  if(invaders.length) this.push(new Missile);
-  setTimeout(()=>generateMissile.call(this),r(100,500,true));
-};
-
-missiles.shootFrom = function shootFrom(player){
-  if(invaders.length) this.push(new Missile(player));
-};
-
-export {missiles};
+export class MissileList{
+  constructor(easel,player){
+    this.easel = easel;
+    this.list=[];
+  }
+  shootFrom(player){
+    if(invaders.length) this.list.push(new Missile(this.easel,this.player));
+  }
+  add(missile){
+    this.list.push(missile);
+  }
+}
