@@ -1,3 +1,4 @@
+/* eslint-disable no-invalid-this */
 export function initial(){
   const {dayCycle,easel,shields} = this,
         {ctx,viewport} = easel;

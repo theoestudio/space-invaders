@@ -1,3 +1,4 @@
+/* eslint-disable no-invalid-this */
 export function won(){
   const {dayCycle,easel,player} = this,
         {ctx,viewport} = easel;

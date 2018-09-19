@@ -1,3 +1,4 @@
+/* eslint-disable no-invalid-this */
 export function missileAttacks(){
   const missileAttacks = new this.Ion(this.easel);
 

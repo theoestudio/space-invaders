@@ -1,8 +1,18 @@
-export function zoomIntoSpace(){
-  const zoomIntoSpace = new this.Ion(this.easel);
+/* eslint-disable no-invalid-this */
+export function zoomIntoSpace(options){
+  const zoomIntoSpace = new this.Ion(this.easel),
+        {onFinished} = options;
 
   zoomIntoSpace.states = ['initial'];
   zoomIntoSpace.status = this.invaders.list.length;
-  zoomIntoSpace.collection = this.invaders.list;
+  zoomIntoSpace.onParticleEnd = ()=>{
+    zoomIntoSpace.status--;
+    if(!zoomIntoSpace.status) zoomIntoSpace.finished=true;
+  };
+  zoomIntoSpace.collection = this.invaders.list.map(invader=>{
+    invader.onEnd = zoomIntoSpace.onParticleEnd;
+    return invader;
+  });
+  zoomIntoSpace.onFinished = onFinished;
   return zoomIntoSpace;
 } //end zoomIntoSpace()

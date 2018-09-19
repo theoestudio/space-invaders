@@ -1,3 +1,4 @@
+/* eslint-disable no-invalid-this */
 export function started(){
   const {dayCycle,easel,player,missiles,shields,invaders} = this,
         {ctx,viewport} = easel;
@@ -41,13 +42,13 @@ export function started(){
       // for collision, need to check all corners of one square
       // to see if any of the corners are within the other
       if(r1>=l2 && b1>=t2 && t1<=t2 && l1<=l2){
-        result = true;scene.state = 'lost';
+        result = true;this.state = 'lost';
       }else if(r1>=r2 && b1>=t2 && t1<=t2 && l1<=r2){
-        result = true;scene.state = 'lost';
+        result = true;this.state = 'lost';
       }else if(r1>=l2 && b1>=b2 && t1<=b2 && l1<=l2){
-        result = true;scene.state = 'lost';
+        result = true;this.state = 'lost';
       }else if(r1>=r2 && b1>=b2 && t1<=b2 && l1<=r2){
-        result = true;scene.state = 'lost';
+        result = true;this.state = 'lost';
       } //end if
       if(!result){
         shields.forEach(s=>{ //shield
@@ -86,7 +87,7 @@ export function started(){
       const p = player;
 
       if(p.x<=m.x&&p.y<=m.y&&p.x+p.imageWidth>=m.x&&p.y+p.imageHeight>=m.y){
-        scene.state = 'lost';
+        this.state = 'lost';
         return true;
       } //end if
       shields.some(s=>{ //shield
@@ -119,14 +120,14 @@ export function started(){
 
     // Now detect players missiles colliding with invaders
     if(m.y>m.endY){ //detecting missile/invader collision
-      invaders.some((i,ii,io)=>{ //invader
+      invaders.list.some((i,ii,io)=>{ //invader
         let invaderResult = false;
 
         if(i.x<=m.x&&i.y<=m.y&&i.x+i.imageWidth>=m.x&&i.y+i.imageHeight>=m.y){
           io.splice(ii,1); //destroy invader
           mo.splice(mi,1); //destroy missile
           player.score+=100;
-          if(io.length===0) scene.state = 'won';
+          if(io.length===0) this.state = 'won';
           invaderResult = true; //collision detected, short circuit
         } //end if
         return invaderResult;

@@ -1,3 +1,4 @@
+/* eslint-disable no-invalid-this */
 export function playerMovement(){
   const playerMovement = new this.Ion(this.easel);
 

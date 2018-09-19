@@ -1,11 +1,14 @@
+/* eslint-disable no-invalid-this */
 export function zigZag(){
-  const zigZag = new this.Ion(this.easel);
+  const zigZag = new this.Ion(this.easel),
+        {easel,invaders} = this,
+        {viewport} = easel;
 
   // eslint-disable-next-line array-callback-return
-  this.invaders.list.map(invader=>{
+  invaders.list.map(invader=>{
     invader.x = invader.startX = invader.originX = invader.endX;
     invader.y = invader.startY = invader.originY = invader.endY;
-    invader.endX = invader.terminalX = invader.terminalX - (v.w/6)|0;
+    invader.endX = invader.terminalX = invader.terminalX - (viewport.w/6)|0;
     invader.tweenCurrent = 0;
     invader.tweenDuration = 100; //400
     invader.tweenType = 'ease-in-out-cubic';
@@ -20,7 +23,7 @@ export function zigZag(){
         invader.tweenType = 'ease-out-cubic';
       }else if(invader.state==='down-left'){
         invader.state = 'right';
-        invader.endX = invader.terminalX = invader.terminalX + (v.w/6*2)|0;
+        invader.endX = invader.terminalX = invader.terminalX + (viewport.w/6*2)|0;
         invader.tweenDuration = Math.floor(invader.tweenDuration*3)-50;
         invader.tweenType = 'ease-in-out-cubic';
       }else if(invader.state==='right'){
@@ -30,7 +33,7 @@ export function zigZag(){
         invader.tweenType = 'ease-out-cubic';
       }else if(invader.state==='down-right'){
         invader.state = 'left';
-        invader.endX = invader.terminalX = invader.terminalX - (v.w/6*2)|0;
+        invader.endX = invader.terminalX = invader.terminalX - (viewport.w/6*2)|0;
         invader.tweenDuration = Math.floor(invader.tweenDuration*3)-50;
         invader.tweenType = 'ease-in-out-cubic';
       } //end if
@@ -39,7 +42,7 @@ export function zigZag(){
     };
   });
   zigZag.states = ['started'];
-  zigZag.collection = this.invaders.list;
+  zigZag.collection = invaders.list;
   return zigZag;
 }
 

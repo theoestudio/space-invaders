@@ -1,7 +1,7 @@
 import {generateInvader} from './generateInvader';
 
 export class Invader{
-  constructor({easel,id,type,dx=0,dy=0,color,image}){
+  constructor({easel,id,dx=0,dy=0,color,image}){
     this.easel = easel;
     this.id = id;
     this.x = this.originX = this.startX = 1+Math.floor(Math.random()*easel.viewport.w);
@@ -20,10 +20,6 @@ export class Invader{
       this.imageWidth = 20;
       this.imageHeight = 20;
     } //end if
-    this.onEnd = function invaderFinished(){
-      this.status--; //decrement the number left to finish
-      if(this.status===0) this.finished = true;
-    };
   }
 }
 
@@ -34,7 +30,7 @@ export class InvaderList{
     this.colors = [
       '#ee1f30','#fab630','#43af52','#2dbfd4'
     ];
-    this.images = Array.from(new Array(this.types),()=> generateInvader()),
+    this.images = Array.from(new Array(this.types),()=> generateInvader());
     this.list=[];
     this.initialize();
   }
@@ -58,6 +54,6 @@ export class InvaderList{
     } //end for
   }
   getRandom(){
-    this.list[Math.floor(Math.random()*this.list.length)];
+    return this.list[Math.floor(Math.random()*this.list.length)];
   }
 }

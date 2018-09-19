@@ -1,11 +1,11 @@
 export class Missile{
-  constructor(easel,player,missiles,invaders){
+  constructor(easel,player,missiles,invaders,id=0){
     const origin = player?player:invaders.getRandom(),
           sx = origin.x+origin.imageWidth/2,
           sy = origin.y+(player?-2:origin.imageHeight);
 
     this.easel = easel;
-    this.id = missiles.length;
+    this.id = id;
     this.x = this.originX = this.startX = this.terminalX = this.endX = sx;
     this.y = this.originY = this.startY = sy;
     if(player){
@@ -34,9 +34,9 @@ export class MissileList{
     this.player = player;
     this.invaders = invaders;
   }
-  shootFrom(player){
+  shootFrom(){
     if(this.invaders.list.length){
-      this.list.push(new Missile(this.easel,this.player));
+      this.list.push(new Missile(this.easel,this.player,this.list.length));
     } //end if
   }
   add(missile){
@@ -45,13 +45,13 @@ export class MissileList{
   startGenerating(){
     if(this.invaders.list.length){
       this.list.push(
-        new Missile(this.easel,this.player,this.list,this.invaders)
+        new Missile(this.easel,null,this.list,this.invaders)
       );
     } //end if
     setTimeout(()=>{
       const num = Math.floor(Math.random()*400+100);
 
-      this.initialize.call((this),num,true);
-    });
+      this.startGenerating(num,true);
+    },500);
   }
 }

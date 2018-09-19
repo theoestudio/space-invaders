@@ -29,18 +29,17 @@ scene.clouds = {
 // go ahead and start all the animations and begin
 scene.animate('playerMovement');
 scene.animate('zoomIntoSpace',{
-  callback(){
-    console.log('finished entered zoom into space');
+  onFinished(){
     scene.state = 'started';
-    scene.animate('zigzag');
+    scene.animate('zigZag');
     scene.animate('missileAttacks');
     scene.missiles.startGenerating();
   }
 });
-scene.makeState('initial',states.initial.call(scene));
-scene.makeState('started',states.started.call(scene));
-scene.makeState('won',states.won.call(scene));
-scene.makeState('lost',states.lost.call(scene));
+scene.makeState('initial',()=>states.initial.call(scene));
+scene.makeState('started',()=>states.started.call(scene));
+scene.makeState('won',()=>states.won.call(scene));
+scene.makeState('lost',()=>states.lost.call(scene));
 scene.draw();
 
 document.addEventListener('keydown', e=>{
