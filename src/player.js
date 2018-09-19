@@ -8,7 +8,7 @@ export class Player{
     this.terminalX = this.endX = this.x;
     this.terminalY = this.endY = this.y;
     this.tweenCurrent = 50;
-    this.tweenDuration = 50;
+    this.tweenDuration = 10;
     this.tweenType = 'ease-out-circular';
     this.color = '#afa';
     this.image = generateInvader();
@@ -18,12 +18,22 @@ export class Player{
   }
   moveRight(){
     this.startX = this.originX = this.x;
-    this.terminalX = this.endX+=50;
-    this.tweenCurrent = 0;
+    if(this.terminalX+50+this.imageWidth/2<this.easel.viewport.w){
+      this.terminalX = this.endX+=50;
+      this.tweenCurrent = 0;
+    }else{
+      this.terminalX = this.easel.viewport.w-this.imageWidth/2;
+      this.tweenCurrent = 0;
+    } //end if
   }
   moveLeft(){
     this.startX = this.originX = this.x;
-    this.terminalX = this.endX-=50;
-    this.tweenCurrent = 0;
+    if(this.terminalX-50>0){
+      this.terminalX = this.endX-=50;
+      this.tweenCurrent = 0;
+    }else{
+      this.terminalX = 0;
+      this.tweenCurrent = 0;
+    } //end if
   }
 }
