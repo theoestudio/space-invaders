@@ -1,10 +1,8 @@
 export function zoomIntoSpace(){
-  console.log('zoom into space animation',this);
-  const zoomIntoSpace = new Ion();
+  const zoomIntoSpace = new this.Ion(this.easel);
 
   zoomIntoSpace.states = ['initial'];
-  zoomIntoSpace.status = invaders.length;
-  zoomIntoSpace.collection = invaders;
-  zoomIntoSpace.onFinished = callback;
+  zoomIntoSpace.status = this.invaders.list.length;
+  zoomIntoSpace.collection = this.invaders.list;
   return zoomIntoSpace;
 } //end zoomIntoSpace()

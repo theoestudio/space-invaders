@@ -1,9 +1,7 @@
 export function playerMovement(){
-  console.log('player movement animation',this);
-  const playerMovement = new Ion();
+  const playerMovement = new this.Ion(this.easel);
 
   playerMovement.states = ['initial','started'];
-  playerMovement.collection = [player];
-  playerMovement.onFinished = callback;
+  playerMovement.collection = [this.player];
   return playerMovement;
 } //end playerMovement()

@@ -1,11 +1,13 @@
 export function initial(){
-  console.log('initial state',this);
+  const {dayCycle,easel,shields} = this,
+        {ctx,viewport} = easel;
+
   // Draw background
   dayCycle.drawNext(true);
 
   // Draw a ground
   ctx.fillStyle='rgb(10,80,10)';
-  ctx.fillRect(0,v.h-10,v.w,10);
+  ctx.fillRect(0,viewport.h-10,viewport.w,10);
 
   // Draw score
   ctx.textAlign = 'left';

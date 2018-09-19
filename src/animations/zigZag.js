@@ -1,9 +1,8 @@
 export function zigZag(){
-  console.log('zigzag animation',this);
-  const zigZag = new Ion();
+  const zigZag = new this.Ion(this.easel);
 
   // eslint-disable-next-line array-callback-return
-  invaders.map(invader=>{
+  this.invaders.list.map(invader=>{
     invader.x = invader.startX = invader.originX = invader.endX;
     invader.y = invader.startY = invader.originY = invader.endY;
     invader.endX = invader.terminalX = invader.terminalX - (v.w/6)|0;
@@ -40,7 +39,7 @@ export function zigZag(){
     };
   });
   zigZag.states = ['started'];
-  zigZag.collection = invaders;
+  zigZag.collection = this.invaders.list;
   return zigZag;
 }
 

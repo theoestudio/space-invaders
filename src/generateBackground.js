@@ -23,7 +23,7 @@ export function generateBackground(easel){
     colors,
     x: 0, y: 0, w: easel.viewport.w, h: easel.viewport.h,
     makeGradient(){
-      return ctx.createLinearGradient(0,0,0,easel.viewport.h/5*4);
+      return easel.ctx.createLinearGradient(0,0,0,easel.viewport.h/5*4);
     }
   });
 } //end generateBackground()

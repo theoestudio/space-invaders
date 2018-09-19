@@ -28,14 +28,30 @@ export class Missile{
 }
 
 export class MissileList{
-  constructor(easel,player){
+  constructor(easel,player,invaders){
     this.easel = easel;
     this.list=[];
+    this.player = player;
+    this.invaders = invaders;
   }
   shootFrom(player){
-    if(invaders.length) this.list.push(new Missile(this.easel,this.player));
+    if(this.invaders.list.length){
+      this.list.push(new Missile(this.easel,this.player));
+    } //end if
   }
   add(missile){
     this.list.push(missile);
+  }
+  startGenerating(){
+    if(this.invaders.list.length){
+      this.list.push(
+        new Missile(this.easel,this.player,this.list,this.invaders)
+      );
+    } //end if
+    setTimeout(()=>{
+      const num = Math.floor(Math.random()*400+100);
+
+      this.initialize.call((this),num,true);
+    });
   }
 }

@@ -1,48 +1,55 @@
 import {Easel,Ion,IonCloud} from 'ion-cloud/src/lib';
-import {Missile,MissileList} from './Missile';
 import {Player} from './Player';
-import {invaders} from './invaders';
+import {MissileList} from './MissileList';
+import {InvaderList} from './InvaderList';
 import {generateShields} from './generateShields';
 import {generateBackground} from './generateBackground';
 import * as animations from './animations/';
 import * as states from './states/';
 
 const easel = new Easel(),
-      scene = new IonCloud(easel,Ion),
-      player = new Player(easel),
-      missiles = new MissileList(easel,player);
+      scene = new IonCloud(easel,Ion);
 
 // now apply the variables to the scene itself so they
 // can be accessed during the animations
-scene.player = player;
-scene.missiles = missiles;
+scene.player = new Player(easel);
+scene.invaders = new InvaderList(easel);
+scene.missiles = new MissileList(easel,scene.player,scene.invaders);
 scene.shields = generateShields(easel);
-scene.background = generateBackground(easel);
+scene.dayCycle = generateBackground(easel);
+
+// start by attributing the animations to the scene so we can access them
+scene.clouds = {
+  playerMovement: animations.playerMovement,
+  zoomIntoSpace: animations.zoomIntoSpace,
+  missileAttacks: animations.missileAttacks,
+  zigZag: animations.zigZag
+};
 
 // go ahead and start all the animations and begin
-scene.animate(animations.playerMovement);
-scene.animate(animations.zoomIntoSpace,()=>{
-  scene.state = 'started';
-  scene.animate(animations.zigZag);
-  scene.animate(animations.missileAttacks);
-  (function generateMissile(){
-    if(invaders.length) missiles.add(new Missile(easel,player,missiles,invaders));
-    setTimeout(()=>generateMissile.call((this),r(100,500),true));
-  })();
+scene.animate('playerMovement');
+scene.animate('zoomIntoSpace',{
+  callback(){
+    console.log('finished entered zoom into space');
+    scene.state = 'started';
+    scene.animate('zigzag');
+    scene.animate('missileAttacks');
+    scene.missiles.startGenerating();
+  }
 });
-scene.makeState('initial',states.initial);
-scene.makeState('started',states.started);
-scene.makeState('won',states.won);
-scene.makeState('lost',states.lost);
+scene.makeState('initial',states.initial.call(scene));
+scene.makeState('started',states.started.call(scene));
+scene.makeState('won',states.won.call(scene));
+scene.makeState('lost',states.lost.call(scene));
 scene.draw();
 
 document.addEventListener('keydown', e=>{
   if(e.code==='ArrowRight'){
-    player.moveRight();
+    scene.player.moveRight();
   }else if(e.code==='ArrowLeft'){
-    player.moveLeft();
+    scene.player.moveLeft();
   }else if(e.code==='Space'){
-    missiles.shootFrom(player);
+    scene.missiles.shootFrom(scene.player);
   } //end if
 });
 
@@ -54,14 +61,14 @@ function clickEvent(e){
   if(scene.state==='lost'){
     window.location.reload();
   }else{
-    const delta = Math.abs(player.x-e.clientX);
+    const delta = Math.abs(scene.player.x-e.clientX);
 
-    if(delta>50&&e.clientX>player.x){
-      player.moveRight();
-    }else if(delta>50&&e.clientX<player.x){
-      player.moveLeft();
+    if(delta>50&&e.clientX>scene.player.x){
+      scene.player.moveRight();
+    }else if(delta>50&&e.clientX<scene.player.x){
+      scene.player.moveLeft();
     } //end if
-    missiles.shootFrom(player);
+    scene.missiles.shootFrom(scene.player);
   } //end if
 } //end clickEvent()
 

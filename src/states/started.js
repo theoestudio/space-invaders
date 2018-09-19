@@ -1,11 +1,13 @@
 export function started(){
-  console.log('started scene',this);
+  const {dayCycle,easel,player,missiles,shields,invaders} = this,
+        {ctx,viewport} = easel;
+
   // Draw background
   dayCycle.drawNext(true);
 
   // Draw a ground
   ctx.fillStyle='rgb(10,80,10)';
-  ctx.fillRect(0,v.h-10,v.w,10);
+  ctx.fillRect(0,viewport.h-10,viewport.w,10);
 
   // Draw score
   const bgColor = ctx.getImageData(15,15,1,1).data,
@@ -22,8 +24,8 @@ export function started(){
   ctx.fillText(`SCORE: ${player.score}`,15,15);
 
   // Detect invader collision with shields
-  invaders.forEach(i=>{
-    if(i.y+i.imageHeight>v.h-200){ //don't bother if not low enough
+  invaders.list.forEach(i=>{
+    if(i.y+i.imageHeight>viewport.h-200){ //don't bother if not low enough
       const p = player,
             l1 = i.x,
             r1 = i.x+i.imageWidth,
@@ -74,13 +76,13 @@ export function started(){
   });
 
   // Detect missile collision
-  missiles.forEach((m,mi,mo)=>{
+  missiles.list.forEach((m,mi,mo)=>{
 
     // Start with detecting the players or invaders missiles collding
     // with the shields, ground or the player
-    if(m.y>v.h-10){ //missile hit the ground
+    if(m.y>viewport.h-10){ //missile hit the ground
       mo.splice(mi,1); //remove missile
-    }else if(m.y>v.h-200){ //detecting shield collision
+    }else if(m.y>viewport.h-200){ //detecting shield collision
       const p = player;
 
       if(p.x<=m.x&&p.y<=m.y&&p.x+p.imageWidth>=m.x&&p.y+p.imageHeight>=m.y){

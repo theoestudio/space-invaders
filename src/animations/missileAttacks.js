@@ -1,9 +1,8 @@
 export function missileAttacks(){
-  console.log('missile attacks animation',this);
-  const missileAttacks = new Ion();
+  const missileAttacks = new this.Ion(this.easel);
 
   missileAttacks.states = ['started'];
-  missileAttacks.collection = missiles;
+  missileAttacks.collection = this.missiles.list;
   return missileAttacks;
 } //end missiles()
 
