@@ -10,7 +10,6 @@ const env = process.env.NODE_ENV==='production'?'production':'development';
 
 export default {
   mode: env,
-  watch: true,
   entry:{
     app: ['./src/app.js'],
     vendor: ['ion-cloud']
