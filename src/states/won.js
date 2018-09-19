@@ -16,8 +16,8 @@ export function won(){
   ctx.fillText('WINNER!',v.w/2,v.h/2);
 
   // Draw score
-  let bgColor = ctx.getImageData(15,15,1,1).data,
-      average = (bgColor[0]+bgColor[1]+bgColor[2])/3/255;
+  const bgColor = ctx.getImageData(15,15,1,1).data,
+        average = (bgColor[0]+bgColor[1]+bgColor[2])/3/255;
 
   ctx.textAlign = 'left';
   ctx.font = '24px Orbitron';

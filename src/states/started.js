@@ -14,29 +14,32 @@ export function started(){
   ctx.fillRect(0,v.h-10,v.w,10);
 
   // Draw score
-  {
-    let bgColor = ctx.getImageData(15,15,1,1).data,
+  const bgColor = ctx.getImageData(15,15,1,1).data,
         average = (bgColor[0]+bgColor[1]+bgColor[2])/3/255;
 
-    ctx.textAlign = 'left';
-    ctx.font = '24px Orbitron';
-    ctx.textBaseline = 'top';
-    if(average>0.5){
-      ctx.fillStyle='#000';
-    }else{
-      ctx.fillStyle='#fff';
-    } //end if
-    ctx.fillText(`SCORE: ${player.score}`,15,15);
-  }
+  ctx.textAlign = 'left';
+  ctx.font = '24px Orbitron';
+  ctx.textBaseline = 'top';
+  if(average>0.5){
+    ctx.fillStyle='#000';
+  }else{
+    ctx.fillStyle='#fff';
+  } //end if
+  ctx.fillText(`SCORE: ${player.score}`,15,15);
 
   // Detect invader collision with shields
-  invaders.forEach((i,ii,io)=>{
+  invaders.forEach(i=>{
     if(i.y+i.imageHeight>v.h-200){ //don't bother if not low enough
-      let p = player,
-          l1 = i.x,              l2 = p.x,
-          r1 = i.x+i.imageWidth, r2 = p.x+p.imageWidth,
-          t1 = i.y,              t2 = p.y,
-          b1 = i.y+i.imageHeight,b2 = p.y+p.imageHieght,
+      const p = player,
+            l1 = i.x,
+            r1 = i.x+i.imageWidth,
+            t1 = i.y,
+            b1 = i.y+i.imageHeight;
+
+      let l2 = p.x,
+          r2 = p.x+p.imageWidth,
+          t2 = p.y,
+          b2 = p.y+p.imageHeight,
           result = false;
 
       // for collision, need to check all corners of one square
@@ -84,7 +87,7 @@ export function started(){
     if(m.y>v.h-10){ //missile hit the ground
       mo.splice(mi,1); //remove missile
     }else if(m.y>v.h-200){ //detecting shield collision
-      let p = player;
+      const p = player;
 
       if(p.x<=m.x&&p.y<=m.y&&p.x+p.imageWidth>=m.x&&p.y+p.imageHeight>=m.y){
         scene.state = 'lost';
@@ -95,7 +98,7 @@ export function started(){
           let stackResult = false;
 
           if(m.y<m.endY){ //invader missile
-            let b = s.bricks[0]; //only top brick can ever be hit
+            const b = s.bricks[0]; //only top brick can ever be hit
 
             if(b.x<=m.x&&b.y<=m.y&&b.x+b.width>=m.x&&b.y+b.height>=m.y){
               s.bricks.shift(); //remove destroyed brick
@@ -104,7 +107,7 @@ export function started(){
               stackResult = true; //deleted a brick, short circuit
             } //end if
           }else{ //player missile
-            let b = s.bricks[s.bricks.length-1]; //only bottom brick can hit
+            const b = s.bricks[s.bricks.length-1]; //only bottom brick can hit
 
             if(b.x<=m.x&&b.y<=m.y&&b.x+b.width>=m.x&&b.y+b.height>=m.y){
               s.bricks.pop(); //remove destroyed brick

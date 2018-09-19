@@ -38,7 +38,7 @@ class Shield{
   }
 }
 
-let shields = [
+const shields = [
   new Shield(1/4,v.h-130),
   new Shield(3/4,v.h-130)
 ];

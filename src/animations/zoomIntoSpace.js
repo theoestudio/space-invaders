@@ -2,7 +2,7 @@ import {Ion} from 'ion-cloud';
 import {invaders} from '../invaders';
 
 export function zoomIntoSpace(__this,callback){
-  let zoomIntoSpace = new Ion();
+  const zoomIntoSpace = new Ion();
 
   zoomIntoSpace.states = ['initial'];
   zoomIntoSpace.status = invaders.length;

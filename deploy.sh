@@ -1,44 +1,39 @@
 #!/bin/bash
 
-# Passing in your user name is preferred for logging into remote server
-# Usage 1: stage.sh <user>
-# If you don't pass in your name it will assume server is same as localhost
-# Usage 2: stage.sh
-
 # Main variables
-SERVERIP="plainsofsedia.com"
-VERSION=`awk '/version/{gsub(/("|",)/,"",$2);print $2};' package.json`
-GITHASH=`git rev-parse head`
+IP='159.203.80.149'
+VERSION=$(awk '/version/{gsub(/("|",)/,"",$2);print $2};' package.json)
+HASH=$(git rev-parse head)
 TODAY=$(date)
-USER=u68221731
+USER=$(whoami)
+KEY="/Users/$USER/.ssh/id_rsa"
 
-# Make sure user was passed in, if it wasn't capture it - get location of keys
-if [ $USER = "" ]; then
-  USER=$(whoami)
-fi
-KEYPATH=$(whoami)
-KEY="/Users/$KEYPATH/.ssh/id_rsa"
+# Now package and move to server
+echo "Creating log..."
+{
+  echo "site: space-invaders@www.nathanielinman.com";
+  echo "date: $TODAY";
+  echo "user: $USER";
+  echo "hash: $HASH";
+  echo "application: space-invaders";
+  echo "version: $VERSION";
+} > ./server/root/deployDatabase.txt
+echo "Packaging files..."
+tar --exclude='.*' --exclude='server/' --exclude='node_modules/' --exclude='music/' --exclude='metrics/' -cvf ../plosdb.tar ./* && mv ../plosdb.tar ./
+tar -uf ./plosdb.tar ./server/root/deployDatabase.txt
+gzip ./plosdb.tar
+echo "Moving files to server..."
+rsync -avhtz -e "ssh -i $KEY" plosdb.tar.gz nate@$IP:./
+echo "Extracting files..."
+ssh -i "$KEY" nate@$IP << EOF
+  sudo rm /var/www/space-invaders
+  sudo mkdir /var/www/space-invaders
+  sudo tar -C /var/www/space-invaders -zxvf space-invaders.tar.gz
+EOF
+echo "Cleaning up deployment files..."
+rm ./space-invaders.tar.gz
+echo "Verifying successful deploy..."
+sleep 5
+curl https://nathanielinman.com/deployDatabase.txt
+rm -rf ./server/root/*
 
-# Build the application and make a tar of the result including
-# an information file that contains last deploy dates and version
-echo "npm run production"
-npm run production
-echo "site: www.spaceinvaders.nathanielinman.com " > dist/deploy.txt
-echo "hash: $GITHASH " >> dist/deploy.txt
-echo "version: $VERSION " >> dist/deploy.txt
-echo "date: $TODAY" >> dist/deploy.txt
-cd dist && tar -czvf ../dist.tar.gz . && cd ..
-
-# Put the package onto the staging server
-echo "rsynching files User: $USER => Key: $KEY => IP: $SERVERIP"
-rsync -avhtz -e "ssh -i $KEY" dist.tar.gz $USER@$SERVERIP:./
-echo "releasing files and restarting"
-ssh -i $KEY $USER@$SERVERIP "rm -rf SpaceInvaders/*; tar -C SpaceInvaders/ -zxvf dist.tar.gz; rm dist.tar.gz"
-
-# Clean up after yourself
-echo "clean up"
-rm dist.tar.gz
-echo "DONE"
-
-# Display the result of the deploy text to make sure it was successful
-curl http://www.spaceinvaders.nathanielinman.com/deploy.txt

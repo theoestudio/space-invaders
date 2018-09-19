@@ -2,8 +2,9 @@ import {Ion} from 'ion-cloud';
 import {invaders} from '../invaders';
 
 export function zigZag(){
-  let zigZag = new Ion();
+  const zigZag = new Ion();
 
+  // eslint-disable-next-line array-callback-return
   invaders.map(invader=>{
     invader.x = invader.startX = invader.originX = invader.endX;
     invader.y = invader.startY = invader.originY = invader.endY;

@@ -1,9 +1,10 @@
-import {IonCloud} from 'ion-cloud';
+import {Easel,Ion,IonCloud} from 'ion-cloud';
 import * as animations from './animations/';
 import * as states from './states/';
 import {missiles} from './missiles';
 
-let scene = new IonCloud();
+const easel = new Easel(),
+      scene = new IonCloud(easel,Ion);
 
 export {scene};
 

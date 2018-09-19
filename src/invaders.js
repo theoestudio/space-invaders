@@ -1,9 +1,9 @@
 import {generateInvader} from './generateInvader';
 
-let types = 4,
-    colors = ['#ee1f30','#fab630','#43af52','#2dbfd4'], //length = types
-    images = Array.from(new Array(types),()=> generateInvader()),
-    invaders = [];
+const types = 4,
+      colors = ['#ee1f30','#fab630','#43af52','#2dbfd4'], //length = types
+      images = Array.from(new Array(types),()=> generateInvader()),
+      invaders = [];
 
 class Invader{
   constructor(id,type,dx,dy){
@@ -24,7 +24,7 @@ class Invader{
       this.imageWidth = 20;
       this.imageHeight = 20;
     } //end if
-    this.onEnd = function invaderFinished(invader){
+    this.onEnd = function invaderFinished(){
       this.status--; //decrement the number left to finish
       if(this.status===0) this.finished = true;
     };
@@ -33,8 +33,8 @@ class Invader{
 
 for(let y=0;y<4;y++){
   for(let x=0;x<10;x++){
-    let dx = Math.floor(x*v.w/3*2/10+v.w/6),
-        dy = Math.floor(y*v.h/3*2/10+v.h/10);
+    const dx = Math.floor(x*v.w/3*2/10+v.w/6),
+          dy = Math.floor(y*v.h/3*2/10+v.h/10);
 
     invaders.push(new Invader(invaders.length,(invaders.length/10)|0,dx,dy));
   } //end for

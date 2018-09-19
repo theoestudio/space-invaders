@@ -29,7 +29,7 @@ class Player{
   }
 }
 
-let player = new Player();
+const player = new Player();
 
 document.addEventListener('keydown', e=>{
   if(e.code==='ArrowRight'){
@@ -49,7 +49,7 @@ function clickEvent(e){
   if(scene.state==='lost'){
     window.location.reload();
   }else{
-    let delta = Math.abs(player.x-e.clientX);
+    const delta = Math.abs(player.x-e.clientX);
 
     if(delta>50&&e.clientX>player.x){
       player.moveRight();

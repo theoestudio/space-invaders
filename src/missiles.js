@@ -1,12 +1,12 @@
 import {invaders} from './invaders';
 
-let missiles = [];
+const missiles = [];
 
 class Missile{
   constructor(player){
-    let origin = player?player:invaders.getRandom(),
-        sx = origin.x+origin.imageWidth/2,
-        sy = origin.y+(player?-2:origin.imageHeight);
+    const origin = player?player:invaders.getRandom(),
+          sx = origin.x+origin.imageWidth/2,
+          sy = origin.y+(player?-2:origin.imageHeight);
 
     this.id = missiles.length;
     this.x = this.originX = this.startX = this.terminalX = this.endX = sx;
@@ -23,7 +23,9 @@ class Missile{
     this.size = 3;
     this.onEnd = function onEnd(particle){
       this.collection.splice(particle.id,1);
-      this.collection.forEach((p,i)=> p.id=i); //re-index array
+
+      //eslint-disable-next-line no-return-assign
+      this.collection.forEach((p,i)=> p.id=i);
     };
   }
 }
