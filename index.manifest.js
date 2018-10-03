@@ -38,7 +38,7 @@ export const index = {
           "Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.as"+
           "ync=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,"+
           "'script','//www.google-analytics.com/analytics.js','ga');ga('cr"+
-          "eate', 'UA-XXXXXXXX-X', 'auto');"
+          "eate', 'UA-49864967-4', 'auto');"
       },
       {
         tag: 'noscript',
