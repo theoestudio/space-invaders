@@ -39,4 +39,5 @@ export function lost(){
     ctx.fillStyle='#fff';
   } //end if
   ctx.fillText(`SCORE: ${player.score}`,15,15);
+  gtag('event', 'end', {'result': 'lose'});
 } //end lost()

@@ -30,4 +30,5 @@ export function won(){
     ctx.fillStyle='#fff';
   } //end if
   ctx.fillText(`SCORE: ${player.score}`,15,15);
+  gtag('event', 'end', {'result': 'win'});
 } //end won()
