@@ -1,5 +1,6 @@
 # Distribution Files
 dist/
+.parcel/
 
 # Vim temporary files
 *.swo

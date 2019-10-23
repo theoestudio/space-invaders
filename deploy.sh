@@ -12,7 +12,7 @@ KEY="/Users/$USER/.ssh/id_rsa"
 echo "Cleaning distribution folder..."
 rm -rf dist
 echo "Compiling production build..."
-npm run production
+npm run build
 echo "Creating log..."
 {
   echo "site: space-invaders@www.nathanielinman.com";

@@ -1,4 +1,4 @@
-import {Easel,Ion,IonCloud} from 'ion-cloud/src/lib';
+import {Easel,Ion,IonCloud} from '@ion-cloud/core';
 import {Player} from './Player';
 import {MissileList} from './MissileList';
 import {InvaderList} from './InvaderList';

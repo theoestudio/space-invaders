@@ -1,4 +1,4 @@
-import {Phaser} from 'ion-cloud/src/lib';
+import {Phaser} from '@ion-cloud/core';
 
 export function generateBackground(easel){
   const topColor = {
