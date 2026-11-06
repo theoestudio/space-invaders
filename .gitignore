@@ -1,0 +1,17 @@
+# Godot
+.godot/
+*.translation
+export_credentials.cfg
+
+# Builds
+/build/
+
+# Worker
+web/node_modules/
+web/.wrangler/
+web/public/
+
+# Editors / OS
+.DS_Store
+*.swp
+*.swo
