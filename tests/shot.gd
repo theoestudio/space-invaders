@@ -62,6 +62,9 @@ func _run() -> void:
 	s.holds = 3
 	await _wait(1.0)
 	await _shot("06-spin")
+	s.spin = {}
+	s.holds = 0
+	s.last_symbols = PackedInt32Array([Reels.Sym.SEVEN, Reels.Sym.SEVEN, Reels.Sym.SEVEN])
 	s._award(Reels.Sym.SEVEN)
 	main.ui.banner("FEVER", "free rapid fire · the attacker is open", 1.3, Look.PINK)
 	await _wait(1.4)
