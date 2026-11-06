@@ -1,0 +1,25 @@
+{
+  "name": "pachinko-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "pachinko.twinspear.com: serves the Godot web build and takes one row per finished run",
+  "scripts": {
+    "test": "node --test src/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "stage": "node scripts/stage.ts",
+    "dev": "npm run stage && wrangler dev",
+    "deploy": "npm run stage && wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply pachinko --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260722.1",
+    "@types/node": "^26.1.1",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261104.1": true
+  }
+}
