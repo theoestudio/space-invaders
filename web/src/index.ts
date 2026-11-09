@@ -6,11 +6,13 @@
  *                      25 MiB per-asset limit, ~10 MB compressed is under it
  *   POST /api/run      one coarse, identifier-free row per finished run; the reply
  *                      is that run's leaderboard (src/board.ts) with its rank
+ *   POST /api/promo    one row per tap on a "More from TwinSpear" link (src/promo.ts)
  *
  * The studio dashboard (internal.twinspear.com) reads the `pachinko` D1 database
  * directly. The only numbers served back out are the leaderboard's payouts and waves.
  */
 import { parseRunRow } from './run_row.ts';
+import { parsePromo } from './promo.ts';
 import { BOARD_SIZE, boardScope, dailyNumber, runDay, type Board, type BoardEntry } from './board.ts';
 
 export interface Env {
@@ -68,6 +70,25 @@ async function ingest(request: Request, env: Env): Promise<Response> {
   return Response.json(board, { headers: { 'Cache-Control': 'no-store' } });
 }
 
+async function promo(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'POST') return empty(405);
+  if (request.headers.get('Origin') !== ORIGIN) return empty(403);
+  const raw = await request.text();
+  if (raw.length > MAX_BODY) return empty(413);
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return empty(400);
+  }
+  const row = parsePromo(body);
+  if (!row) return empty(400);
+  await env.DB.prepare('INSERT INTO promo (id, day, target, place) VALUES (?, ?, ?, ?)')
+    .bind(crypto.randomUUID(), new Date().toISOString().slice(0, 10), row.to, row.where)
+    .run();
+  return empty(204);
+}
+
 async function wasm(request: Request, env: Env): Promise<Response> {
   const headers = new Headers();
   const inm = request.headers.get('If-None-Match');
@@ -91,6 +112,7 @@ export default {
   async fetch(request, env): Promise<Response> {
     const { pathname } = new URL(request.url);
     if (pathname === '/api/run') return ingest(request, env);
+    if (pathname === '/api/promo') return promo(request, env);
     if (pathname === '/index.wasm') return wasm(request, env);
     return env.ASSETS.fetch(request);
   },
