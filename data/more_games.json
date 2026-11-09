@@ -1,0 +1,71 @@
+{
+  "games": [
+    {
+      "audience": [
+        "shooter",
+        "roguelike",
+        "arcade"
+      ],
+      "free": false,
+      "id": "det33",
+      "image": "https://nathanielinman.com/content/images/2026/det33/det33-released-combat.jpg",
+      "pitch": "A bullet-heaven roguelite in what's left of New London. Take a contract from one of four warring factions, deploy as one of ten classes, and build a gun out of whatever the level-ups hand you before the city closes in.",
+      "platform": "steam",
+      "title": "DET-33",
+      "url": "https://store.steampowered.com/app/5012790/DET33/"
+    },
+    {
+      "audience": [
+        "roguelike",
+        "strategy"
+      ],
+      "free": true,
+      "id": "kepler452b",
+      "image": "https://nathanielinman.com/content/images/2026/kepler452b/kepler452b-rewrite.jpg",
+      "pitch": "A roguelike down through a research base gone wrong. Eight classes, a bag that holds three things, and four captain keys to find before you can leave.",
+      "platform": "web",
+      "title": "Kepler452b",
+      "url": "https://kepler452b.twinspear.com/"
+    },
+    {
+      "audience": [
+        "arcade",
+        "shooter"
+      ],
+      "free": true,
+      "id": "pachinko",
+      "image": "https://nathanielinman.com/content/images/2026/pachinko/pachinko-reels.jpg",
+      "pitch": "A neon shooter on a pachinko board. Every invader you break drops a ball through the pins. Cash out between waves, or let it ride.",
+      "platform": "web",
+      "title": "Pachinko Descent",
+      "url": "https://pachinko.twinspear.com/"
+    },
+    {
+      "audience": [
+        "strategy",
+        "puzzle"
+      ],
+      "free": true,
+      "id": "bulwark",
+      "image": "https://nathanielinman.com/content/images/2024/bulwark/bulwark-strike-preview.jpg",
+      "pitch": "Crystal armies on a 5x5 war table. Every unit strikes once as it lands, friend or foe, so aim carefully.",
+      "platform": "web",
+      "title": "Bulwark",
+      "url": "https://bulwark.twinspear.com/"
+    },
+    {
+      "audience": [
+        "puzzle",
+        "cozy"
+      ],
+      "free": true,
+      "id": "coterie",
+      "image": "https://nathanielinman.com/content/images/2025/coterie/coterie-cascade.jpg",
+      "pitch": "Glazed tiles and gold notches. Match a notch exactly and the tile fires its own, which can cascade across the whole board.",
+      "platform": "web",
+      "title": "Coterie",
+      "url": "https://coterie.twinspear.com/"
+    }
+  ],
+  "version": 1
+}

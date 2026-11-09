@@ -11,6 +11,7 @@ signal board_received(board: Dictionary)
 
 const ENDPOINT := "https://pachinko.twinspear.com/api/run"
 const HOST := "pachinko.twinspear.com"
+const PROMO_ENDPOINT := "https://pachinko.twinspear.com/api/promo"
 
 var _enabled := false
 ## Counts finished runs, so a slow reply for an earlier run is dropped.
@@ -60,6 +61,23 @@ func run_finished(mode: String, s: Sim, official: bool, daily := 0) -> void:
 	var err := req.request(ENDPOINT, ["Content-Type: application/json"], HTTPClient.METHOD_POST, JSON.stringify(row(mode, s, official, daily)))
 	if err != OK:
 		push_warning("telemetry request failed to start: %s" % error_string(err))
+		req.queue_free()
+
+
+## The "More from TwinSpear" click row: the tapped game's id and where it was shown
+## ("menu" or "end"). Nothing else, so taps can't be tied to a player or a run.
+## Must match web/src/promo.ts.
+static func promo_row(to: String, where: String) -> Dictionary:
+	return {to = to, where = where}
+
+
+func promo(to: String, where: String) -> void:
+	if not _enabled:
+		return
+	var req := HTTPRequest.new()
+	add_child(req)
+	req.request_completed.connect(func(_r: int, _c: int, _h: PackedStringArray, _b: PackedByteArray) -> void: req.queue_free())
+	if req.request(PROMO_ENDPOINT, ["Content-Type: application/json"], HTTPClient.METHOD_POST, JSON.stringify(promo_row(to, where))) != OK:
 		req.queue_free()
 
 

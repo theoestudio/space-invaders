@@ -17,6 +17,7 @@ func _init() -> void:
 	_phases()
 	_daily()
 	_telemetry()
+	_more_games()
 	print("\n%d passed, %d failed" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -293,3 +294,29 @@ func _board_rows() -> void:
 	rows = tel.board_rows({top = top, total = 4, rank = null}, 0, 2)
 	check(rows.size() == 4 and rows.all(func(r: Dictionary) -> bool: return not r.you), "a bust or practice run is not marked")
 	check(tel.board_rows({top = [], total = 0, rank = null}, 0, 0).is_empty(), "an empty board has no lines")
+
+
+## Must match web/src/promo.ts.
+const PROMO_KEYS := ["to", "where"]
+
+
+## "More from TwinSpear" (MoreGames): the bundled list parses, this game is never listed,
+## the best fit comes first, Steam links are tagged, and the click row carries nothing else.
+func _more_games() -> void:
+	var games := MoreGames.bundled()
+	check(games.size() >= 3, "the bundled games list parses (%d games)" % games.size())
+	var ranked := MoreGames.ranked(games)
+	check(ranked.all(func(g: Dictionary) -> bool: return g.id != MoreGames.SELF), "Pachinko never lists itself")
+	check(ranked.size() == games.size() - 1, "every other game is listed")
+	check(ranked[0].id == "det33", "an arcade shooter's players see DET-33 first (got %s)" % ranked[0].id)
+	var steam: Dictionary = ranked[0]
+	var url := MoreGames.link(steam, "end")
+	check(url.begins_with(steam.url) and "utm_source=pachinko" in url and "utm_campaign=end" in url, "Steam links carry UTM tags (%s)" % url)
+	var web: Dictionary = ranked[1]
+	check(MoreGames.link(web, "menu") == web.url, "links to the free browser games stay plain")
+	check(MoreGames.parse("not json").is_empty() and MoreGames.parse('{"version": 2, "games": []}').is_empty(), "a broken or newer feed is ignored")
+	check(MoreGames.parse('{"version": 1, "games": [{"id": "x"}, {"id": "ok", "title": "Ok", "pitch": "p", "url": "http://insecure", "platform": "web", "free": true, "audience": []}]}').is_empty(), "malformed or non-https entries are dropped")
+	var tel := preload("res://scripts/autoload/telemetry.gd")
+	var keys: Array = tel.promo_row("det33", "end").keys().map(func(k: Variant) -> String: return str(k))
+	keys.sort()
+	check(keys == PROMO_KEYS, "the click row has exactly the expected keys")
