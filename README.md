@@ -44,7 +44,7 @@ and still served from the `github.io` branch. Pachinko Descent replaced it in 20
 | `shaders/` | The starfield behind the cabinet. |
 | `tests/` | Headless sim tests, autopilot balance runs and a screenshot harness. |
 | `tools/make-sounds.py` | Renders every sound effect and the music loop from code. |
-| `web/` | Cloudflare Worker: serves the web export and records finished runs in D1. |
+| `web/` | Cloudflare Worker: serves the web export, records finished runs in D1 and answers each with the leaderboard. |
 
 ## Working on it
 

@@ -81,6 +81,14 @@ func _run() -> void:
 		main._cash_out()
 		await _wait(0.5)
 	await _shot("09-cashed")
+	# The site's reply (only the production build gets one): this run placed below the top.
+	main._on_board({mode = "arcade", daily = 0, total = 57, rank = 23.0, top = [
+		{payout = 512.0, waves = 9.0}, {payout = 430.0, waves = 8.0}, {payout = 430.0, waves = 7.0},
+		{payout = 388.0, waves = 7.0}, {payout = 301.0, waves = 6.0}, {payout = 260.0, waves = 6.0},
+		{payout = 244.0, waves = 5.0}, {payout = 230.0, waves = 5.0}, {payout = 199.0, waves = 4.0},
+		{payout = 187.0, waves = 4.0}]})
+	await _wait(0.3)
+	await _shot("09b-cashed-board")
 
 	main.start_daily()
 	s = main.sim
@@ -88,6 +96,10 @@ func _run() -> void:
 	s.origin.y = Tune.INVADED_Y - 4 * Tune.CELL.y - Tune.INVADER_HALF.y - 2.0
 	await _wait(1.5)
 	await _shot("10-bust")
+	main._on_board({mode = "daily", daily = 4, total = 3, rank = null, top = [
+		{payout = 212.0, waves = 4.0}, {payout = 96.0, waves = 3.0}, {payout = 36.0, waves = 1.0}]})
+	await _wait(0.3)
+	await _shot("10b-bust-board")
 	main.show_menu()
 	await _wait(0.5)
 	await _shot("11-menu-after")

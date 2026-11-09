@@ -19,6 +19,8 @@ var paused := false
 var _demo_bot: Autopilot
 var _rng := RandomNumberGenerator.new()
 var _finished := false
+## The finished run was a daily replay, which does not place.
+var _board_practice := false
 var _fever_on := false
 ## When set (screenshot harness), plays the run instead of the keyboard and pointer.
 var autopilot: Autopilot = null
@@ -46,6 +48,7 @@ func _ready() -> void:
 	ui.ride_pressed.connect(_ride)
 	ui.resume_pressed.connect(func() -> void: set_paused(false))
 	ui.rules_closed.connect(_on_rules_closed)
+	Telemetry.board_received.connect(_on_board)
 	stage.pause_pressed.connect(func() -> void: set_paused(true))
 	get_viewport().size_changed.connect(_on_resized)
 	_on_resized()
@@ -277,7 +280,8 @@ func _finish() -> void:
 		if not official:
 			stats += "\nPractice run: your first result today stands."
 		ui.show_end(title, color, sub, stats, nets, not cashed, true, "Replay")
-		Telemetry.run_finished("daily", sim, official)
+		_board_practice = not official
+		Telemetry.run_finished("daily", sim, official, daily_number)
 	else:
 		var best := Profile.record_arcade(payout, cleared, cashed)
 		if best and payout > 0:
@@ -285,7 +289,14 @@ func _finish() -> void:
 		else:
 			stats += "\n\nBest payout %d" % int(Profile.arcade.best)
 		ui.show_end(title, color, sub, stats, nets, not cashed, false, "Play again")
+		_board_practice = false
 		Telemetry.run_finished("arcade", sim, true)
+
+
+## The site's reply to the finished run: the leaderboard, under the result.
+func _on_board(board: Dictionary) -> void:
+	if _finished and sim:
+		ui.show_board(board, sim.payout(), _cleared(), _board_practice)
 
 
 ## The spoiler-free daily result: the official run if there is one, else this one.

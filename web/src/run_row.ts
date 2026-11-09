@@ -6,6 +6,8 @@
 
 export interface RunRow {
   mode: 'daily' | 'arcade';
+  /** The daily run's number (1 = launch day), 0 in arcade. Absent from older builds' rows. */
+  daily?: number;
   outcome: 'cashed' | 'invaded' | 'empty';
   waves: number;
   payout: number;
@@ -22,7 +24,7 @@ export interface RunRow {
 
 /** Must match ROW_KEYS in tests/run_tests.gd and Telemetry.row() in the game. */
 export const KEYS = [
-  'mode', 'outcome', 'waves', 'payout', 'peak', 'shots', 'kills', 'hits', 'spins', 'fevers',
+  'mode', 'daily', 'outcome', 'waves', 'payout', 'peak', 'shots', 'kills', 'hits', 'spins', 'fevers',
   'pocketed', 'caught', 'official',
 ] as const;
 
@@ -37,8 +39,11 @@ const intIn = (v: unknown, lo: number, hi: number): v is number =>
 export function parseRunRow(body: unknown): RunRow | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
   const o = body as Record<string, unknown>;
-  if (Object.keys(o).length !== KEYS.length || !KEYS.every((k) => k in o)) return null;
+  // Builds from before the leaderboard send no daily number.
+  const want = 'daily' in o ? KEYS : KEYS.filter((k) => k !== 'daily');
+  if (Object.keys(o).length !== want.length || !want.every((k) => k in o)) return null;
   if (o.mode !== 'daily' && o.mode !== 'arcade') return null;
+  if ('daily' in o && !(o.mode === 'arcade' ? o.daily === 0 : intIn(o.daily, 1, 99999))) return null;
   if (o.outcome !== 'cashed' && o.outcome !== 'invaded' && o.outcome !== 'empty') return null;
   if (typeof o.official !== 'boolean') return null;
   if (o.mode === 'arcade' && !o.official) return null;

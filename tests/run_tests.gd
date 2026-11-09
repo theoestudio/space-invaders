@@ -254,7 +254,7 @@ func _daily() -> void:
 
 
 ## Must match web/src/run_row.ts.
-const ROW_KEYS := ["mode", "outcome", "waves", "payout", "peak", "shots", "kills", "hits", "spins", "fevers", "pocketed", "caught", "official"]
+const ROW_KEYS := ["mode", "daily", "outcome", "waves", "payout", "peak", "shots", "kills", "hits", "spins", "fevers", "pocketed", "caught", "official"]
 
 
 func _telemetry() -> void:
@@ -263,7 +263,9 @@ func _telemetry() -> void:
 	if not s.is_over():
 		s.phase = Sim.Phase.BUST
 		s.bust_reason = "invaded"
-	var row: Dictionary = preload("res://scripts/autoload/telemetry.gd").row("arcade", s, true)
+	var tel := preload("res://scripts/autoload/telemetry.gd")
+	check(tel.row("daily", s, true, 4).daily == 4 and tel.row("arcade", s, true, 4).daily == 0, "only a daily row names its daily")
+	var row: Dictionary = tel.row("arcade", s, true)
 	var keys := row.keys().map(func(k: Variant) -> String: return str(k))
 	keys.sort()
 	var want := ROW_KEYS.duplicate()
@@ -275,3 +277,19 @@ func _telemetry() -> void:
 	for k in ROW_KEYS:
 		if k not in ["mode", "outcome", "official"]:
 			check(row[k] is int and row[k] >= 0, "%s is a non-negative integer" % k)
+	_board_rows()
+
+
+## The leaderboard lines under the result (Telemetry.board_rows): ties share a place, this
+## run is marked once, and a run below the top gets its own line.
+func _board_rows() -> void:
+	var tel := preload("res://scripts/autoload/telemetry.gd")
+	var top := [{payout = 300.0, waves = 6.0}, {payout = 120.0, waves = 4.0}, {payout = 120.0, waves = 3.0}, {payout = 50.0, waves = 2.0}]
+	var rows := tel.board_rows({top = top, total = 4, rank = 2.0}, 120, 3)
+	check(rows.map(func(r: Dictionary) -> int: return r.place) == [1, 2, 2, 4], "ties share a place (%s)" % str(rows))
+	check(rows.filter(func(r: Dictionary) -> bool: return r.you).size() == 1 and rows[1].you, "the run is marked once, at its rank")
+	rows = tel.board_rows({top = top, total = 40, rank = 37.0}, 12, 1)
+	check(rows.size() == 5 and rows[4].you and rows[4].gap and rows[4].place == 37 and rows[4].payout == 12, "a run below the top gets its own line")
+	rows = tel.board_rows({top = top, total = 4, rank = null}, 0, 2)
+	check(rows.size() == 4 and rows.all(func(r: Dictionary) -> bool: return not r.you), "a bust or practice run is not marked")
+	check(tel.board_rows({top = [], total = 0, rank = null}, 0, 0).is_empty(), "an empty board has no lines")

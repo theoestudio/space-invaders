@@ -4,12 +4,14 @@
  *   GET  /*            the Godot web build (static assets, see scripts/stage.ts)
  *   GET  /index.wasm   the engine, stored pre-gzipped: at ~40 MB it is over the
  *                      25 MiB per-asset limit, ~10 MB compressed is under it
- *   POST /api/run      one coarse, identifier-free row per finished run
+ *   POST /api/run      one coarse, identifier-free row per finished run; the reply
+ *                      is that run's leaderboard (src/board.ts) with its rank
  *
  * The studio dashboard (internal.twinspear.com) reads the `pachinko` D1 database
- * directly; nothing here serves the numbers back out.
+ * directly. The only numbers served back out are the leaderboard's payouts and waves.
  */
 import { parseRunRow } from './run_row.ts';
+import { BOARD_SIZE, boardScope, dailyNumber, runDay, type Board, type BoardEntry } from './board.ts';
 
 export interface Env {
   ASSETS: Fetcher;
@@ -36,16 +38,34 @@ async function ingest(request: Request, env: Env): Promise<Response> {
   }
   const row = parseRunRow(body);
   if (!row) return empty(400);
-  await env.DB.prepare(
+  const day = runDay(row.mode, row.daily, new Date().toISOString().slice(0, 10));
+  if (!day) return empty(400);
+  const insert = env.DB.prepare(
     `INSERT INTO runs (id, day, mode, outcome, waves, payout, peak, shots, kills, hits, spins, fevers, pocketed, caught, official)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
-      crypto.randomUUID(), new Date().toISOString().slice(0, 10), row.mode, row.outcome, row.waves, row.payout,
+      crypto.randomUUID(), day, row.mode, row.outcome, row.waves, row.payout,
       row.peak, row.shots, row.kills, row.hits, row.spins, row.fevers, row.pocketed, row.caught, row.official ? 1 : 0,
-    )
-    .run();
-  return empty(204);
+    );
+  const scope = boardScope(row.mode, day);
+  const [, top, count] = await env.DB.batch([
+    insert,
+    env.DB.prepare(`SELECT payout, waves FROM runs WHERE ${scope.where} ORDER BY payout DESC, waves DESC LIMIT ${BOARD_SIZE}`)
+      .bind(...scope.binds),
+    env.DB.prepare(`SELECT COUNT(*) AS total, COALESCE(SUM(payout > ?), 0) AS above FROM runs WHERE ${scope.where}`)
+      .bind(row.payout, ...scope.binds),
+  ]);
+  const { total, above } = count.results[0] as { total: number; above: number };
+  const placed = row.official && row.outcome === 'cashed';
+  const board: Board = {
+    mode: row.mode,
+    daily: row.mode === 'daily' ? dailyNumber(day) : 0,
+    top: top.results as unknown as BoardEntry[],
+    total,
+    rank: placed ? above + 1 : null,
+  };
+  return Response.json(board, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 async function wasm(request: Request, env: Env): Promise<Response> {

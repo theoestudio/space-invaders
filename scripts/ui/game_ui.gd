@@ -53,6 +53,7 @@ var _end_stats: Label
 var _end_grid: HBoxContainer
 var _end_share: Button
 var _end_again: Button
+var _end_board: VBoxContainer
 
 var _rules_page := 0
 var _rules_title: Label
@@ -389,6 +390,10 @@ func _build_end() -> void:
 	v.add_child(_end_grid)
 	_end_stats = _centered(Style.label("", 19, Style.MUTED))
 	v.add_child(_end_stats)
+	_end_board = VBoxContainer.new()
+	_end_board.add_theme_constant_override(&"separation", 2)
+	_end_board.visible = false
+	v.add_child(_end_board)
 	v.add_child(_spacer(4))
 	_end_share = Style.button("Copy result", Look.GOLD, true)
 	_end_share.pressed.connect(func() -> void: share_pressed.emit())
@@ -422,7 +427,55 @@ func show_end(title: String, color: Color, sub: String, stats: String, nets: Arr
 	_end_grid.visible = nets.size() > 0
 	_end_share.visible = share
 	_end_again.text = again_text
+	_end_board.visible = false
 	_end.visible = true
+
+
+## The leaderboard under the result, once the site has replied (see Telemetry). `payout`
+## and `waves` are this run's, for its own line when it places below the top.
+func show_board(board: Dictionary, payout: int, waves: int, practice: bool) -> void:
+	for c in _end_board.get_children():
+		c.queue_free()
+	var daily := str(board.get("mode")) == "daily"
+	var head := ("DAILY #%d · TODAY'S TOP CASH-OUTS" % int(board.get("daily", 0))) if daily else "ALL-TIME TOP CASH-OUTS"
+	_end_board.add_child(_spacer(6))
+	_end_board.add_child(_centered(Style.label(head, 16, Look.CYAN, Look.sans_bold)))
+	for r in Telemetry.board_rows(board, payout, waves):
+		if r.gap:
+			_end_board.add_child(_centered(Style.label("···", 16, Style.MUTED)))
+		_end_board.add_child(_board_line(r))
+	var total := int(board.get("total", 0))
+	var rank: Variant = board.get("rank")
+	var foot: String
+	if rank != null:
+		foot = "You placed #%d of %d" % [int(rank), total]
+	elif practice:
+		foot = "Practice runs don't place."
+	elif payout == 0:
+		foot = "Busts don't place."
+	else:
+		foot = ""
+	if total == 0:
+		foot = "No cash-outs yet. " + foot
+	if foot != "":
+		_end_board.add_child(_centered(Style.label(foot.strip_edges(), 16, Style.MUTED)))
+	_end_board.visible = true
+
+
+func _board_line(r: Dictionary) -> HBoxContainer:
+	var color: Color = Look.GOLD if r.you else Style.INK
+	var h := HBoxContainer.new()
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.add_theme_constant_override(&"separation", 14)
+	var cells := [["#%d" % r.place, 52, HORIZONTAL_ALIGNMENT_RIGHT], ["%d" % r.payout, 72, HORIZONTAL_ALIGNMENT_RIGHT],
+		["%d wave%s" % [r.waves, "" if r.waves == 1 else "s"], 92, HORIZONTAL_ALIGNMENT_LEFT],
+		["◀ you" if r.you else "", 56, HORIZONTAL_ALIGNMENT_LEFT]]
+	for c in cells:
+		var l := Style.label(c[0], 18, color, Look.sans_bold if r.you else null)
+		l.custom_minimum_size = Vector2(c[1], 0)
+		l.horizontal_alignment = c[2]
+		h.add_child(l)
+	return h
 
 
 static func wave_color(net: int, bust: bool) -> Color:

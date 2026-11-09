@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { parseRunRow } from './run_row.ts';
 
 const good = {
-  mode: 'daily', outcome: 'cashed', waves: 4, payout: 212, peak: 240, shots: 260, kills: 180,
+  mode: 'daily', daily: 4, outcome: 'cashed', waves: 4, payout: 212, peak: 240, shots: 260, kills: 180,
   hits: 3, spins: 9, fevers: 1, pocketed: 70, caught: 40, official: true,
 };
 
@@ -12,7 +12,16 @@ test('accepts what the game sends', () => {
   assert.ok(parseRunRow({ ...good, outcome: 'invaded', payout: 0 }));
   assert.ok(parseRunRow({ ...good, outcome: 'empty', payout: 0, waves: 0, kills: 20 }));
   assert.ok(parseRunRow({ ...good, official: false }), 'daily practice');
-  assert.ok(parseRunRow({ ...good, mode: 'arcade' }));
+  assert.ok(parseRunRow({ ...good, mode: 'arcade', daily: 0 }));
+  const { daily: _d, ...legacy } = good;
+  assert.ok(parseRunRow(legacy), 'older builds send no daily number');
+});
+
+test('the daily number matches the mode', () => {
+  assert.equal(parseRunRow({ ...good, daily: 0 }), null, 'a daily run names its daily');
+  assert.equal(parseRunRow({ ...good, mode: 'arcade', daily: 4 }), null, 'arcade has none');
+  assert.equal(parseRunRow({ ...good, daily: 1.5 }), null);
+  assert.equal(parseRunRow({ ...good, daily: '4' }), null);
 });
 
 test('rejects anything else', () => {
