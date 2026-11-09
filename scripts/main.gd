@@ -302,7 +302,7 @@ func _on_board(board: Dictionary) -> void:
 
 
 ## The spoiler-free daily result: the official run if there is one, else this one.
-## A "More from TwinSpear" game tapped: count it, then open it. On the web the link opens
+## A "More from Twinspear" game tapped: count it, then open it. On the web the link opens
 ## in a new tab, so the run here is still waiting when the player comes back.
 func _promo(game: Dictionary, where: String) -> void:
 	Telemetry.promo(game.id, where)

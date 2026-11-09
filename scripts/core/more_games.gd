@@ -1,6 +1,6 @@
 class_name MoreGames
 extends RefCounted
-## The other TwinSpear games, for the "More from TwinSpear" panel and the suggestion under
+## The other Twinspear games, for the "More from Twinspear" panel and the suggestion under
 ## a result. The list lives on the blog (data/games.yaml in ~/Sites/blog, published as
 ## FEED with an open CORS header), so a new game shows up in every older game without a
 ## redeploy. BUNDLED is a copy that works offline and until the fetch lands.

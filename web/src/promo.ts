@@ -1,5 +1,5 @@
 /**
- * Validation for the "More from TwinSpear" click row: which game a player tapped and
+ * Validation for the "More from Twinspear" click row: which game a player tapped and
  * where (the menu's list or the suggestion under a result). Pure, so it is tested under
  * Node. Exactly these two keys, nothing that could tell two players apart.
  */

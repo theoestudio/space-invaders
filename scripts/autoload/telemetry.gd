@@ -64,7 +64,7 @@ func run_finished(mode: String, s: Sim, official: bool, daily := 0) -> void:
 		req.queue_free()
 
 
-## The "More from TwinSpear" click row: the tapped game's id and where it was shown
+## The "More from Twinspear" click row: the tapped game's id and where it was shown
 ## ("menu" or "end"). Nothing else, so taps can't be tied to a player or a run.
 ## Must match web/src/promo.ts.
 static func promo_row(to: String, where: String) -> Dictionary:

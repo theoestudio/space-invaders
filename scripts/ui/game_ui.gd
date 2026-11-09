@@ -13,7 +13,7 @@ signal cash_pressed
 signal ride_pressed
 signal resume_pressed
 signal rules_closed
-## A "More from TwinSpear" game tapped: `where` is "menu" (the list) or "end" (the
+## A "More from Twinspear" game tapped: `where` is "menu" (the list) or "end" (the
 ## suggestion under a result). Main counts it and opens the link.
 signal promo_pressed(game: Dictionary, where: String)
 
@@ -34,7 +34,7 @@ var _end := Control.new()
 var _rules := Control.new()
 var _more := Control.new()
 
-## The other TwinSpear games, best fit first (MoreGames). Starts with the bundled copy and
+## The other Twinspear games, best fit first (MoreGames). Starts with the bundled copy and
 ## is replaced by the blog's feed when it arrives.
 var games: Array[Dictionary] = MoreGames.ranked(MoreGames.bundled())
 var _more_list: VBoxContainer
@@ -204,7 +204,7 @@ func _build_menu() -> void:
 		_toggles[key] = t
 		row.add_child(t)
 	_sync_toggles()
-	var more := Style.button("More free games from TwinSpear")
+	var more := Style.button("More free games from Twinspear")
 	more.pressed.connect(show_more)
 	col.add_child(more)
 
@@ -566,7 +566,7 @@ func _rules_show(page: int) -> void:
 	_rules_next.text = "Done" if _rules_page == RULE_PAGES.size() - 1 else "Next  %d/%d" % [_rules_page + 1, RULE_PAGES.size()]
 
 
-# --- more from TwinSpear ------------------------------------------------------------
+# --- more from Twinspear ------------------------------------------------------------
 
 func _build_more() -> void:
 	_shade(_more, 0.78)

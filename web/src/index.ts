@@ -6,7 +6,7 @@
  *                      25 MiB per-asset limit, ~10 MB compressed is under it
  *   POST /api/run      one coarse, identifier-free row per finished run; the reply
  *                      is that run's leaderboard (src/board.ts) with its rank
- *   POST /api/promo    one row per tap on a "More from TwinSpear" link (src/promo.ts)
+ *   POST /api/promo    one row per tap on a "More from Twinspear" link (src/promo.ts)
  *
  * The studio dashboard (internal.twinspear.com) reads the `pachinko` D1 database
  * directly. The only numbers served back out are the leaderboard's payouts and waves.

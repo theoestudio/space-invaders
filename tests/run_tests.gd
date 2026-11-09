@@ -300,7 +300,7 @@ func _board_rows() -> void:
 const PROMO_KEYS := ["to", "where"]
 
 
-## "More from TwinSpear" (MoreGames): the bundled list parses, this game is never listed,
+## "More from Twinspear" (MoreGames): the bundled list parses, this game is never listed,
 ## the best fit comes first, Steam links are tagged, and the click row carries nothing else.
 func _more_games() -> void:
 	var games := MoreGames.bundled()
