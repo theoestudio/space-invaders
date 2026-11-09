@@ -311,7 +311,12 @@ func _more_games() -> void:
 	check(ranked[0].id == "det33", "an arcade shooter's players see DET-33 first (got %s)" % ranked[0].id)
 	var steam: Dictionary = ranked[0]
 	var url := MoreGames.link(steam, "end")
-	check(url.begins_with(steam.url) and "utm_source=pachinko" in url and "utm_campaign=end" in url, "Steam links carry UTM tags (%s)" % url)
+	check(url.begins_with(steam.url) and "utm_source=pachinko" in url and "utm_medium=app" in url and "utm_campaign=end" in url, "Steam links carry UTM tags (%s)" % url)
+	check("utm_medium=itch&" in MoreGames.link(steam, "menu", MoreGames.SELF, "itch"), "the UTM medium says where the game was played")
+	for pair: Array in [["pachinko.twinspear.com", "site"], ["html-classic.itch.zone", "itch"], ["v6p9d9t4.ssl.hwcdn.net", "itch"],
+			["nathanielinman.itch.io", "itch"], ["localhost", "dev"], ["", "dev"], ["Games.Example.com", "games.example.com"],
+			["notitch.zone.evil.com", "notitch.zone.evil.com"], ["eviltwinspear.com", "eviltwinspear.com"], ["a&b=c", "abc"]]:
+		check(MoreGames.host_label(pair[0]) == pair[1], "host %s is labelled %s (got %s)" % [pair[0], pair[1], MoreGames.host_label(pair[0])])
 	var web: Dictionary = ranked[1]
 	check(MoreGames.link(web, "menu") == web.url, "links to the free browser games stay plain")
 	check(MoreGames.parse("not json").is_empty() and MoreGames.parse('{"version": 2, "games": []}').is_empty(), "a broken or newer feed is ignored")

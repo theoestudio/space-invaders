@@ -57,13 +57,40 @@ static func ranked(games: Array[Dictionary], self_id := SELF, tags: Array = TAGS
 	return out
 
 
-## Where a tap goes. Steam links carry UTM tags so Steamworks shows the visits from here.
-static func link(game: Dictionary, where: String, self_id := SELF) -> String:
+## Where a tap goes. Steam links carry UTM tags so Steamworks shows the visits from here:
+## utm_source is this game, utm_medium where it was played (played_on), utm_campaign the
+## button ("menu" or "end"). `medium` is for tests; empty means look it up.
+static func link(game: Dictionary, where: String, self_id := SELF, medium := "") -> String:
 	var url: String = game.url
 	if game.platform != "steam":
 		return url
 	var sep := "&" if "?" in url else "?"
-	return "%s%sutm_source=%s&utm_medium=game&utm_campaign=%s" % [url, sep, self_id, where]
+	var on := medium if medium != "" else played_on()
+	return "%s%sutm_source=%s&utm_medium=%s&utm_campaign=%s" % [url, sep, self_id, on, where]
+
+
+## Where this copy of the game is running (host_label), or "app" outside a browser.
+static func played_on() -> String:
+	if not OS.has_feature("web"):
+		return "app"
+	return host_label(str(JavaScriptBridge.eval("location.hostname", true)))
+
+
+## A page's hostname as a short UTM label: "site" for our own twinspear.com pages, "itch"
+## inside itch.io's player (its game frames are served from itch.zone, older uploads from
+## hwcdn.net), "dev" for a local build, and any other host as itself, so a new portal
+## shows up in Steamworks without a code change.
+static func host_label(hostname: String) -> String:
+	var h := hostname.strip_edges().to_lower()
+	if h == "twinspear.com" or h.ends_with(".twinspear.com"):
+		return "site"
+	for itch: String in ["itch.io", "itch.zone", "hwcdn.net"]:
+		if h == itch or h.ends_with("." + itch):
+			return "itch"
+	if h in ["", "localhost", "127.0.0.1", "[::1]"]:
+		return "dev"
+	var re := RegEx.create_from_string("[^a-z0-9.-]")
+	return re.sub(h, "", true).left(48)
 
 
 ## The button text for a game.
