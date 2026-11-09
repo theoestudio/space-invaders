@@ -6,6 +6,10 @@ extends RefCounted
 
 enum Pocket { START, SIDE, TULIP, ATTACKER }
 
+## Two obstacles closer than this leave a gap a ball cannot fall through but can
+## sit in, so pins keep at least this much clear space from walls, lips and wings.
+const BALL_GAP := Tune.BALL_R * 2.0 + 3.0
+
 ## Grid cell size for pin lookups. Pins closer than this are found by checking the
 ## ball's cell and its eight neighbours.
 const CELL := 32.0
@@ -22,6 +26,9 @@ var walls: Array[Array] = []
 ## The attacker's lid, solid while the attacker is shut.
 var lid: Array = []
 
+## Lip pins and tulip wings (open and shut), placed before the pin field so the
+## field can keep clear of them.
+var _fixed := PackedVector2Array()
 var _cols := 0
 var _grid: Array[PackedInt32Array] = []
 
@@ -43,8 +50,9 @@ func _layout(rng: RandomNumberGenerator) -> void:
 	var reel_bottom := Tune.REEL_CENTER.y + Tune.REEL_SIZE.y / 2.0
 	_pocket(Pocket.START, Vector2(cx, reel_bottom + 92), 12.0, Tune.POCKET_START_PAY)
 	var side_y := 720.0 + rng.randf_range(-30, 30)
-	_pocket(Pocket.SIDE, Vector2(Tune.LEFT + 46, side_y), 14.0, Tune.POCKET_SIDE_PAY)
-	_pocket(Pocket.SIDE, Vector2(Tune.RIGHT - 46, side_y), 14.0, Tune.POCKET_SIDE_PAY)
+	# Far enough in that the outer upper lip leaves a ball's width to the edge.
+	_pocket(Pocket.SIDE, Vector2(Tune.LEFT + 52, side_y), 14.0, Tune.POCKET_SIDE_PAY)
+	_pocket(Pocket.SIDE, Vector2(Tune.RIGHT - 52, side_y), 14.0, Tune.POCKET_SIDE_PAY)
 	var tulip_y := 905.0 + jy
 	_pocket(Pocket.TULIP, Vector2(178 + jx, tulip_y), 14.0, Tune.POCKET_TULIP_PAY)
 	_pocket(Pocket.TULIP, Vector2(Tune.W - 178 + jx, tulip_y), 14.0, Tune.POCKET_TULIP_PAY)
@@ -57,12 +65,13 @@ func _layout(rng: RandomNumberGenerator) -> void:
 	for i in 4:
 		walls.append([corners[i], corners[(i + 1) % 4], 5.0])
 	# A roof over the window so balls split left and right instead of resting on it.
-	walls.append([r.position + Vector2(-6, 0), Vector2(cx, r.position.y - 26), 4.0])
-	walls.append([Vector2(cx, r.position.y - 26), Vector2(r.end.x + 6, r.position.y), 4.0])
-	# Guide rails from under the window toward the start chucker.
+	walls.append([r.position + Vector2(-6, 0), Vector2(cx, r.position.y - 38), 4.0])
+	walls.append([Vector2(cx, r.position.y - 38), Vector2(r.end.x + 6, r.position.y), 4.0])
+	# Guide rails from under the window toward the start chucker. They stand in for
+	# its upper lips, ending where a ball rolling off them drops toward the mouth.
 	var start: Vector2 = pockets[0].pos
-	walls.append([Vector2(r.position.x + 30, r.end.y + 34), start + Vector2(-44, -22), 3.0])
-	walls.append([Vector2(r.end.x - 30, r.end.y + 34), start + Vector2(44, -22), 3.0])
+	walls.append([Vector2(r.position.x + 30, r.end.y + 34), start + Vector2(-30, -20), 3.0])
+	walls.append([Vector2(r.end.x - 30, r.end.y + 34), start + Vector2(30, -20), 3.0])
 	# Bottom funnel shoulders: the outer lanes ease toward the middle.
 	walls.append([Vector2(Tune.LEFT, 1060), Vector2(Tune.LEFT + 54, 1100), 4.0])
 	walls.append([Vector2(Tune.RIGHT, 1060), Vector2(Tune.RIGHT - 54, 1100), 4.0])
@@ -71,6 +80,28 @@ func _layout(rng: RandomNumberGenerator) -> void:
 	for side in [-1, 1]:
 		var p := Vector2(cx + side * (196 + rng.randf_range(-12, 12)), 492 + rng.randf_range(-16, 16))
 		spinners.append({pos = p, r = 15.0, spin = side * rng.randf_range(5.0, 7.5), angle = rng.randf() * TAU})
+
+	# Pocket lips: the two pins either side of each mouth that make it a cup.
+	var lips := PackedVector2Array()
+	for pk in pockets:
+		if pk.kind == Pocket.ATTACKER:
+			continue
+		var half: float = pk.half + Tune.PIN_R + 1.0
+		# A tulip's lips are its wings, which move: see wings().
+		if pk.kind == Pocket.TULIP:
+			_fixed.append_array(wings(pk))
+			pk.open = true
+			_fixed.append_array(wings(pk))
+			pk.open = false
+		else:
+			lips.append(pk.pos + Vector2(-half, 0))
+			lips.append(pk.pos + Vector2(half, 0))
+		# A second pair higher up so balls are gathered toward the mouth. The
+		# start chucker's guide rails do that job.
+		if pk.kind != Pocket.START:
+			lips.append(pk.pos + Vector2(-half - 10, -22))
+			lips.append(pk.pos + Vector2(half + 10, -22))
+	_fixed.append_array(lips)
 
 	# The pin field: staggered rows, with some pins pulled (the seed decides which)
 	# and clear space around everything above.
@@ -87,19 +118,8 @@ func _layout(rng: RandomNumberGenerator) -> void:
 			x += dx
 		y += dy
 		row += 1
+	pins.append_array(lips)
 
-	# Pocket lips: the two pins either side of each mouth that make it a cup.
-	for pk in pockets:
-		if pk.kind == Pocket.ATTACKER:
-			continue
-		var half: float = pk.half + Tune.PIN_R + 1.0
-		# A tulip's lips are its wings, which move: see wings().
-		if pk.kind != Pocket.TULIP:
-			pins.append(pk.pos + Vector2(-half, 0))
-			pins.append(pk.pos + Vector2(half, 0))
-		# A second pair higher up so balls are gathered toward the mouth.
-		pins.append(pk.pos + Vector2(-half - 10, -22))
-		pins.append(pk.pos + Vector2(half + 10, -22))
 
 
 func _pocket(kind: Pocket, pos: Vector2, half: float, pay: int) -> void:
@@ -114,8 +134,11 @@ func _clear(p: Vector2, reel: Rect2) -> bool:
 		var reach: float = pk.half + 26.0
 		if absf(d.x) < reach and d.y > -40 and d.y < 40:
 			return false
-	for w in walls.slice(6):
-		if _seg_dist(p, w[0], w[1]) < 14.0:
+	for w in walls:
+		if _seg_dist(p, w[0], w[1]) < w[2] + Tune.PIN_R + BALL_GAP:
+			return false
+	for f in _fixed:
+		if p.distance_to(f) < Tune.PIN_R * 2.0 + BALL_GAP:
 			return false
 	for s in spinners:
 		if p.distance_to(s.pos) < 34.0:

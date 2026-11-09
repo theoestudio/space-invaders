@@ -42,6 +42,10 @@ class Ball:
 	var vel: Vector2
 	var gold := false
 	var age := 0.0
+	## Where the ball was when it last made progress (see _stalled), and how long ago.
+	var anchor: Vector2
+	var still := 0.0
+	var kicks := 0
 
 
 class Bolt:
@@ -359,6 +363,7 @@ func _kill(inv: Invader, p: Vector2) -> void:
 func _drop(p: Vector2, gold: bool) -> void:
 	var ball := Ball.new()
 	ball.pos = p
+	ball.anchor = p
 	ball.vel = Vector2(_rng.randf_range(-70, 70), _rng.randf_range(-90, -10))
 	ball.gold = gold
 	balls.append(ball)
@@ -517,12 +522,35 @@ func _move_balls(dt_frame: float) -> void:
 				_emit(&"drain", {pos = ball.pos})
 				live = false
 				break
-		# A ball balanced on a pin gets a nudge.
-		if live and ball.vel.length_squared() < 400.0 and ball.pos.y > Tune.PINS_TOP - 20.0:
-			ball.vel.x += _rng.randf_range(-80, 80)
+		if live and _stalled(ball, dt_frame):
+			stats.drained += 1
+			_emit(&"drain", {pos = ball.pos})
+			live = false
 		if live:
 			keep.append(ball)
 	balls = keep
+
+
+## A ball that has neither dropped STALL_RADIUS nor gone four times that far in
+## any direction for STALL_TIME is wedged, balanced on a pin or creeping along the
+## shut lid: hop it up and sideways. Returns true once it has been kicked
+## STALL_KICKS times and is stuck again, so the caller drains it.
+func _stalled(ball: Ball, dt: float) -> bool:
+	var d := ball.pos - ball.anchor
+	if d.y > Tune.STALL_RADIUS or d.length() > Tune.STALL_RADIUS * 4.0:
+		ball.anchor = ball.pos
+		ball.still = 0.0
+		return false
+	ball.still += dt
+	if ball.still < Tune.STALL_TIME:
+		return false
+	if ball.kicks >= Tune.STALL_KICKS:
+		return true
+	ball.kicks += 1
+	ball.still = 0.0
+	var side := -1.0 if _rng.randf() < 0.5 else 1.0
+	ball.vel = Vector2(side * _rng.randf_range(120, 200), _rng.randf_range(-260, -180))
+	return false
 
 
 ## Pushes the ball out of a circle at `c` and reflects it. Returns the contact

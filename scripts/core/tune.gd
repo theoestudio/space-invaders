@@ -24,6 +24,12 @@ const PINS_BOTTOM := 1070.0
 const REEL_CENTER := Vector2(360, 590)
 const REEL_SIZE := Vector2(216, 92)
 const DRAIN_Y := 1250.0
+## A ball that has not dropped STALL_RADIUS (or gone 4x that anywhere) in
+## STALL_TIME gets kicked loose; after STALL_KICKS kicks it drains instead, so a
+## wave never waits on a wedged ball.
+const STALL_RADIUS := 10.0
+const STALL_TIME := 1.0
+const STALL_KICKS := 3
 
 # --- the ship ----------------------------------------------------------------
 const SHIP_Y := 1172.0

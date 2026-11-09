@@ -10,6 +10,7 @@ var _passed := 0
 func _init() -> void:
 	_determinism()
 	_board()
+	_no_cradles()
 	_balls_settle()
 	_reel_odds()
 	_economy()
@@ -71,6 +72,38 @@ func _board() -> void:
 		check(b.pockets.size() == 6 and b.attacker().open == false, "six pockets, attacker shut")
 
 
+## No two obstacles side by side leave a gap a ball can sit in but not fall
+## through (a ball once wedged between a guide rail and the chucker's lip).
+func _no_cradles() -> void:
+	for seed_value in 20:
+		var b := Sim.create(seed_value).board
+		var points := PackedVector2Array(b.pins)
+		for pk in b.pockets:
+			if pk.kind == Board.Pocket.TULIP:
+				points.append_array(Board.wings(pk))
+				pk.open = true
+				points.append_array(Board.wings(pk))
+				pk.open = false
+		var bad := []
+		for i in points.size():
+			var p := points[i]
+			var near := [Vector2(Tune.LEFT, p.y), Vector2(Tune.RIGHT, p.y)]
+			var reach := [Tune.PIN_R, Tune.PIN_R]
+			for w in b.walls + [b.lid]:
+				near.append(Board.closest_on_segment(p, w[0], w[1]))
+				reach.append(Tune.PIN_R + w[2])
+			# Wings are never checked against each other: a tulip is open or shut.
+			for j in range(i + 1, points.size() if i < b.pins.size() else 0):
+				near.append(points[j])
+				reach.append(Tune.PIN_R * 2.0)
+			for k in near.size():
+				var d: Vector2 = near[k] - p
+				var gap: float = d.length() - float(reach[k])
+				if gap > 0.5 and gap <= Tune.BALL_R * 2.0 and absf(d.y) <= absf(d.x):
+					bad.append("%s gap %.1f" % [p, gap])
+		check(bad.is_empty(), "seed %d: no ball-sized cradles %s" % [seed_value, bad.slice(0, 4)])
+
+
 ## Balls dropped across the top all finish (pocketed, caught or drained), and
 ## pockets catch a believable share.
 func _balls_settle() -> void:
@@ -83,10 +116,30 @@ func _balls_settle() -> void:
 		s._drop(Vector2(lerpf(Tune.LEFT + 20, Tune.RIGHT - 20, i / 59.0), 380.0), false)
 		dropped += 1
 	var frames := 0
+	var oldest := 0.0
 	while not s.balls.is_empty() and frames < 60 * 20:
+		for ball in s.balls:
+			oldest = maxf(oldest, ball.age)
 		s.step(0.0, NAN, false)
 		frames += 1
 	check(s.balls.is_empty(), "every ball finishes within 20 s (%d left)" % s.balls.size())
+	check(oldest < 12.0, "no ball needs the 14 s age cap (oldest %.1f s)" % oldest)
+	# A ball that makes no progress is kicked STALL_KICKS times, then drained.
+	var ball := Sim.Ball.new()
+	ball.pos = Vector2(200, 600)
+	ball.anchor = ball.pos
+	var kicked := 0
+	var drained_at := -1
+	for i in 60 * 10:
+		if s._stalled(ball, Tune.STEP):
+			drained_at = i
+			break
+		if ball.vel != Vector2.ZERO:
+			kicked += 1
+			check(ball.vel.y < 0.0, "a stall kick hops the ball upward")
+			ball.vel = Vector2.ZERO
+	check(kicked == Tune.STALL_KICKS, "a stuck ball is kicked %d times (%d)" % [Tune.STALL_KICKS, kicked])
+	check(drained_at > 0 and drained_at <= int((Tune.STALL_KICKS + 1) * Tune.STALL_TIME / Tune.STEP) + 1, "then drained, not left for the age cap")
 	var share := float(s.stats.pocketed) / dropped
 	check(share > 0.08 and share < 0.6, "pockets take a believable share (%.2f)" % share)
 
