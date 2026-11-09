@@ -3,7 +3,9 @@
 # export cannot run C#, and the .NET editor looks for .NET export templates.
 
 GODOT ?= godot
-XVFB  := xvfb-run -a -s "-screen 0 1920x1080x24"
+# Mesa's GLX: on a machine with NVIDIA drivers Xvfb otherwise picks theirs and fails
+# with BadAlloc in X_GLXMakeCurrent.
+XVFB  := __GLX_VENDOR_LIBRARY_NAME=mesa xvfb-run -a -s "-screen 0 1920x1080x24"
 
 .PHONY: help import test selfplay shots shots-wide export sounds dev deploy
 
