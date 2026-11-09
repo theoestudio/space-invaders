@@ -41,6 +41,10 @@ func _shot(name: String) -> void:
 func _run() -> void:
 	await _wait(3.0)
 	await _shot("01-menu")
+	main.ui.show_more()
+	await _wait(0.3)
+	await _shot("01b-more-games")
+	main.ui.show_menu_panel()
 	main.ui.show_rules()
 	await _shot("02-rules")
 	main.ui._rules_show(2)

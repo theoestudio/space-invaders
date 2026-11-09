@@ -13,6 +13,9 @@ signal cash_pressed
 signal ride_pressed
 signal resume_pressed
 signal rules_closed
+## A "More from TwinSpear" game tapped: `where` is "menu" (the list) or "end" (the
+## suggestion under a result). Main counts it and opens the link.
+signal promo_pressed(game: Dictionary, where: String)
 
 const RULE_PAGES := [
 	["The House descends", "A formation of living casino chips, dice and cards marches down toward your launcher. Break them all before any reach the red line.\n\nMove with the arrow keys or A and D, fire with Space. On a phone or with a mouse, hold anywhere and drag: the launcher follows and fires on its own."],
@@ -29,6 +32,14 @@ var _pause := Control.new()
 var _between := Control.new()
 var _end := Control.new()
 var _rules := Control.new()
+var _more := Control.new()
+
+## The other TwinSpear games, best fit first (MoreGames). Starts with the bundled copy and
+## is replaced by the blog's feed when it arrives.
+var games: Array[Dictionary] = MoreGames.ranked(MoreGames.bundled())
+var _more_list: VBoxContainer
+var _more_scroll: ScrollContainer
+var _end_more: Button
 
 var _daily_title: Label
 var _daily_status: Label
@@ -70,7 +81,7 @@ func _ready() -> void:
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
-	for c in [_menu, _pause, _between, _end, _rules]:
+	for c in [_menu, _pause, _between, _end, _rules, _more]:
 		c.set_anchors_preset(Control.PRESET_FULL_RECT)
 		c.mouse_filter = Control.MOUSE_FILTER_STOP
 		c.visible = false
@@ -80,6 +91,7 @@ func _ready() -> void:
 	_build_between()
 	_build_end()
 	_build_rules()
+	_build_more()
 	_build_banner()
 	_toast = Style.label("", 22, Style.INK, Look.sans_bold)
 	_toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -192,6 +204,9 @@ func _build_menu() -> void:
 		_toggles[key] = t
 		row.add_child(t)
 	_sync_toggles()
+	var more := Style.button("More free games from TwinSpear")
+	more.pressed.connect(show_more)
+	col.add_child(more)
 
 
 func _card(parent: Control, edge: Color) -> VBoxContainer:
@@ -250,7 +265,7 @@ func show_game() -> void:
 
 
 func _hide_all() -> void:
-	for c in [_menu, _pause, _between, _end, _rules]:
+	for c in [_menu, _pause, _between, _end, _rules, _more]:
 		c.visible = false
 
 
@@ -405,6 +420,12 @@ func _build_end() -> void:
 	var menu := Style.button("Menu")
 	menu.pressed.connect(func() -> void: menu_pressed.emit())
 	row.add_child(menu)
+	# The best-fitting other game, one tap away from every result.
+	_end_more = Style.button("")
+	_end_more.pressed.connect(func() -> void:
+		if not games.is_empty():
+			promo_pressed.emit(games[0], "end"))
+	v.add_child(_end_more)
 
 
 ## `nets` is the tray change per wave; `busted` marks the last as the bust wave.
@@ -428,6 +449,10 @@ func show_end(title: String, color: Color, sub: String, stats: String, nets: Arr
 	_end_share.visible = share
 	_end_again.text = again_text
 	_end_board.visible = false
+	_end_more.visible = not games.is_empty()
+	if not games.is_empty():
+		var g := games[0]
+		_end_more.text = ("Try %s on Steam  ›" if g.platform == "steam" else "Play %s free  ›") % g.title
 	_end.visible = true
 
 
@@ -541,6 +566,71 @@ func _rules_show(page: int) -> void:
 	_rules_next.text = "Done" if _rules_page == RULE_PAGES.size() - 1 else "Next  %d/%d" % [_rules_page + 1, RULE_PAGES.size()]
 
 
+# --- more from TwinSpear ------------------------------------------------------------
+
+func _build_more() -> void:
+	_shade(_more, 0.78)
+	var v := _panel(_more, Look.CYAN)
+	v.add_child(_centered(Style.label("MORE FROM TWINSPEAR", 34, Look.CYAN, Look.display)))
+	v.add_child(_centered(Style.label("Other games from the same small studio.", 19, Style.MUTED)))
+	_more_scroll = ScrollContainer.new()
+	_more_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(_more_scroll)
+	_more_list = VBoxContainer.new()
+	_more_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_more_list.add_theme_constant_override(&"separation", 12)
+	_more_scroll.add_child(_more_list)
+	var back := Style.button("Back", Look.CYAN, true)
+	back.pressed.connect(show_menu_panel)
+	v.add_child(back)
+
+
+func show_more() -> void:
+	for c in _more_list.get_children():
+		c.queue_free()
+	for g in games:
+		var steam: bool = g.platform == "steam"
+		var card := _card(_more_list, Look.GOLD if steam else Look.CYAN)
+		card.add_child(Style.label(g.title, 28, Look.GOLD if steam else Look.CYAN, Look.display))
+		var where := "On Steam" if steam else ("Free in your browser" if g.free else "In your browser")
+		card.add_child(Style.label(where, 17, Style.FAINT, Look.sans_bold))
+		var pitch := Style.label(g.pitch, 19, Style.MUTED)
+		pitch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card.add_child(pitch)
+		var go := Style.button(MoreGames.call_to_action(g), Look.GOLD if steam else Look.CYAN, true)
+		go.pressed.connect(func() -> void: promo_pressed.emit(g, "menu"))
+		card.add_child(go)
+	_menu.visible = false
+	_more.visible = true
+	_more_scroll.scroll_vertical = 0
+
+
+## Back from the list to the title menu.
+func show_menu_panel() -> void:
+	_more.visible = false
+	_menu.visible = true
+
+
+func is_more_shown() -> bool:
+	return _more.visible
+
+
+## Fetches the blog's games list; the bundled copy stays if it fails.
+func fetch_games() -> void:
+	var req := HTTPRequest.new()
+	req.timeout = 8.0
+	add_child(req)
+	req.request_completed.connect(func(result: int, code: int, _h: PackedStringArray, body: PackedByteArray) -> void:
+		req.queue_free()
+		if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+			return
+		var fresh := MoreGames.parse(body.get_string_from_utf8())
+		if not fresh.is_empty():
+			games = MoreGames.ranked(fresh))
+	if req.request(MoreGames.FEED) != OK:
+		req.queue_free()
+
+
 # --- sizing ----------------------------------------------------------------------
 
 func _on_resized() -> void:
@@ -550,3 +640,4 @@ func _on_resized() -> void:
 		p.custom_minimum_size.x = w
 	_rules_art.custom_minimum_size.x = w - 60.0
 	_rules_text.custom_minimum_size.x = w - 60.0
+	_more_scroll.custom_minimum_size = Vector2(w - 60.0, minf(size.y * 0.62, 900.0))

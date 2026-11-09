@@ -48,6 +48,8 @@ func _ready() -> void:
 	ui.ride_pressed.connect(_ride)
 	ui.resume_pressed.connect(func() -> void: set_paused(false))
 	ui.rules_closed.connect(_on_rules_closed)
+	ui.promo_pressed.connect(_promo)
+	ui.fetch_games()
 	Telemetry.board_received.connect(_on_board)
 	stage.pause_pressed.connect(func() -> void: set_paused(true))
 	get_viewport().size_changed.connect(_on_resized)
@@ -300,6 +302,13 @@ func _on_board(board: Dictionary) -> void:
 
 
 ## The spoiler-free daily result: the official run if there is one, else this one.
+## A "More from TwinSpear" game tapped: count it, then open it. On the web the link opens
+## in a new tab, so the run here is still waiting when the player comes back.
+func _promo(game: Dictionary, where: String) -> void:
+	Telemetry.promo(game.id, where)
+	OS.shell_open(MoreGames.link(game, where))
+
+
 func _share() -> void:
 	var r: Dictionary = Profile.daily.get(daily_number, {})
 	var nets: Array = r.get("nets", sim.stats.waves)
