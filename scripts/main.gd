@@ -69,6 +69,7 @@ func show_menu() -> void:
 	_new_demo()
 	ui.show_menu()
 	Sfx.set_fever(false)
+	Sfx.music_for(&"lounge")
 
 
 func _new_demo() -> void:
@@ -98,6 +99,7 @@ func _again() -> void:
 
 
 func _begin(s: Sim) -> void:
+	Sfx.music_for(&"run")
 	sim = s
 	_finished = false
 	stage.show_sim(sim, false)
@@ -253,6 +255,7 @@ func _finish() -> void:
 	_finished = true
 	_fever_on = false
 	Sfx.set_fever(false)
+	Sfx.music_for(&"lounge")
 	stage.release_pointer()
 	var cashed := sim.phase == Sim.Phase.CASHED
 	var payout := sim.payout()

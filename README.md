@@ -40,10 +40,11 @@ and still served from the `github.io` branch. Pachinko Descent replaced it in 20
 | `scripts/core/` | The run as plain data: `Sim` (stepped at 60 Hz), `Board`, `Reels`, `Daily`, `Tune` (every number) and the `Autopilot`. No nodes. |
 | `scripts/view/` | `Stage` draws a Sim: the board, the House, balls, neon glow, effects and the in-board HUD. All primitives, no image files. |
 | `scripts/ui/` | Menu, pause, the cash-out choice, results and How to Play, built in code. |
-| `scripts/autoload/` | Local profile (settings, records), sound, and the one telemetry call. |
+| `scripts/autoload/` | Local profile (settings, records), sound and music, and the one telemetry call. |
 | `shaders/` | The starfield behind the cabinet. |
 | `tests/` | Headless sim tests, autopilot balance runs and a screenshot harness. |
-| `tools/make-sounds.py` | Renders every sound effect and the music loop from code. |
+| `tools/make-sounds.py` | Renders every sound effect from code. |
+| `tools/encode-music.py` | Encodes the music tracks into `web/music/` and lists them in `data/music.json`: synthwave during runs, vaporwave on the menu and results. The game fetches one track at a time from the site. |
 | `web/` | Cloudflare Worker: serves the web export, records finished runs in D1 and answers each with the leaderboard. |
 
 ## Working on it
@@ -55,6 +56,7 @@ templates installed, plus Node for `web/`.
 make test       # sim, board, reels, daily and telemetry checks, plus the Worker's tests
 make selfplay   # autopilot at three skill levels: busts and payout per cash-out wave
 make shots      # screenshots of every screen at phone size, on a virtual display
+make music      # re-encode web/music from the Suno WAVs (MUSIC_SRC, default ~/Rime/pachinko/music)
 make dev        # export and serve through the Worker on localhost:8787
 make deploy     # tests, export, then wrangler deploy
 ```

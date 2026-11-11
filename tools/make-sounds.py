@@ -2,10 +2,9 @@
 """Renders every sound in assets/audio/ from code, so the set is reproducible and
 license-free. Run from the repo root: python3 tools/make-sounds.py
 
-Effects are 16-bit mono WAV. The music loop is rendered on a circular buffer so it
-wraps without a seam, then encoded to Ogg Vorbis with ffmpeg.
+Effects are 16-bit mono WAV. The music is Suno tracks fetched at run time; see
+tools/encode-music.py.
 """
-import subprocess
 import wave
 from pathlib import Path
 
@@ -191,64 +190,9 @@ def sounds():
     return s
 
 
-def music(path):
-    """32 s loop at 120 bpm: a soft synthwave groove in A minor."""
-    bpm = 120
-    beat = 60 / bpm
-    bars = 16
-    loop = bars * 4 * beat
-    n = int(SR * loop)
-    buf = np.zeros(n)
-
-    def put(x, at):
-        idx = (int(SR * at) + np.arange(len(x))) % n
-        np.add.at(buf, idx, x)
-
-    prog = [(57, [69, 72, 76]), (53, [65, 69, 72]), (48, [67, 72, 76]), (55, [67, 71, 74])]  # Am F C G
-    for bar in range(bars):
-        root, chord = prog[(bar // 2) % 4]
-        t0 = bar * 4 * beat
-        # Bass: eighth notes, a soft square through a low-pass.
-        for e in range(8):
-            f = hz(root - 12 + (12 if e % 4 == 3 else 0))
-            tt = t_axis(beat / 2)
-            note = (np.sign(np.sin(2 * np.pi * f * tt)) * 0.5 + np.sin(2 * np.pi * f * tt)) * np.exp(-tt / 0.18)
-            put(lowpass(note, 700) * 0.5, t0 + e * beat / 2)
-        # Pad: detuned saws under a slow swell.
-        tt = t_axis(4 * beat)
-        pad = np.zeros_like(tt)
-        for m in chord:
-            for cents in (-7, 7):
-                f = hz(m) * 2 ** (cents / 1200)
-                pad += 2 * ((f * tt) % 1.0) - 1
-        pad = lowpass(pad, 1400) * np.sin(np.pi * tt / (4 * beat)) ** 0.8
-        put(pad * 0.07, t0)
-        # Arp: sixteenths over the chord, every other bar pair.
-        if bar >= 4:
-            notes = chord + [chord[0] + 12]
-            for e in range(16):
-                f = hz(notes[(e * 3) % len(notes)] + 12)
-                tt = t_axis(beat / 4)
-                put(np.sin(2 * np.pi * f * tt) * np.exp(-tt / 0.07) * 0.08, t0 + e * beat / 4)
-        # Kick on the beat, a closed hat on the offbeat.
-        for b in range(4):
-            tt = t_axis(0.25)
-            kick = np.sin(2 * np.pi * np.cumsum(50 + 110 * np.exp(-tt / 0.03)) / SR) * np.exp(-tt / 0.12)
-            put(kick * 0.45, t0 + b * beat)
-            hat = resonator(noise_burst(0.05, 0.008), 8000, 1.2)
-            put(hat * 0.12, t0 + b * beat + beat / 2)
-    buf = norm(buf, 0.55)
-    tmp = OUT / "_music.wav"
-    write_wav(tmp.name, buf)
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp), "-c:a", "libvorbis",
-                    "-q:a", "3", str(path)], check=True)
-    tmp.unlink()
-
-
 def main():
     for name, x in sounds().items():
         write_wav(f"{name}.wav", x)
-    music(OUT / "music.ogg")
     print("wrote", sorted(p.name for p in OUT.iterdir()))
 
 
