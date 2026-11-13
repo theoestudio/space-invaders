@@ -14,6 +14,7 @@
 import { parseRunRow } from './run_row.ts';
 import { parsePromo } from './promo.ts';
 import { BOARD_SIZE, boardScope, dailyNumber, runDay, type Board, type BoardEntry } from './board.ts';
+import { ranged } from './ranged.ts';
 
 export interface Env {
   ASSETS: Fetcher;
@@ -114,6 +115,7 @@ export default {
     if (pathname === '/api/run') return ingest(request, env);
     if (pathname === '/api/promo') return promo(request, env);
     if (pathname === '/index.wasm') return wasm(request, env);
+    if (pathname.startsWith('/music/')) return ranged(request, await env.ASSETS.fetch(request));
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler<Env>;
