@@ -7,6 +7,11 @@ extends Node
 ## downloads only what they hear. Each set plays its tracks in turn from a random
 ## start: "run" (synthwave) during waves and the cash-out choice, "lounge"
 ## (vaporwave) on the menu and results. Fever speeds up whatever is playing.
+##
+## On the web each track streams from the site through an <audio> element (WebMusic), so
+## none sits whole in memory. Where that can't play Ogg (iOS before 18.4), the track is
+## fetched whole as above and played with stream playback, not the web's default sample,
+## which would decode it into memory and keep it there.
 
 const NAMES := [
 	"pin", "fire", "dry", "zap", "clash", "dent", "kill", "hit", "shield", "saucer",
@@ -35,6 +40,11 @@ var _turn := {}  # set name -> index of the next track
 var _want := ""  # the track that should be playing (or downloading)
 var _tracks := {}  # file name -> AudioStreamOggVorbis, kept once fetched
 var _fetching := {}  # file name -> true while its request is out
+var _web: WebMusic  # the browser's player, or null off the web and where it can't play Ogg
+var _retired: WebMusic  # kept after a failure so its callbacks outlive events still coming
+var _web_on := false  # a track is playing on _web (or waiting there for the first tap)
+var _deck := 0  # the _web deck in use
+var _switch := 0  # bumped on every change of set, so a stale switch does nothing
 
 
 func _ready() -> void:
@@ -52,6 +62,15 @@ func _ready() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	_base = str(JavaScriptBridge.eval("location.origin", true)) if OS.has_feature("web") else SITE
+	if OS.has_feature("web"):
+		_music.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
+	_web = WebMusic.open()
+	if _web:
+		_web.ended.connect(func(deck: int) -> void:
+			if _web and _web_on and deck == _deck:
+				_web_on = false
+				_next_track())
+		_web.failed.connect(_web_failed)
 	var index: Variant = JSON.parse_string(FileAccess.get_file_as_string(MUSIC_INDEX))
 	if index is Dictionary:
 		_sets = index
@@ -73,6 +92,8 @@ func play(name: StringName, pitch := 1.0, volume_db := 0.0) -> void:
 ## Fever speeds the music up a touch.
 func set_fever(on: bool) -> void:
 	_music.pitch_scale = 1.12 if on else 1.0
+	if _web:
+		_web.set_speed(_deck, _music.pitch_scale)
 
 
 ## Switch to a music set ("run" or "lounge"): the current track fades out and the
@@ -83,7 +104,14 @@ func music_for(set_name: StringName) -> void:
 	_set = set_name
 	if not Profile.music or _base == "":
 		return
-	if _music.playing:
+	_switch += 1
+	if _web_on:
+		_stop_web(FADE_OUT)
+		var id := _switch
+		get_tree().create_timer(FADE_OUT).timeout.connect(func() -> void:
+			if id == _switch:
+				_next_track())
+	elif _music.playing:
 		_tween_volume(SILENT_DB, FADE_OUT).finished.connect(func() -> void:
 			_music.stop()
 			_next_track())
@@ -96,8 +124,9 @@ func _sync_music() -> void:
 		if _fade:
 			_fade.kill()
 		_music.stop()
+		_stop_web(0.2)
 		_want = ""
-	elif not _music.playing and _want == "":
+	elif not _playing() and _want == "":
 		_next_track()
 
 
@@ -112,7 +141,7 @@ func _next_track() -> void:
 
 
 func _fetch(file: String) -> void:
-	if _tracks.has(file):
+	if _web or _tracks.has(file):
 		_arrived(file)
 		return
 	if _fetching.has(file):
@@ -144,7 +173,12 @@ func _fetch(file: String) -> void:
 ## A track is in memory: start it if it is the one wanted, then fetch the set's next
 ## one in the background so the change between tracks has no gap.
 func _arrived(file: String) -> void:
-	if file != _want or not Profile.music or _music.playing:
+	if file != _want or not Profile.music or _playing():
+		return
+	if _web:
+		_deck = 1 - _deck
+		_web_on = true
+		_web.play(_deck, "%s/music/%s" % [_base, file], MUSIC_DB, FADE_IN, _music.pitch_scale)
 		return
 	_music.stream = _tracks[file]
 	_music.volume_db = SILENT_DB
@@ -162,3 +196,28 @@ func _tween_volume(db: float, seconds: float) -> Tween:
 	_fade = create_tween()
 	_fade.tween_property(_music, "volume_db", db, seconds)
 	return _fade
+
+
+## Whether a track is playing, on the browser's player or Godot's.
+func _playing() -> bool:
+	return _web_on if _web else _music.playing
+
+
+func _stop_web(fade: float) -> void:
+	if _web and _web_on:
+		_web_on = false
+		_web.fade_out(_deck, fade)
+
+
+## The browser's player couldn't play a track: download and play music through Godot from
+## now on, starting with the track that should be playing.
+func _web_failed(_failed_deck: int) -> void:
+	if not _web:
+		return
+	push_warning("music: the browser could not stream it; downloading instead")
+	_stop_web(FADE_OUT)
+	_retired = _web
+	_web = null
+	_web_on = false
+	if _want != "":
+		_fetch(_want)
