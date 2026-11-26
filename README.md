@@ -13,7 +13,7 @@ field of brass pins:
   +10 a ball, and a shower of balls comes down. Other triples give a spread shot,
   piercing bolts, a shield, a wide catch cup or 20 balls.
 - **Your tray is everything.** Every shot costs a ball and a hit from the House
-  spills twelve. Catch falling balls in the cup on your launcher for +1.
+  spills twelve (or 2% of the tray, when that is more). Catch falling balls in the cup on your launcher for +1.
 
 The run descends five casino floors (the Lobby, the Card Room, the Dice Pit, the
 Wheel Room and the Vault), four waves each, the last a guard worth a double clear

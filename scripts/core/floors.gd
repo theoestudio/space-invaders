@@ -16,11 +16,11 @@ const PLANS := [
 	# The Lobby: chips and a few dice.
 	[[K, D, C, C, C], [K, D, D, C, C], [D, D, C, C, C], [D, D, D, C, C]],
 	# The Card Room: cards lead.
-	[[K, K, C, C, C], [K, K, D, C, C], [K, K, K, C, C], [K, K, K, K, D]],
+	[[K, K, D, C, C], [K, K, D, D, C], [K, K, K, D, C], [K, K, K, D, D]],
 	# The Dice Pit: dice.
-	[[K, D, D, D, C], [D, D, D, C, C], [K, D, D, D, D], [D, D, D, D, D]],
+	[[K, D, D, D, C], [K, D, D, D, C], [K, D, D, D, D], [K, D, D, D, D]],
 	# The Wheel Room: everything mixed.
-	[[K, K, D, D, C], [K, D, K, D, C], [K, K, D, D, D], [K, K, D, D, D]],
+	[[K, K, D, C, C], [K, D, K, C, C], [K, K, D, D, C], [K, K, D, D, C]],
 	# The Vault: the hardest.
 	[[K, K, D, D, D], [K, K, K, D, D], [K, D, K, D, K], [K, K, K, D, D]],
 ]
@@ -30,8 +30,8 @@ const SHAPES := [
 	[&"grid", &"diamond", &"v", &"grid"],
 	[&"chevron", &"split", &"diamond", &"grid"],
 	[&"split", &"v", &"chevron", &"grid"],
-	[&"ring", &"diamond", &"split", &"ring"],
-	[&"chevron", &"ring", &"split", &"grid"],
+	[&"diamond", &"ring", &"split", &"ring"],
+	[&"chevron", &"ring", &"v", &"diamond"],
 ]
 
 

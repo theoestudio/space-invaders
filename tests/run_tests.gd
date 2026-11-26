@@ -403,7 +403,12 @@ func _cashier() -> void:
 	h.invuln = 0.0
 	h.shots.append(Vector2(h.ship_x, Tune.SHIP_Y - 2.0))
 	h.step(0.0, NAN, false)
-	check(h.tray == 100 - Fixtures.PADDED_SPILL, "the padded rail spills 8")
+	check(h.tray == 100 - roundi(Tune.HIT_SPILL * Fixtures.PADDED_SHARE), "the padded rail halves the spill")
+	var big := Sim.create(5)
+	big.tray = 2000
+	big.shots.append(Vector2(big.ship_x, Tune.SHIP_Y - 2.0))
+	big.step(0.0, NAN, false)
+	check(big.tray == 2000 - roundi(2000 * Tune.HIT_SPILL_SHARE), "a hit on a big tray spills a share of it")
 	var k := Sim.create(5)
 	k.fixtures = {&"comps": 1, &"interest": 1}
 	k.tray = 200
@@ -415,7 +420,7 @@ func _cashier() -> void:
 	check(k.tray == 200 + bonus + interest, "comps and interest on a clear (%d)" % k.tray)
 	var m := Sim.create(5)
 	m.fixtures = {&"bent_nail": 2, &"deep_cup": 1, &"wide_cup": 1, &"deep_holds": 1, &"long_fever": 1}
-	check(m._pocket_pay(m.board.pockets[0]) == Tune.POCKET_START_PAY + 4, "two bent nails pay +4 in the chucker")
+	check(m._pocket_pay(m.board.pockets[0]) == Tune.POCKET_START_PAY + 2 * Fixtures.BENT_NAIL, "two bent nails pay 2 x BENT_NAIL in the chucker")
 	check(m.tray_half() == Tune.TRAY_HALF + Fixtures.WIDE_CUP and m.max_holds() == Tune.MAX_HOLDS + 2 and m.fever_len() == Tune.FEVER_TIME + 4.0, "wide cup, deep holds, long fever")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3

@@ -164,7 +164,7 @@ func start_wave(n: int) -> void:
 	wrng.seed = mix(run_seed, 100 + n)
 	var plan := Floors.plan(n, wrng)
 	form(Floors.shape(n, wrng), plan)
-	var golds := 2 + n / 3 + (Tune.GUARD_GOLDS if Floors.is_guard(n) else 0) + level(&"gold_leaf")
+	var golds := 2 + n / 3 + (Tune.GUARD_GOLDS if Floors.is_guard(n) else 0) + Fixtures.GOLD_LEAF * level(&"gold_leaf")
 	for i in golds:
 		invaders[wrng.randi_range(0, invaders.size() - 1)].gold = true
 	origin = Vector2((Tune.W - (Tune.COLS - 1) * Tune.CELL.x) / 2.0,
@@ -331,7 +331,7 @@ func power_len() -> float:
 func _pocket_pay(pk: Dictionary) -> int:
 	match pk.kind:
 		Board.Pocket.START:
-			return pk.pay + 2 * level(&"bent_nail")
+			return pk.pay + Fixtures.BENT_NAIL * level(&"bent_nail")
 		Board.Pocket.SIDE:
 			return pk.pay + level(&"side_comps")
 		Board.Pocket.TULIP:
@@ -569,7 +569,7 @@ func _march(dt: float) -> void:
 	if (march_dir > 0.0 and hi + march_dir * march_speed() * dt > Tune.RIGHT - edge) or \
 			(march_dir < 0.0 and lo + march_dir * march_speed() * dt < Tune.LEFT + edge):
 		march_dir = -march_dir
-		origin.y += Tune.MARCH_DROP
+		origin.y += Tune.MARCH_DROP * (Tune.RING_DROP if Formations.turns(shape) else 1.0)
 		_emit(&"drop")
 	if bottom + Tune.INVADER_HALF.y >= Tune.INVADED_Y:
 		phase = Phase.BUST
@@ -644,7 +644,9 @@ func _move_shots(dt: float) -> void:
 				shield = false
 				_emit(&"shielded", {pos = s})
 			else:
-				var spill := Fixtures.PADDED_SPILL if level(&"padded_rail") > 0 else Tune.HIT_SPILL
+				var spill := maxi(Tune.HIT_SPILL, roundi(tray * Tune.HIT_SPILL_SHARE))
+				if level(&"padded_rail") > 0:
+					spill = roundi(spill * Fixtures.PADDED_SHARE)
 				if level(&"insurance") > 0 and not _insured:
 					_insured = true
 					spill = 0

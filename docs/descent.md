@@ -29,6 +29,12 @@ formations and, once the art lands, its own pin layout, palette and music.
   starts the formation back near the top, a little lower each floor. March
   speed, House fire rate and shot speed climb with the run's wave number, slower
   than they did when the game ended around wave 8.
+- **Formations.** Each floor picks a shape per wave (`Floors.SHAPES`): the grid,
+  a V, a diamond, a chevron, two blocks split by a lane, and on the Wheel Room
+  and the Vault a ring that turns as it marches. The ring drops less at each edge
+  (`Tune.RING_DROP`), since its lowest arc never clears while it turns.
+- **Hits.** A hit spills 12 balls or 2% of the tray, whichever is more, so a
+  deep run still feels one.
 - **The elevator.** Clearing a boss wave clears the floor: the panel between
   waves says so and names the floor below, and the next wave opens with the
   floor's banner.
@@ -60,15 +66,15 @@ Starting pool:
 | Fixture | Does | Stacks |
 |---|---|---|
 | **Board** | | |
-| Bent nail | Start chucker pays +2 | 2 |
+| Bent nail | Start chucker pays +4 | 2 |
 | Side pocket comps | Side pockets pay +1 | 2 |
 | Tulip bonus | Tulips pay +3 | 2 |
-| Gold leaf | One more gold piece in every formation | 3 |
+| Gold leaf | Two more gold pieces in every formation | 3 |
 | **Reels** | | |
 | Loaded seven | Fever odds up by a third | 2 |
 | Deep holds | Two more held spins | 1 |
 | Long fever | Fever lasts 4 s longer | 2 |
-| Sticky prizes | Reel powers last half again as long | 1 |
+| Sticky prizes | Reel powers last twice as long | 1 |
 | **Launcher** | | |
 | Deep cup | Caught balls pay +1 | 2 |
 | Wide cup | The catch cup is wider | 2 |
@@ -78,10 +84,30 @@ Starting pool:
 | **Tray** | | |
 | Interest | 5% of the tray on each clear, up to 40 | 2 |
 | Comps | Clear bonuses x1.5 | 1 |
-| Padded rail | A hit spills 8 balls, not 12 | 1 |
+| Padded rail | Hits spill half as much | 1 |
 | Insurance | The first hit on each wave spills nothing | 1 |
 
 Fixture icons are text until the art pipeline draws them.
+
+## Balance (2026-11-26)
+
+`make selfplay ARGS="36 20 shop 0.7"` plays whole runs with the autopilot buying
+at the cashier (`Autopilot.shop`) and, in a second pass, cashing out when it
+would (`Autopilot.ride`). `tests/fixture_value.gd` measures each fixture given
+free from wave 1, which set `Autopilot.WORTH`. Riding every wave, 36 runs per
+skill:
+
+| Skill | Survive wave 8 | 12 | 16 | Break the Vault |
+|---|---|---|---|---|
+| 0.4 | 92% | 42% | 31% | 8% |
+| 0.7 | 97% | 83% | 39% | 6% |
+| 0.95 | 100% | 83% | 36% | 19% |
+
+Every bust is an invasion, so fixtures that only pay balls never keep a run
+alive; piercing tips, twin barrel, quick reload and the wide cup do. No fixture
+is bought by more than two thirds of the runs that reach the Dice Pit. The
+autopilot's skill levels differ less than players do (aim 54% to 58%), so the
+playtest has the last word.
 
 ## The players' club
 

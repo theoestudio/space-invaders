@@ -54,15 +54,18 @@ const FORMATION_TOP := 150.0
 ## Each wave of a floor starts this much lower than the last (Floors.start_drop);
 ## each floor starts FLOOR_DROP lower than the floor above.
 const WAVE_DROP := 34.0
-const FLOOR_DROP := 14.0
-const MARCH_SPEED := 34.0
-const MARCH_SPEED_PER_WAVE := 4.0
+const FLOOR_DROP := 20.0
+const MARCH_SPEED := 40.0
+const MARCH_SPEED_PER_WAVE := 4.1
 ## When few are left they speed up: speed * (1 + RUSH * fraction_dead^2).
 const RUSH := 3.2
 const MARCH_DROP := 28.0
 ## How fast a turning formation (Formations.RING) turns, radians per second; it
 ## turns with its march, so it reverses at each edge.
 const RING_TURN := 0.45
+## A turning formation drops this share of MARCH_DROP at each edge: its lowest
+## arc never clears while it turns, so it must come down slower.
+const RING_DROP := 0.6
 const INVADED_Y := 1120.0
 const SHOT_SPEED := 300.0
 const SHOT_SPEED_PER_WAVE := 12.0
@@ -93,6 +96,9 @@ const SAUCER_BALLS := 5
 const START_BALLS := 60
 const SHOT_COST := 1
 const HIT_SPILL := 12
+## A hit spills at least HIT_SPILL, or this share of the tray when that is more,
+## so a hit still hurts a deep run.
+const HIT_SPILL_SHARE := 0.02
 const CATCH_PAY := 1
 const GOLD_MULT := 3
 const CLEAR_BONUS := 15
