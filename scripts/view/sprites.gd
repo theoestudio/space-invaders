@@ -100,15 +100,17 @@ static func shard(ci: CanvasItem, p: Vector2, type: int, row: int, gold: bool,
 
 
 static func ship(ci: CanvasItem, x: float, y: float, tilt: float, tray_half: float,
-		shield: bool, blink: bool, fever: bool, recoil := 0.0, cup_bounce := 0.0) -> void:
+		shield: bool, blink: bool, fever: bool, recoil := 0.0, cup_bounce := 0.0,
+		barrels := 1, pierce_primed := false, deep_cup := 0, insured := false) -> void:
 	if blink:
 		return
-	ship_back(ci, x, y, tilt, tray_half, fever, blink, recoil, cup_bounce)
-	ship_front(ci, x, y, tilt, tray_half, shield, blink, cup_bounce)
+	ship_back(ci, x, y, tilt, tray_half, fever, blink, recoil, cup_bounce, barrels, pierce_primed, deep_cup)
+	ship_front(ci, x, y, tilt, tray_half, shield, blink, cup_bounce, deep_cup, insured)
 
 
 static func ship_back(ci: CanvasItem, x: float, y: float, tilt: float, tray_half: float,
-		fever: bool, blink: bool, recoil := 0.0, cup_bounce := 0.0) -> void:
+		fever: bool, blink: bool, recoil := 0.0, cup_bounce := 0.0,
+		barrels := 1, pierce_primed := false, deep_cup := 0) -> void:
 	if blink:
 		return
 	if not Art.has(&"ship_hull"):
@@ -118,22 +120,48 @@ static func ship_back(ci: CanvasItem, x: float, y: float, tilt: float, tray_half
 	var lean := tilt * 3.5
 	var bank := tilt * 0.07
 	var hull_tint := Color(1.16, 0.80, 1.04) if fever else Color.WHITE
-	Art.draw(ci, &"ship_barrel", p + Vector2(lean, -15.0 + recoil * 5.5), Vector2(20, 36), bank)
+	var offsets: Array = [0.0] if barrels <= 1 else ([-11.0, 11.0] if barrels == 2 else [-14.0, 0.0, 14.0])
+	for ox: float in offsets:
+		var bscl := Vector2(0.86, 0.90) if (barrels >= 3 and absf(ox) > 1.0) else Vector2.ONE
+		var bp := p + Vector2(lean + ox, -15.0 + recoil * 5.5)
+		Art.draw(ci, &"ship_barrel", bp, Vector2(20, 36), bank, bscl)
+		if pierce_primed:
+			var tip := p + Vector2(lean + ox, -31.0 + recoil * 5.5)
+			ci.draw_colored_polygon(PackedVector2Array([
+				tip + Vector2(0, -8), tip + Vector2(4.5, 0), tip + Vector2(0, 5), tip + Vector2(-4.5, 0)
+			]), Color(Look.PINK, 0.95))
+			ci.draw_colored_polygon(PackedVector2Array([
+				tip + Vector2(0, -5), tip + Vector2(2.0, 0), tip + Vector2(0, 2.5), tip + Vector2(-2.0, 0)
+			]), Color(1, 1, 1, 0.95))
 	Art.draw(ci, &"ship_hull", p + Vector2(0, 4), Vector2(90, 52), bank, Vector2.ONE, hull_tint)
 	var cup_w := maxf(tray_half * 2.55, 68.0)
-	Art.draw_3slice_h(ci, &"ship_cup_back", p + Vector2(0, -10.0 + cup_bounce * 3.0),
-		Vector2(cup_w, 32), 0.24)
+	var cup_h := 32.0 + deep_cup * 3.5
+	var cup_y := -10.0 + deep_cup * 1.2 + cup_bounce * 3.0
+	Art.draw_3slice_h(ci, &"ship_cup_back", p + Vector2(0, cup_y), Vector2(cup_w, cup_h), 0.24)
 
 
 static func ship_front(ci: CanvasItem, x: float, y: float, _tilt: float, tray_half: float,
-		shield: bool, blink: bool, cup_bounce := 0.0) -> void:
+		shield: bool, blink: bool, cup_bounce := 0.0, deep_cup := 0, insured := false) -> void:
 	if blink:
 		return
 	var p := Vector2(x, y)
+	var cup_w := maxf(tray_half * 2.55, 68.0)
+	var cup_h := 32.0 + deep_cup * 3.5
+	var cup_y := -10.0 + deep_cup * 1.2 + cup_bounce * 3.0
 	if Art.has(&"ship_cup_front"):
-		var cup_w := maxf(tray_half * 2.55, 68.0)
-		Art.draw_3slice_h(ci, &"ship_cup_front", p + Vector2(0, -10.0 + cup_bounce * 3.0),
-			Vector2(cup_w, 32), 0.24)
+		Art.draw_3slice_h(ci, &"ship_cup_front", p + Vector2(0, cup_y), Vector2(cup_w, cup_h), 0.24)
+	if deep_cup > 0:
+		var lip_w := maxf(cup_w * 0.42, 24.0)
+		ci.draw_polyline(PackedVector2Array([
+			p + Vector2(-lip_w, cup_y + 2.0),
+			p + Vector2(-lip_w * 0.55, cup_y + cup_h * 0.34),
+			p + Vector2(0.0, cup_y + cup_h * 0.40),
+			p + Vector2(lip_w * 0.55, cup_y + cup_h * 0.34),
+			p + Vector2(lip_w, cup_y + 2.0),
+		]), Color(Look.GOLD, 0.85), 2.2, true)
+	if insured:
+		ci.draw_arc(p + Vector2(0, -1), 36.5, PI * 1.08, PI * 1.92, 24, Color(Look.CYAN, 0.78), 2.2, true)
+		ci.draw_arc(p + Vector2(0, -1), 38.5, PI * 1.12, PI * 1.88, 24, Color(Look.GOLD, 0.45), 1.4, true)
 	if shield:
 		ci.draw_arc(p + Vector2(0, -2), 42.0, PI * 1.05, PI * 1.95, 28, Color(Look.GOLD, 0.85), 3.0, true)
 		ci.draw_arc(p + Vector2(0, -2), 45.0, PI * 1.08, PI * 1.92, 28, Color(1, 0.95, 0.7, 0.35), 1.5, true)

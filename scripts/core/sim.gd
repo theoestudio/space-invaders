@@ -322,6 +322,18 @@ func _pocket_pay(pk: Dictionary) -> int:
 	return pk.pay
 
 
+func pocket_pay(pk: Dictionary) -> int:
+	return _pocket_pay(pk)
+
+
+func insurance_ready() -> bool:
+	return level(&"insurance") > 0 and not _insured
+
+
+func pierce_primed() -> bool:
+	return level(&"piercing_tips") > 0 and (_volleys + 1) % Fixtures.PIERCE_EVERY == 0
+
+
 func cash_out() -> void:
 	if phase == Phase.SETTLED:
 		phase = Phase.CASHED

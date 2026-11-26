@@ -4,6 +4,8 @@ shader_type canvas_item;
 
 uniform float fever = 0.0;
 uniform float aspect = 0.5625;
+uniform vec3 nebula_col = vec3(0.16, 0.05, 0.28);
+uniform vec3 mist_col = vec3(0.0, 0.25, 0.32);
 
 float hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -36,9 +38,9 @@ void fragment() {
 	vec2 uv = vec2(UV.x * aspect, UV.y);
 	float n = noise(uv * 2.2 + vec2(TIME * 0.01, TIME * 0.02)) * 0.6 + noise(uv * 5.0 - TIME * 0.015) * 0.4;
 	vec3 deep = vec3(0.025, 0.02, 0.06);
-	vec3 nebula = mix(vec3(0.16, 0.05, 0.28), vec3(0.4, 0.06, 0.24), fever);
+	vec3 nebula = mix(nebula_col, vec3(0.4, 0.06, 0.24), fever);
 	vec3 col = deep + nebula * pow(n, 2.2) * 0.55;
-	col += vec3(0.0, 0.25, 0.32) * pow(noise(uv * 1.3 + 4.0), 3.0) * 0.4;
+	col += mist_col * pow(noise(uv * 1.3 + 4.0), 3.0) * 0.4;
 	float s = stars(uv, 60.0, 0.4) + stars(uv, 30.0, 0.8) * 0.8 + stars(uv, 14.0, 1.6) * 0.6;
 	col += vec3(0.85, 0.9, 1.0) * s;
 	COLOR = vec4(col, 1.0);

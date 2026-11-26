@@ -59,13 +59,27 @@ func _draw() -> void:
 				Sprites.symbol(self, c + Vector2(-72 + i * 72, 0), sym, 1.0)
 			Art.draw(self, &"reel_frame", c, Vector2(256, 128))
 		4:
-			Look.text(self, c + Vector2(-130, -10), "CASH OUT", 28, Look.GOLD)
-			Look.text(self, c + Vector2(-130, 26), "keep the tray", 16, Look.MUTED, Look.sans)
-			Look.text(self, c + Vector2(130, -10), "RIDE", 28, Look.PINK)
-			Look.text(self, c + Vector2(130, 26), "bigger bonus, faster House", 16, Look.MUTED, Look.sans)
-			for i in 6:
-				var col := GameUI.wave_color([40, 25, 60, 12, 38, 0][i], i == 5)
-				draw_rect(Rect2(c + Vector2(-100 + i * 34, 50), Vector2(26, 26)), col)
+			var icons := [&"fix_bent_nail", &"fix_twin_barrel", &"fix_deep_cup", &"fix_insurance"]
+			var cols := [Look.GREEN, Look.CYAN, Look.GOLD, Look.PINK]
+			var sel := int(_t * 1.4) % icons.size()
+			for i in icons.size():
+				var pos := c + Vector2(-132.0 + i * 88.0, -48.0)
+				var r := Rect2(pos - Vector2(26, 26), Vector2(52, 52))
+				var active := i == sel
+				Look.rounded(self, r, 10, Color(0.06, 0.05, 0.14, 0.92))
+				Look.rounded(self, r, 10, Color(cols[i], 0.95 if active else 0.42), false, 2.2 if active else 1.5)
+				Art.draw(self, icons[i], pos, Vector2(40, 40) * (1.08 if active else 1.0))
+			for i in Tune.FLOORS:
+				var th := Look.floor_theme(i + 1)
+				var fr := Rect2(c + Vector2(-120.0 + i * 50.0, -4.0), Vector2(40, 22))
+				var pulse := int(_t * 1.6) % Tune.FLOORS == i
+				Look.rounded(self, fr, 6, Color(th.edge, 0.30 if pulse else 0.14))
+				Look.rounded(self, fr, 6, Color(th.edge, 0.95 if pulse else 0.55), false, 1.5)
+				Look.text(self, fr.position + Vector2(0, 16), str(i + 1), 13, Look.GOLD if i == Tune.FLOORS - 1 else Look.INK, Look.display, HORIZONTAL_ALIGNMENT_CENTER, 40.0)
+			Look.text(self, c + Vector2(-120, 48), "CASH OUT", 24, Look.GOLD)
+			Look.text(self, c + Vector2(-120, 70), "keep the tray", 14, Look.MUTED, Look.sans)
+			Look.text(self, c + Vector2(120, 48), "RIDE DOWN", 24, Look.PINK)
+			Look.text(self, c + Vector2(120, 70), "buy fixtures · 5 floors", 14, Look.MUTED, Look.sans)
 		5:
 			for i in 7:
 				var col := GameUI.wave_color([40, 25, 60, -12, 38, 50, 20][i], false)

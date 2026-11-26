@@ -22,6 +22,8 @@ var _finished := false
 ## The finished run was a daily replay, which does not place.
 var _board_practice := false
 var _fever_on := false
+var _sky_nebula: Color = Look.FLOOR_THEMES[0].nebula
+var _sky_mist: Color = Look.FLOOR_THEMES[0].mist
 ## When set (screenshot harness), plays the run instead of the keyboard and pointer.
 var autopilot: Autopilot = null
 
@@ -75,10 +77,25 @@ func show_menu() -> void:
 	Sfx.music_for(&"lounge")
 
 
+func _apply_sky(floor_num: int, instant: bool, delta := 0.0) -> void:
+	var th := Look.floor_theme(floor_num)
+	if instant:
+		_sky_nebula = th.nebula
+		_sky_mist = th.mist
+	else:
+		var k := clampf(delta * 7.0, 0.0, 1.0)
+		_sky_nebula = _sky_nebula.lerp(th.nebula, k)
+		_sky_mist = _sky_mist.lerp(th.mist, k)
+	var sm := sky.material as ShaderMaterial
+	sm.set_shader_parameter(&"nebula_col", Vector3(_sky_nebula.r, _sky_nebula.g, _sky_nebula.b))
+	sm.set_shader_parameter(&"mist_col", Vector3(_sky_mist.r, _sky_mist.g, _sky_mist.b))
+
+
 func _new_demo() -> void:
 	sim = Sim.create(_rng.randi())
 	_demo_bot = Autopilot.new(0.85, _rng.randi())
 	stage.show_sim(sim, true)
+	_apply_sky(sim.floor_number(), true)
 
 
 func start_arcade() -> void:
@@ -106,6 +123,7 @@ func _begin(s: Sim) -> void:
 	sim = s
 	_finished = false
 	stage.show_sim(sim, false)
+	_apply_sky(sim.floor_number(), true)
 	stage.release_pointer()
 	ui.show_game()
 	if not Profile.seen_rules:
@@ -218,6 +236,7 @@ func _physics_process(_delta: float) -> void:
 		_fever_on = fever
 		Sfx.set_fever(fever)
 	(sky.material as ShaderMaterial).set_shader_parameter(&"fever", 1.0 if fever else 0.0)
+	_apply_sky(sim.floor_number(), false, _delta)
 	for e in sim.events:
 		match e.kind:
 			&"clear":
@@ -255,7 +274,10 @@ func _ride() -> void:
 		return
 	Sfx.play(&"start")
 	ui.hide_between()
+	var prev_f := sim.floor_number()
 	sim.next_wave()
+	if sim.floor_number() != prev_f:
+		stage.play_elevator(prev_f, sim.floor_number())
 	_wave_banner()
 
 

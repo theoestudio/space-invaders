@@ -3,7 +3,8 @@ extends RefCounted
 ## Loads and draws the pre-rendered 2.5D miniature textures from res://assets/art/.
 
 const NAMES := [
-	&"cabinet",
+	&"cabinet_frame",
+	&"backglass_1", &"backglass_2", &"backglass_3", &"backglass_4", &"backglass_5", &"backglass_6",
 	&"ball_chrome", &"ball_gold", &"ball_shadow", &"pin_brass",
 	&"windmill_blades", &"windmill_hub", &"rail_brass_seg", &"rail_brass_cap",
 	&"card_red", &"card_arm_red", &"card_gold", &"card_arm_gold",
@@ -21,7 +22,19 @@ const NAMES := [
 	&"sym_seven", &"sym_bar", &"sym_cherry", &"sym_bell", &"sym_star", &"sym_chip",
 	&"ship_hull", &"ship_barrel", &"ship_cup_back", &"ship_cup_front",
 	&"saucer",
+	&"fix_bent_nail", &"fix_side_comps", &"fix_tulip_bonus", &"fix_gold_leaf",
+	&"fix_loaded_seven", &"fix_deep_holds", &"fix_long_fever", &"fix_sticky_prizes",
+	&"fix_deep_cup", &"fix_wide_cup", &"fix_quick_reload", &"fix_twin_barrel", &"fix_piercing_tips",
+	&"fix_interest", &"fix_comps", &"fix_padded_rail", &"fix_insurance",
 ]
+
+
+static func fixture(id: StringName) -> Texture2D:
+	return tex(StringName("fix_" + String(id)))
+
+
+static func backglass(floor_num: int) -> StringName:
+	return StringName("backglass_%d" % clampi(floor_num, 1, 6))
 
 static var _loaded := false
 static var _tex: Dictionary = {}
