@@ -101,6 +101,8 @@ var shape := Formations.GRID
 var turn := 0.0
 ## Seconds until the next dealt card dives.
 var _dive_t := 0.0
+## The guard wave's boss (Bosses), or null.
+var boss: Bosses.Boss = null
 var shots := PackedVector2Array()
 var _fire_t := 0.0
 
@@ -192,7 +194,10 @@ func start_wave(n: int) -> void:
 	var wrng := RandomNumberGenerator.new()
 	wrng.seed = mix(run_seed, 100 + n)
 	var plan := Floors.plan(n, wrng)
-	form(Floors.shape(n, wrng), plan)
+	var shape_id := Floors.shape(n, wrng)
+	var bid := Bosses.for_wave(n)
+	boss = Bosses.make(bid) if bid >= 0 else null
+	form(Formations.ESCORT if boss else shape_id, plan)
 	var golds := 2 + n / 3 + (Tune.GUARD_GOLDS if Floors.is_guard(n) else 0) + Fixtures.GOLD_LEAF * level(&"gold_leaf")
 	for i in golds:
 		invaders[wrng.randi_range(0, invaders.size() - 1)].gold = true
@@ -479,6 +484,8 @@ func step(move: float, target: float, fire: bool) -> void:
 	if playing:
 		_march(dt)
 		_tick_pieces(dt)
+		if boss_alive():
+			_tick_boss(dt)
 		_enemy_fire(dt)
 	_move_shots(dt)
 	if playing:
@@ -559,6 +566,8 @@ func _move_bolts(dt: float) -> void:
 					shots.remove_at(i)
 					gone = not b.pierce
 					break
+		if not gone and boss_alive():
+			gone = _bolt_hits_boss(b)
 		if not gone:
 			gone = _bolt_hits_invader(b)
 		if not gone and saucer_on and absf(b.pos.x - saucer_x) < 30.0 and absf(b.pos.y - Tune.SAUCER_Y) < 14.0:
@@ -631,6 +640,15 @@ func _march(dt: float) -> void:
 			lo = minf(lo, c.x - inv.radius.x)
 			hi = maxf(hi, c.x + inv.radius.x)
 			bottom = maxf(bottom, c.y + inv.radius.y)
+	if boss_alive():
+		bottom = maxf(bottom, boss_pos().y + Bosses.HALF[boss.id].y)
+		if lo == INF:
+			# The escort is gone: the boss comes down on its own.
+			origin.y += Tune.BOSS_SINK * dt
+			if bottom >= Tune.INVADED_Y:
+				phase = Phase.BUST
+				bust_reason = "invaded"
+			return
 	if bottom == -INF:
 		return
 	if Formations.turns(shape):
@@ -734,6 +752,162 @@ func _hit_ship(at: Vector2) -> void:
 	tray -= lost
 	stats.hits += 1
 	_emit(&"hit", {pos = Vector2(ship_x, Tune.SHIP_Y), lost = lost})
+
+
+# --- bosses ------------------------------------------------------------------
+
+func boss_alive() -> bool:
+	return boss != null and boss.hp > 0
+
+
+func boss_pos() -> Vector2:
+	return Vector2(boss.x, origin.y + Bosses.RIDE_Y)
+
+
+## The boss's hit boxes' centers: the Pit Boss has two dice, the others one body.
+func boss_parts() -> Array[Vector2]:
+	var c := boss_pos()
+	if boss.id == Bosses.Id.PIT_BOSS:
+		return [c - Vector2(Bosses.PIT_GAP, 0), c + Vector2(Bosses.PIT_GAP, 0)]
+	return [c]
+
+
+func _tick_boss(dt: float) -> void:
+	var b := boss
+	b.hit_t += dt
+	b.fire_t -= dt
+	b.cycle_t -= dt
+	var half: Vector2 = Bosses.HALF[b.id]
+	var c := boss_pos()
+	match b.id:
+		Bosses.Id.DOORMAN:
+			b.x += b.dir * Bosses.DOORMAN_SPEED * dt
+			if b.x < Tune.LEFT + half.x or b.x > Tune.RIGHT - half.x:
+				b.dir = -b.dir
+				b.x = clampf(b.x, Tune.LEFT + half.x, Tune.RIGHT - half.x)
+			if b.fire_t <= 0.0:
+				b.fire_t = Bosses.DOORMAN_FIRE * _rng.randf_range(0.8, 1.2)
+				_boss_shot(c + Vector2(0, half.y))
+		Bosses.Id.DEALER:
+			b.x = Tune.W / 2.0 + sin(time * 0.7) * 90.0
+			if b.cycle_t <= 0.0:
+				b.cycle_t = Bosses.DEALER_DEAL
+				_deal(c)
+			if b.fire_t <= 0.0:
+				b.fire_t = Bosses.DEALER_FIRE * _rng.randf_range(0.8, 1.2)
+				_boss_shot(c + Vector2(-22, half.y))
+				_boss_shot(c + Vector2(22, half.y))
+		Bosses.Id.PIT_BOSS:
+			if b.cycle_t <= 0.0:
+				b.cycle_t = Bosses.PIT_ROLL * _rng.randf_range(0.85, 1.15)
+				b.faces[0] = _rng.randi_range(1, 6)
+				b.faces[1] = _rng.randi_range(1, 6)
+				_emit(&"boss_roll", {pos = c, faces = b.faces})
+				var volley := ceili((b.faces[0] + b.faces[1]) / 4.0)
+				for i in volley:
+					_boss_shot(Vector2(clampf(ship_x + _rng.randf_range(-150, 150), Tune.LEFT + 10, Tune.RIGHT - 10), c.y + half.y))
+		Bosses.Id.WHEEL:
+			b.spin = wrapf(b.spin + Bosses.WHEEL_SPIN * dt, -PI, PI)
+			b.x += b.dir * Bosses.WHEEL_SPEED * dt
+			if b.x < Tune.LEFT + half.x + 40.0 or b.x > Tune.RIGHT - half.x - 40.0:
+				b.dir = -b.dir
+			if b.fire_t <= 0.0:
+				b.fire_t = Bosses.WHEEL_FIRE * _rng.randf_range(0.8, 1.2)
+				_boss_shot(c + Vector2.from_angle(_rng.randf_range(0.3, PI - 0.3)) * half.x)
+		Bosses.Id.HOUSE:
+			if b.cycle_t <= 0.0:
+				if b.lit:
+					b.lit = false
+					b.cycle_t = Bosses.HOUSE_SPIN
+					_emit(&"boss_spin", {pos = c})
+				else:
+					b.lit = true
+					b.cycle_t = Bosses.HOUSE_LIT
+					for i in 3:
+						b.faces[i] = _rng.randi_range(0, Bosses.HOUSE_SYMBOLS - 1)
+					var same := 3 if b.faces[0] == b.faces[1] and b.faces[1] == b.faces[2] else \
+						(2 if b.faces[0] == b.faces[1] or b.faces[1] == b.faces[2] or b.faces[0] == b.faces[2] else 1)
+					var n: int = [0, 2, 4, 7][same]
+					for i in n:
+						var x := lerpf(Tune.LEFT + 40.0, Tune.RIGHT - 40.0, (i + 0.5) / n)
+						_boss_shot(Vector2(x, c.y + half.y))
+					_emit(&"boss_reels", {pos = c, faces = b.faces, same = same})
+
+
+func _boss_shot(p: Vector2) -> void:
+	shots.append(p)
+	_emit(&"enemy_fire", {pos = p})
+
+
+## The Dealer deals a card into an empty place in its escort.
+func _deal(from: Vector2) -> void:
+	var empty: Array[Invader] = []
+	for inv in invaders:
+		if not inv.alive:
+			empty.append(inv)
+	if empty.is_empty():
+		return
+	var inv := empty[_rng.randi_range(0, empty.size() - 1)]
+	inv.alive = true
+	inv.kind = Kind.DEALT
+	inv.hp = KIND_HP[Kind.DEALT]
+	inv.gold = false
+	inv.dive = -1.0
+	inv.hit_t = 9.0
+	_emit(&"deal", {from = from, pos = invader_pos(inv)})
+
+
+## Whether a bolt is spent on the boss: a hit, or armor (the Wheel glances it).
+func _bolt_hits_boss(b: Bolt) -> bool:
+	if b.last_hit == boss:
+		return false
+	var half: Vector2 = Bosses.HALF[boss.id]
+	var parts := boss_parts()
+	for i in parts.size():
+		var c: Vector2 = parts[i]
+		var inside := b.pos.distance_to(c) < half.x if boss.id == Bosses.Id.WHEEL \
+			else (absf(b.pos.x - c.x) < half.x and absf(b.pos.y - c.y) < half.y)
+		if not inside:
+			continue
+		b.last_hit = boss
+		var open := true
+		match boss.id:
+			Bosses.Id.PIT_BOSS:
+				open = boss.faces[i] <= Bosses.PIT_OPEN
+			Bosses.Id.WHEEL:
+				open = absf(angle_difference(boss.spin, (-b.vel).angle())) < Bosses.WHEEL_GAP
+				if not open:
+					var side := signf(b.pos.x - c.x)
+					b.vel = Vector2((side if side != 0.0 else 1.0) * 0.8, -0.6).normalized() * b.vel.length()
+					_emit(&"glance", {pos = b.pos})
+					return false
+			Bosses.Id.HOUSE:
+				open = boss.lit
+		if not open:
+			_emit(&"boss_armor", {pos = b.pos})
+			return true
+		boss.hp -= 1
+		boss.hit_t = 0.0
+		if boss.id == Bosses.Id.DOORMAN:
+			_drop(b.pos + Vector2(0, 10), false)
+		_emit(&"boss_hit", {pos = b.pos, hp = boss.hp})
+		if boss.hp <= 0:
+			_break_boss()
+		return not b.pierce
+	return false
+
+
+## The boss breaks: its escort breaks with it and balls shower down.
+func _break_boss() -> void:
+	var c := boss_pos()
+	stats.kills += 1
+	_emit(&"boss_break", {pos = c, id = boss.id})
+	for inv in invaders:
+		if inv.alive:
+			_kill(inv, invader_pos(inv))
+	var n: int = Bosses.SHOWER[boss.id]
+	for i in n:
+		_drop(c + Vector2(_rng.randf_range(-60, 60), _rng.randf_range(-20, 20)), i % 4 == 3)
 
 
 # --- the new pieces ----------------------------------------------------------
@@ -1040,7 +1214,7 @@ func _award(sym: int) -> void:
 func _check_phase() -> void:
 	match phase:
 		Phase.PLAYING:
-			if alive_count() == 0:
+			if alive_count() == 0 and not boss_alive():
 				phase = Phase.CLEARED
 				clear_bonus = clear_bonus_at(wave)
 				tray += clear_bonus

@@ -178,6 +178,8 @@ func _wave_banner() -> void:
 			ui.banner("WAVE %d" % sim.wave, "After Hours · %s" % label, 0.9)
 	elif sim.wave_in_floor() == 1:
 		ui.banner(Floors.floor_name(f).to_upper(), "floor %d of %d · %s" % [f, Tune.FLOORS, label], 1.3, Look.CYAN)
+	elif sim.boss_alive():
+		ui.banner(Bosses.name_of(sim.boss.id).to_upper(), "%s · double clear bonus" % Bosses.HINTS[sim.boss.id], 1.6, Look.PINK)
 	elif Floors.is_guard(sim.wave):
 		ui.banner("FLOOR GUARD", "double clear bonus · %s" % label, 1.1, Look.PINK)
 	else:
@@ -263,7 +265,10 @@ func _physics_process(_delta: float) -> void:
 	for e in sim.events:
 		match e.kind:
 			&"clear":
-				if Floors.is_guard(sim.wave):
+				if sim.boss:
+					ui.banner("%s IS BROKEN" % Bosses.name_of(sim.boss.id).to_upper(),
+						"floor %d cleared · clear bonus +%d" % [sim.floor_number(), e.bonus], 1.4, Look.GOLD)
+				elif Floors.is_guard(sim.wave):
 					ui.banner("FLOOR %d CLEARED" % sim.floor_number(), "clear bonus +%d" % e.bonus, 1.2, Look.GREEN)
 				else:
 					ui.banner("WAVE CLEARED", "clear bonus +%d" % e.bonus, 1.0, Look.GREEN)

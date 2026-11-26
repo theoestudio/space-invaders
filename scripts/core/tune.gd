@@ -81,6 +81,8 @@ const DISC_GAP := 1.1
 ## A bandit pulls this often; three of a kind out of BANDIT_SYMBOLS fires a volley.
 const BANDIT_GAP := 3.5
 const BANDIT_SYMBOLS := 4
+## Once a boss's escort is broken the boss sinks this fast (px a second).
+const BOSS_SINK := 9.0
 const INVADED_Y := 1120.0
 const SHOT_SPEED := 300.0
 const SHOT_SPEED_PER_WAVE := 12.0

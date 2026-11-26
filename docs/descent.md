@@ -164,17 +164,25 @@ and 19%. The Card Room now costs a few runs; the Wheel Room is the steepest floo
 
 ## The bosses
 
-- **The Doorman** (Lobby): a tall chip stack pacing the top, shedding a layer
-  per hit.
-- **The Dealer** (Card Room): a shoe that deals new cards into the formation
-  until it breaks.
-- **The Pit Boss** (Dice Pit): two giant dice whose roll sets each volley's
-  size; they take damage only while showing low.
-- **The Wheel** (Wheel Room): takes damage only through its turning green zero.
-- **The House** (Vault): the slot cabinet itself. Its reels spin and a match
-  fires a pattern; hit the reel window while it is lit.
+Each floor's guard wave is its boss (`Bosses`) over a two-row escort of the
+floor's pieces. Breaking the boss clears the wave, breaks the escort and
+showers balls (a fourth of them gold); the guard's double clear bonus still
+pays. The boss rides with the formation, and once its escort is broken the
+formation sinks on its own (`Tune.BOSS_SINK`), so a boss left standing still
+invades. An intro card names it with its trick, a bar shows its health.
 
-Each boss gets an intro card, a health bar and a ball shower when it breaks.
+| Boss | Floor | HP | Attack | Weak point |
+|---|---|---|---|---|
+| The Doorman | Lobby | 14 | paces the top, drops a shot every 1.5 s | anywhere; each hit sheds a layer and a ball |
+| The Dealer | Card Room | 16 | deals a dealt card into its escort every 3.2 s, fires pairs | anywhere |
+| The Pit Boss | Dice Pit | 12 | two dice roll every 2.4 s; the roll sets the volley (1 to 3 shots) | a die showing 3 or less |
+| The Wheel | Wheel Room | 12 | paces, fires from its rim | a bolt through its turning green zero; the rim glances |
+| The House | Vault | 15 | reels spin 2 s, then fire 2, 4 or 7 shots on no, two or three of a kind | the reel window while it is lit (3 s) |
+
+Tests check the mid-skill autopilot beats each one in at least two of three
+tries. With bosses in, riding every wave (36 runs): mid skill survives wave 12
+in 86% of runs and breaks the Vault in 14%; top skill 89% and 22%. They draw as
+placeholders (`Sprites.boss`) until the art pipeline renders them.
 
 ## Feel
 

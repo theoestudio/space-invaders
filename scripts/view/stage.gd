@@ -465,6 +465,8 @@ func _draw_field_back() -> void:
 			var ip := s.invader_pos(inv)
 			var look_dir := (ship_pos - ip).normalized()
 			Sprites.invader(ci, ip, inv.kind, inv.gold, frame, inv.hit_t, inv.hp, inv.row, phase, look_dir, inv)
+	if s.boss_alive():
+		Sprites.boss(ci, s, _t)
 	if s.saucer_on:
 		Sprites.saucer(ci, Vector2(s.saucer_x, Tune.SAUCER_Y), _t)
 	var blink := s.invuln > 0.0 and int(s.invuln * 14.0) % 2 == 0
@@ -646,6 +648,8 @@ func _draw_hud() -> void:
 		return
 	var ci := _hud
 	var s := sim
+	if s.boss_alive() and s.phase == Sim.Phase.PLAYING:
+		Sprites.boss_bar(ci, s)
 	Sprites.ball(ci, Vector2(Tune.LEFT + 16, 52), false, 1.1)
 	var low := s.tray < 10 and s.phase == Sim.Phase.PLAYING
 	var tc := Look.RED if low and int(_t * 4.0) % 2 == 0 else Look.INK

@@ -113,6 +113,24 @@ func watch(s: Sim) -> void:
 		_closest = INF
 
 
+## Where to shoot to hurt the boss now, or NAN while it is armored.
+func _boss_aim(s: Sim) -> float:
+	var b := s.boss
+	var parts := s.boss_parts()
+	match b.id:
+		Bosses.Id.PIT_BOSS:
+			for i in parts.size():
+				if b.faces[i] <= Bosses.PIT_OPEN:
+					return parts[i].x
+			return NAN
+		Bosses.Id.HOUSE:
+			return parts[0].x if b.lit else NAN
+		Bosses.Id.DOORMAN:
+			var t := (Tune.SHIP_Y - parts[0].y) / Tune.BOLT_SPEED
+			return parts[0].x + b.dir * Bosses.DOORMAN_SPEED * t
+	return parts[0].x
+
+
 func _danger(s: Sim) -> float:
 	var reach := Tune.SHIP_HALF + 16.0
 	var threats := Array(s.shots)
@@ -149,6 +167,11 @@ func _choose(s: Sim) -> float:
 		return best_ball
 	if s.phase != Sim.Phase.PLAYING:
 		return NAN
+	# A boss with its weak point open: go for it, always once its escort is gone.
+	if s.boss_alive():
+		var aim := _boss_aim(s)
+		if not is_nan(aim) and (s.alive_count() == 0 or _rng.randf() < 0.6):
+			return aim + _aim_error
 	# Otherwise the lowest invader, nearest first, leading the march.
 	var pick: Sim.Invader
 	var pick_score := INF

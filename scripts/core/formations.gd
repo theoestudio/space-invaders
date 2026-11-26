@@ -11,6 +11,7 @@ const DIAMOND := &"diamond"
 const CHEVRON := &"chevron"
 const SPLIT := &"split"
 const RING := &"ring"
+const ESCORT := &"escort"
 
 const MASKS := {
 	&"grid": ["#########", "#########", "#########", "#########", "#########"],
@@ -18,6 +19,8 @@ const MASKS := {
 	&"diamond": ["..#####..", ".#######.", "#########", ".#######.", "..#####.."],
 	&"chevron": ["###...###", "####.####", "#########", ".#######.", "..#####.."],
 	&"split": ["####.####", "####.####", "####.####", "####.####", "####.####"],
+	# A boss's escort (Bosses): the lowest two rows, leaving the top to the boss.
+	&"escort": [".........", ".........", ".........", "#########", ".#######."],
 }
 const ALL: Array[StringName] = [&"grid", &"v", &"diamond", &"chevron", &"split", &"ring"]
 

@@ -132,6 +132,7 @@ func _run() -> void:
 		if w in [4, Tune.VAULT_WAVE]:
 			for inv in s.invaders:
 				inv.alive = false
+			s.boss = null
 			while not main.ui.is_between_shown():
 				await get_tree().process_frame
 			await _wait(0.3)
@@ -139,6 +140,15 @@ func _run() -> void:
 			main._cash_out()
 			await _wait(0.5)
 			await _shot("14-cashed-%d" % w)
+
+	# Each boss a few seconds in.
+	for f in Tune.FLOORS:
+		main.start_arcade()
+		s = main.sim
+		s.start_wave((f + 1) * Tune.WAVES_PER_FLOOR)
+		main._wave_banner()
+		await _wait(2.2)
+		await _shot("19-boss-%d" % (f + 1))
 
 	# The new pieces at work: the Wheel Room and the Vault.
 	for w in [14, 19]:

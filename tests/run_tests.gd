@@ -18,6 +18,7 @@ func _init() -> void:
 	_floors()
 	_formations()
 	_pieces()
+	_bosses()
 	_cashier()
 	_challenges()
 	_club()
@@ -223,6 +224,7 @@ func _phases() -> void:
 	check(s.phase == Sim.Phase.PLAYING, "cannot cash out mid-wave")
 	for inv in s.invaders:
 		inv.alive = false
+	s.boss = null
 	s.step(0.0, NAN, false)
 	check(s.phase == Sim.Phase.CLEARED, "an empty formation clears the wave")
 	var bonus := Tune.CLEAR_BONUS
@@ -277,6 +279,7 @@ func _floors() -> void:
 		s.tray = 100
 		for inv in s.invaders:
 			inv.alive = false
+		s.boss = null
 		s.step(0.0, NAN, false)
 		check(s.tray == 2 * (100 + Sim.clear_bonus_for(Tune.VAULT_WAVE)) and s.broke_house(), "breaking the House doubles the tray (%d)" % s.tray)
 		var guard := 0
@@ -290,6 +293,7 @@ func _floors() -> void:
 	last.start_wave(Tune.MAX_WAVE)
 	for inv in last.invaders:
 		inv.alive = false
+	last.boss = null
 	for i in 2000:
 		last.step(0.0, NAN, false)
 	check(last.phase == Sim.Phase.SETTLED and not last.can_ride(), "the House closes at wave %d" % Tune.MAX_WAVE)
@@ -344,6 +348,7 @@ func _clear_with(s: Sim, t: Challenges.Tracker) -> Array[StringName]:
 	t.feed(s)
 	for inv in s.invaders:
 		inv.alive = false
+	s.boss = null
 	var got: Array[StringName] = []
 	for i in 5:
 		s.step(0.0, NAN, false)
@@ -481,6 +486,7 @@ func _lone(kind: int) -> Sim:
 	s.form(Formations.GRID, [kind, kind, kind, kind, kind])
 	for inv in s.invaders:
 		inv.alive = false
+	s.boss = null
 	var inv: Sim.Invader = s.invaders[s.invaders.size() - 5]
 	inv.alive = true
 	s.shots.clear()
@@ -590,11 +596,110 @@ func _pieces() -> void:
 	check(inv.dive < 0.0 and s.phase == Sim.Phase.PLAYING, "then returns to its place without counting as an invasion (dive %.2f, %s)" % [inv.dive, Sim.Phase.keys()[s.phase]])
 
 
+## A boss wave: the floor's guard is its boss over an escort; the boss's weak point
+## works as docs/descent.md says, it sinks once its escort is gone, breaking it
+## clears the wave with a shower, and the mid-skill autopilot beats each one.
+func _bosses() -> void:
+	for f in Tune.FLOORS:
+		var w := (f + 1) * Tune.WAVES_PER_FLOOR
+		check(Bosses.for_wave(w) == f and Bosses.for_wave(w - 1) == -1, "floor %d's guard wave is %s" % [f + 1, Bosses.name_of(f)])
+		var s := Sim.create(23)
+		s.start_wave(w)
+		check(s.boss_alive() and s.shape == Formations.ESCORT and s.invaders.size() == 16, "%s comes with an escort" % Bosses.name_of(f))
+	check(Bosses.for_wave(Tune.VAULT_WAVE + 4) == -1, "no bosses After Hours")
+	# Breaking a boss breaks its escort and showers balls; the wave clears.
+	var s := Sim.create(23)
+	s.start_wave(4)
+	s.boss.hp = 1
+	var b := Sim.Bolt.new()
+	b.pos = s.boss_pos() + Vector2(0, 40)
+	b.vel = Vector2(0, -Tune.BOLT_SPEED)
+	s.bolts.append(b)
+	var balls := s.balls.size()
+	for i in 6:
+		s.step(0.0, NAN, false)
+	check(not s.boss_alive() and s.alive_count() == 0 and s.balls.size() >= balls + Bosses.SHOWER[0], "breaking the Doorman breaks its escort and showers balls")
+	check(s.phase != Sim.Phase.PLAYING, "and clears the wave")
+	# With the escort gone the boss sinks, and can still invade.
+	s = Sim.create(23)
+	s.start_wave(8)
+	for inv in s.invaders:
+		inv.alive = false
+	s.boss.cycle_t = 99.0
+	var y := s.boss_pos().y
+	s.step(0.0, NAN, false)
+	check(s.phase == Sim.Phase.PLAYING and s.boss_pos().y > y, "a boss without its escort sinks")
+	s.origin.y = Tune.INVADED_Y
+	s.step(0.0, NAN, false)
+	check(s.phase == Sim.Phase.BUST and s.bust_reason == "invaded", "and invades if it reaches the line")
+	# Weak points.
+	s = Sim.create(23)
+	s.start_wave(12)
+	s.boss.faces = PackedInt32Array([6, 2, 0])
+	s.boss.cycle_t = 99.0
+	var parts := s.boss_parts()
+	for i in 2:
+		b = Sim.Bolt.new()
+		b.pos = parts[i] + Vector2(0, 30)
+		b.vel = Vector2(0, -Tune.BOLT_SPEED)
+		s.bolts.append(b)
+	s.step(0.0, NAN, false)
+	check(s.boss.hp == Bosses.HP[Bosses.Id.PIT_BOSS] - 1, "the Pit Boss is hurt only through a die showing three or less")
+	s = Sim.create(23)
+	s.start_wave(20)
+	s.boss.lit = false
+	s.boss.cycle_t = 99.0
+	b = Sim.Bolt.new()
+	b.pos = s.boss_pos() + Vector2(0, 45)
+	b.vel = Vector2(0, -Tune.BOLT_SPEED)
+	s.bolts.append(b)
+	s.step(0.0, NAN, false)
+	var armored := s.boss.hp == Bosses.HP[Bosses.Id.HOUSE]
+	s.boss.lit = true
+	b = Sim.Bolt.new()
+	b.pos = s.boss_pos() + Vector2(0, 45)
+	b.vel = Vector2(0, -Tune.BOLT_SPEED)
+	s.bolts.append(b)
+	s.step(0.0, NAN, false)
+	check(armored and s.boss.hp == Bosses.HP[Bosses.Id.HOUSE] - 1, "the House is hurt only while its reels are lit")
+	s = Sim.create(23)
+	s.start_wave(16)
+	s.boss.spin = -PI / 2.0
+	b = Sim.Bolt.new()
+	b.pos = s.boss_pos() + Vector2(0, 50)
+	b.vel = Vector2(0, -Tune.BOLT_SPEED)
+	s.bolts.append(b)
+	s.step(0.0, NAN, false)
+	check(s.boss.hp == Bosses.HP[Bosses.Id.WHEEL] and absf(b.vel.x) > 100.0, "the Wheel glances a bolt that misses its zero")
+	s = Sim.create(23)
+	s.start_wave(8)
+	s.invaders[0].alive = false
+	s.boss.cycle_t = 0.0
+	s.step(0.0, NAN, false)
+	check(s.invaders[0].alive and s.invaders[0].kind == Sim.Kind.DEALT, "the Dealer deals a card into an empty place")
+	# The mid-skill autopilot beats each boss most of the time.
+	for f in Tune.FLOORS:
+		var won := 0
+		for seed_value in 3:
+			var m := Sim.create(400 + seed_value)
+			m.start_wave((f + 1) * Tune.WAVES_PER_FLOOR)
+			m.tray = 500
+			var bot := Autopilot.new(0.7, 9 + seed_value)
+			var guard := 0
+			while m.phase == Sim.Phase.PLAYING and guard < 60 * 180:
+				var d := bot.decide(m)
+				m.step(d.move, d.target, d.fire)
+				guard += 1
+			won += 1 if m.phase != Sim.Phase.BUST and not m.boss_alive() else 0
+		check(won >= 2, "the mid autopilot beats %s (%d of 3)" % [Bosses.name_of(f), won])
+
+
 func _settled(seed_value: int, n: int, tray: int) -> Sim:
 	var s := Sim.create(seed_value)
 	s.start_wave(n)
 	for inv in s.invaders:
 		inv.alive = false
+	s.boss = null
 	var guard := 0
 	while s.phase != Sim.Phase.SETTLED and guard < 2000:
 		s.step(0.0, NAN, false)
@@ -668,6 +773,7 @@ func _cashier() -> void:
 	k.tray = 200
 	for inv in k.invaders:
 		inv.alive = false
+	k.boss = null
 	k.step(0.0, NAN, false)
 	var bonus := roundi(Tune.CLEAR_BONUS * Fixtures.COMPS_MULT)
 	var interest := mini(roundi((200 + bonus) * Fixtures.INTEREST_RATE), Fixtures.INTEREST_CAP)

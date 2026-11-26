@@ -399,17 +399,18 @@ static func _pips_badge(ci: CanvasItem, p: Vector2, hp: int) -> void:
 
 
 ## A roulette disc: red and black sectors with its green gap facing `spin`.
-static func _disc(ci: CanvasItem, p: Vector2, gold: bool, spin: float) -> void:
+static func _disc(ci: CanvasItem, p: Vector2, gold: bool, spin: float, r := 19.0) -> void:
 	var n := 12
 	for i in n:
-		var a0 := spin + TAU * i / n
+		# Sector 0, the green zero, is centered on `spin`: where the gap faces.
+		var a0 := spin - TAU / n / 2.0 + TAU * i / n
 		var pts := PackedVector2Array([p])
 		for k in 4:
-			pts.append(p + Vector2.from_angle(a0 + TAU / n * k / 3.0) * 19.0)
+			pts.append(p + Vector2.from_angle(a0 + TAU / n * k / 3.0) * r)
 		var col: Color = Color(0.1, 0.75, 0.35) if i == 0 else (Color(0.8, 0.12, 0.18) if i % 2 == 1 else Color(0.08, 0.06, 0.1))
 		ci.draw_colored_polygon(pts, col)
-	ci.draw_arc(p, 19.0, 0.0, TAU, 32, Look.GOLD if gold else Color(0.9, 0.8, 0.5), 2.5, true)
-	ci.draw_circle(p, 5.0, Look.GOLD if gold else Color(0.85, 0.75, 0.45))
+	ci.draw_arc(p, r, 0.0, TAU, 48, Look.GOLD if gold else Color(0.9, 0.8, 0.5), 2.5 * r / 19.0, true)
+	ci.draw_circle(p, r * 0.26, Look.GOLD if gold else Color(0.85, 0.75, 0.45))
 
 
 ## A one-armed bandit: a little cabinet with three reels.
@@ -423,3 +424,80 @@ static func _bandit(ci: CanvasItem, p: Vector2, gold: bool, reels: PackedInt32Ar
 		ci.draw_circle(c, 3.0, cols[reels[i] % cols.size()])
 	ci.draw_line(p + Vector2(19, -6), p + Vector2(24, -14), Color(0.8, 0.8, 0.85), 2.0)
 	ci.draw_circle(p + Vector2(24, -15), 3.0, Look.RED)
+
+
+# --- placeholder bosses (Bosses) ----------------------------------------------
+
+## A boss, drawn from simple shapes until the art pipeline renders it.
+static func boss(ci: CanvasItem, s: Sim, t: float) -> void:
+	var b := s.boss
+	var c := s.boss_pos()
+	var half: Vector2 = Bosses.HALF[b.id]
+	var flash := clampf(1.0 - b.hit_t / 0.12, 0.0, 1.0)
+	match b.id:
+		Bosses.Id.DOORMAN:
+			# A tower of chips, one per two hit points left, in a top hat.
+			var layers := maxi(ceili(b.hp / 2.0), 1)
+			for i in layers:
+				var y := c.y + half.y - 10.0 - i * 14.0
+				var col: Color = CHIP_COLORS[i % CHIP_COLORS.size()]
+				ci.draw_circle(Vector2(c.x, y), 30.0, col.darkened(0.25))
+				ci.draw_arc(Vector2(c.x, y), 30.0, 0.0, PI, 20, Color(1, 1, 1, 0.4), 3.0, true)
+			var top := c.y + half.y - 10.0 - layers * 14.0
+			ci.draw_rect(Rect2(c.x - 18, top - 34, 36, 30), Color(0.06, 0.04, 0.08))
+			ci.draw_rect(Rect2(c.x - 28, top - 6, 56, 6), Color(0.06, 0.04, 0.08))
+			ci.draw_rect(Rect2(c.x - 18, top - 14, 36, 5), Look.RED)
+		Bosses.Id.DEALER:
+			var r := Rect2(c - half, half * 2.0)
+			Look.rounded(ci, r, 10, Color(0.05, 0.3, 0.18))
+			Look.rounded(ci, r, 10, Look.GOLD, false, 3.0)
+			for i in 3:
+				var cr := Rect2(c + Vector2(-16 + i * 9, -half.y - 18 + i * 4), Vector2(30, 40))
+				Look.rounded(ci, cr, 4, Color(0.97, 0.95, 0.9))
+				Look.rounded(ci, cr, 4, Look.RED, false, 1.5)
+			Look.text(ci, c + Vector2(-half.x, 10), "SHOE", 18, Look.GOLD, Look.sans_bold, HORIZONTAL_ALIGNMENT_CENTER, half.x * 2.0)
+		Bosses.Id.PIT_BOSS:
+			var parts := s.boss_parts()
+			for i in parts.size():
+				var open := b.faces[i] <= Bosses.PIT_OPEN
+				var r := Rect2(parts[i] - half, half * 2.0)
+				Look.rounded(ci, r, 12, Color(0.95, 0.92, 0.84))
+				Look.rounded(ci, r, 12, Look.GREEN if open else Look.RED, false, 4.0)
+				_big_pips(ci, parts[i], b.faces[i], half.x * 0.5)
+		Bosses.Id.WHEEL:
+			_disc(ci, c, false, b.spin, half.x)
+		Bosses.Id.HOUSE:
+			var r := Rect2(c - half, half * 2.0)
+			Look.rounded(ci, r, 14, Color(0.3, 0.08, 0.4))
+			Look.rounded(ci, r, 14, Look.GOLD, false, 4.0)
+			var win := Rect2(c + Vector2(-66, -26), Vector2(132, 52))
+			ci.draw_rect(win, Color(Look.GOLD, 0.35 + 0.25 * sin(t * 10.0)) if b.lit else Color(0.05, 0.03, 0.08))
+			var cols := [Look.RED, Look.CYAN, Look.GOLD]
+			for i in 3:
+				var cc := c + Vector2(-44 + i * 44, 0)
+				ci.draw_rect(Rect2(cc - Vector2(18, 22), Vector2(36, 44)), Color(0.95, 0.93, 0.88))
+				var sym: int = b.faces[i] if b.lit else int(t * 12.0 + i * 5) % Bosses.HOUSE_SYMBOLS
+				ci.draw_circle(cc, 11.0, cols[sym % cols.size()])
+	if flash > 0.0:
+		ci.draw_rect(Rect2(c - half, half * 2.0), Color(1, 1, 1, 0.35 * flash))
+
+
+static func _big_pips(ci: CanvasItem, c: Vector2, n: int, d: float) -> void:
+	var spots := {
+		1: [Vector2.ZERO], 2: [Vector2(-1, -1), Vector2(1, 1)], 3: [Vector2(-1, -1), Vector2.ZERO, Vector2(1, 1)],
+		4: [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)],
+		5: [Vector2(-1, -1), Vector2(1, -1), Vector2.ZERO, Vector2(-1, 1), Vector2(1, 1)],
+		6: [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 0), Vector2(1, 0), Vector2(-1, 1), Vector2(1, 1)],
+	}
+	for v: Vector2 in spots.get(clampi(n, 1, 6), []):
+		ci.draw_circle(c + v * d, d * 0.32, Color(0.12, 0.06, 0.14))
+
+
+## The boss's name and health bar across the top of the board.
+static func boss_bar(ci: CanvasItem, s: Sim) -> void:
+	var b := s.boss
+	var r := Rect2(Tune.LEFT + 60, 118, Tune.RIGHT - Tune.LEFT - 120, 10)
+	Look.text(ci, Vector2(Tune.W / 2.0, 112), Bosses.name_of(b.id).to_upper(), 16, Look.PINK, Look.sans_bold)
+	ci.draw_rect(r, Color(0.05, 0.03, 0.08, 0.9))
+	ci.draw_rect(Rect2(r.position, Vector2(r.size.x * float(b.hp) / b.max_hp, r.size.y)), Look.PINK)
+	ci.draw_rect(r, Color(Look.INK, 0.5), false, 1.5)
