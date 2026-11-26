@@ -15,8 +15,10 @@ help: ## Show this help
 import: ## Import assets and build the class cache (needed once after a fresh clone)
 	@$(GODOT) --headless --import >/dev/null 2>&1 || true
 
-test: import ## Sim, board and telemetry checks, headless, plus the Worker's tests
+test: import ## Sim, board and telemetry checks, a headless boot of the game, plus the Worker's tests
 	$(GODOT) --headless --script tests/run_tests.gd
+	@# Boot the real game (autoloads, UI and view) for a few seconds: any script error fails.
+	@! $(GODOT) --headless --quit-after 300 2>&1 | grep -E "SCRIPT ERROR|Parse Error|Failed to load script"
 	cd web && npm test --silent
 
 selfplay: import ## Autopilot runs at three skill levels: busts, payouts per cash-out wave (ARGS="48 12")
