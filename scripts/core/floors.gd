@@ -10,20 +10,33 @@ const AFTER_HOURS := "After Hours"
 const C := Sim.Kind.CHIP
 const D := Sim.Kind.DIE
 const K := Sim.Kind.CARD
+const S := Sim.Kind.STACK
+const T := Sim.Kind.DEALT
+const L := Sim.Kind.LOADED
+const R := Sim.Kind.DISC
+const B := Sim.Kind.BANDIT
 
-## Row plans top to bottom for each floor's waves; the last is its guard wave.
+## Row plans top to bottom for each floor's waves; the last is its guard wave. A
+## row is one kind, or an array of kinds repeated across its columns.
 const PLANS := [
 	# The Lobby: chips and a few dice.
 	[[K, D, C, C, C], [K, D, D, C, C], [D, D, C, C, C], [D, D, D, C, C]],
-	# The Card Room: cards lead.
-	[[K, K, D, C, C], [K, K, D, D, C], [K, K, K, D, C], [K, K, K, D, D]],
-	# The Dice Pit: dice.
-	[[K, D, D, D, C], [K, D, D, D, C], [K, D, D, D, D], [K, D, D, D, D]],
-	# The Wheel Room: everything mixed.
-	[[K, K, D, C, C], [K, D, K, C, C], [K, K, D, D, C], [K, K, D, D, C]],
-	# The Vault: the hardest.
-	[[K, K, D, D, D], [K, K, K, D, D], [K, D, K, D, K], [K, K, K, D, D]],
+	# The Card Room: cards lead, and dealt cards dive at the launcher.
+	[[K, K, D, C, C], [[T, K, K], K, D, D, C], [K, [K, T], K, D, C], [[T, K], K, K, D, D]],
+	# The Dice Pit: dice, some of them loaded.
+	[[K, D, D, D, C], [K, [D, L, D], D, D, C], [K, D, [L, D, D], D, D], [K, [L, D, D], D, D, D]],
+	# The Wheel Room: roulette discs and chip stacks.
+	[[K, K, D, C, C], [K, [R, K, K], K, C, [S, C, C]], [K, K, [K, R, K], D, [C, S, C]], [K, [R, K, K], D, D, [S, C, C]]],
+	# The Vault: bandits and everything else.
+	[[K, K, D, D, D], [[B, K, K, K], K, K, D, D], [[K, B, K, K], K, [D, R, D, D], [L, D, D], [S, C, C]], [[B, K, K, K], K, [K, T, K], [L, D, D], [S, C, C]]],
 ]
+
+
+## The kind at column `col` of a plan row.
+static func kind_at(row: Variant, col: int) -> int:
+	if row is Array:
+		return row[col % row.size()]
+	return row
 
 ## Each floor's shapes, wave by wave (Formations); the last is the guard's.
 const SHAPES := [

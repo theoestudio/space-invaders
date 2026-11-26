@@ -10,7 +10,7 @@ const SYMBOL_ART := [&"sym_seven", &"sym_bar", &"sym_cherry", &"sym_bell", &"sym
 
 
 static func invader(ci: CanvasItem, p: Vector2, kind: int, gold: bool, frame: int,
-		hit_t: float, hp: int, row: int, phase := 0.0, look_dir := Vector2.ZERO) -> void:
+		hit_t: float, hp: int, row: int, phase := 0.0, look_dir := Vector2.ZERO, piece: Sim.Invader = null) -> void:
 	var flash := clampf(1.0 - hit_t / 0.12, 0.0, 1.0)
 	var ph := phase if phase != 0.0 else (0.0 if frame == 0 else PI)
 	match kind:
@@ -20,6 +20,18 @@ static func invader(ci: CanvasItem, p: Vector2, kind: int, gold: bool, frame: in
 			_die(ci, p, gold, frame, hp, ph, flash)
 		Sim.Kind.CARD:
 			_card(ci, p, gold, frame, ph, flash)
+		Sim.Kind.STACK:
+			_stack(ci, p, gold, frame, row, hp, ph, look_dir, flash)
+		Sim.Kind.DEALT:
+			_card(ci, p, gold, frame, ph, flash)
+			ci.draw_arc(p, 25.0, 0.0, TAU, 24, Color(Look.PINK, 0.7), 2.0, true)
+		Sim.Kind.LOADED:
+			_die(ci, p, gold, frame, 2, ph, flash)
+			_pips_badge(ci, p, hp)
+		Sim.Kind.DISC:
+			_disc(ci, p, gold, piece.spin if piece else 0.0)
+		Sim.Kind.BANDIT:
+			_bandit(ci, p, gold, piece.reels if piece else PackedInt32Array([0, 1, 2]))
 	if flash > 0.0:
 		ci.draw_circle(p, 19.0, Color(1, 1, 1, 0.48 * flash))
 
@@ -85,6 +97,7 @@ static func _card(ci: CanvasItem, p: Vector2, gold: bool, frame: int,
 
 static func shard(ci: CanvasItem, p: Vector2, type: int, row: int, gold: bool,
 		rot: float, scale := 1.0, alpha := 1.0) -> void:
+	type = Sim.BASE_KIND[type]
 	var key: StringName
 	if gold:
 		key = &"shard_gold"
@@ -360,3 +373,53 @@ static func _saucer_fallback(ci: CanvasItem, p: Vector2, _t: float) -> void:
 static func _pocket_rect_fallback(ci: CanvasItem, p: Vector2, half: float, c: Color) -> void:
 	ci.draw_rect(Rect2(p + Vector2(-half, 0), Vector2(half * 2.0, 14)), Color(0.02, 0.01, 0.04))
 	ci.draw_rect(Rect2(p + Vector2(-half - 4, 12), Vector2(half * 2.0 + 8, 5)), c)
+
+
+# --- placeholders for the descent's new pieces --------------------------------
+# Drawn from the launch pieces until the 2.5D pipeline renders their own art
+# (docs/descent.md, "Sprites the art pipeline owes").
+
+## A chip stack: one chip for each layer left, offset like a short tower.
+static func _stack(ci: CanvasItem, p: Vector2, gold: bool, frame: int, row: int, hp: int,
+		phase: float, look_dir: Vector2, flash: float) -> void:
+	var base: Color = Look.GOLD if gold else CHIP_COLORS[row % CHIP_COLORS.size()]
+	for i in range(hp - 1, 0, -1):
+		var c := p + Vector2(0, 5.0 * i)
+		ci.draw_circle(c, 18.0, base.darkened(0.35 + 0.1 * i))
+		ci.draw_arc(c, 18.0, 0.0, PI, 16, Color(1, 1, 1, 0.35), 2.0, true)
+	_chip(ci, p, gold, frame, row, phase, look_dir, flash)
+
+
+## A loaded die's pips (its hits left) on a small badge.
+static func _pips_badge(ci: CanvasItem, p: Vector2, hp: int) -> void:
+	var c := p + Vector2(14, -14)
+	ci.draw_circle(c, 9.0, Color(0.08, 0.04, 0.12, 0.92))
+	ci.draw_arc(c, 9.0, 0.0, TAU, 18, Look.PINK, 1.6, true)
+	Look.text(ci, c + Vector2(-9, 6), str(hp), 14, Look.INK, Look.sans_bold, HORIZONTAL_ALIGNMENT_CENTER, 18.0)
+
+
+## A roulette disc: red and black sectors with its green gap facing `spin`.
+static func _disc(ci: CanvasItem, p: Vector2, gold: bool, spin: float) -> void:
+	var n := 12
+	for i in n:
+		var a0 := spin + TAU * i / n
+		var pts := PackedVector2Array([p])
+		for k in 4:
+			pts.append(p + Vector2.from_angle(a0 + TAU / n * k / 3.0) * 19.0)
+		var col: Color = Color(0.1, 0.75, 0.35) if i == 0 else (Color(0.8, 0.12, 0.18) if i % 2 == 1 else Color(0.08, 0.06, 0.1))
+		ci.draw_colored_polygon(pts, col)
+	ci.draw_arc(p, 19.0, 0.0, TAU, 32, Look.GOLD if gold else Color(0.9, 0.8, 0.5), 2.5, true)
+	ci.draw_circle(p, 5.0, Look.GOLD if gold else Color(0.85, 0.75, 0.45))
+
+
+## A one-armed bandit: a little cabinet with three reels.
+static func _bandit(ci: CanvasItem, p: Vector2, gold: bool, reels: PackedInt32Array) -> void:
+	Look.rounded(ci, Rect2(p - Vector2(18, 20), Vector2(36, 40)), 6, Color(0.32, 0.1, 0.42))
+	Look.rounded(ci, Rect2(p - Vector2(18, 20), Vector2(36, 40)), 6, Look.GOLD if gold else Look.PINK, false, 2.0)
+	var cols := [Look.RED, Look.GOLD, Look.CYAN, Look.GREEN]
+	for i in 3:
+		var c := p + Vector2(-10 + i * 10, -4)
+		ci.draw_rect(Rect2(c - Vector2(4, 6), Vector2(8, 12)), Color(0.95, 0.93, 0.88))
+		ci.draw_circle(c, 3.0, cols[reels[i] % cols.size()])
+	ci.draw_line(p + Vector2(19, -6), p + Vector2(24, -14), Color(0.8, 0.8, 0.85), 2.0)
+	ci.draw_circle(p + Vector2(24, -15), 3.0, Look.RED)

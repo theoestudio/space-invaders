@@ -106,7 +106,7 @@ func ride(s: Sim) -> bool:
 func watch(s: Sim) -> void:
 	if s.phase == Sim.Phase.PLAYING:
 		for inv in s.invaders:
-			if inv.alive:
+			if inv.alive and inv.dive < 0.0:
 				_closest = minf(_closest, Tune.INVADED_Y - (s.invader_pos(inv).y + Tune.INVADER_HALF.y))
 	elif _closest != INF:
 		_last_closest = _closest
@@ -115,7 +115,11 @@ func watch(s: Sim) -> void:
 
 func _danger(s: Sim) -> float:
 	var reach := Tune.SHIP_HALF + 16.0
-	for shot in s.shots:
+	var threats := Array(s.shots)
+	for inv in s.invaders:
+		if inv.alive and inv.dive >= 0.0:
+			threats.append(s.invader_pos(inv))
+	for shot: Vector2 in threats:
 		if shot.y > Tune.SHIP_Y - 230.0 and shot.y < Tune.SHIP_Y + 10.0 and absf(shot.x - s.ship_x) < reach:
 			if _rng.randf() > lerpf(0.55, 0.97, skill):
 				return NAN

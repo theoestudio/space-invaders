@@ -34,6 +34,9 @@ class Slot:
 	var radius := Vector2.ZERO
 	var angle := 0.0
 	var row := 0
+	## The slot's column (grid shapes) or its place around the ring, for rows that
+	## mix kinds.
+	var col := 0
 
 
 static func slots(shape: StringName) -> Array[Slot]:
@@ -44,7 +47,9 @@ static func slots(shape: StringName) -> Array[Slot]:
 		for oval: Array in RING_OVALS:
 			var n: int = oval[1]
 			for i in n:
-				out.append(_slot(center, oval[0], TAU * i / n))
+				var s := _slot(center, oval[0], TAU * i / n)
+				s.col = i
+				out.append(s)
 		return out
 	var mask: Array = MASKS[shape]
 	for row in mask.size():
@@ -52,6 +57,7 @@ static func slots(shape: StringName) -> Array[Slot]:
 		for col in line.length():
 			if line[col] == "#":
 				var s := _slot(Vector2(col * Tune.CELL.x, row * Tune.CELL.y), Vector2.ZERO, 0.0)
+				s.col = col
 				out.append(s)
 	return out
 

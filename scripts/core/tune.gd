@@ -66,6 +66,21 @@ const RING_TURN := 0.45
 ## A turning formation drops this share of MARCH_DROP at each edge: its lowest
 ## arc never clears while it turns, so it must come down slower.
 const RING_DROP := 0.6
+
+# --- the new pieces (Sim.Kind) -------------------------------------------------
+## A dealt card dives every DIVE_GAP seconds or so (one at a time) and takes
+## DIVE_TIME to swing down through the launcher's row and back.
+const DIVE_GAP := 5.0
+const DIVE_TIME := 3.2
+## A loaded die rerolls its pips (its hits left, 1 to 6) this often.
+const LOADED_REROLL := 3.0
+## A roulette disc turns this fast (radians a second); a bolt meets it only when
+## its gap faces the bolt within DISC_GAP radians.
+const DISC_SPIN := 2.2
+const DISC_GAP := 1.1
+## A bandit pulls this often; three of a kind out of BANDIT_SYMBOLS fires a volley.
+const BANDIT_GAP := 3.5
+const BANDIT_SYMBOLS := 4
 const INVADED_Y := 1120.0
 const SHOT_SPEED := 300.0
 const SHOT_SPEED_PER_WAVE := 12.0

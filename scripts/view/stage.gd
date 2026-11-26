@@ -213,8 +213,8 @@ func consume(events: Array[Dictionary]) -> void:
 				_burst(e.pos, Color(0.95, 0.92, 0.84), 6, 140.0, 0.3)
 			&"kill":
 				if loud:
-					Sfx.play(&"kill", [1.0, 0.8, 1.2][e.type] * _rng.randf_range(0.95, 1.05), -3.0)
-				var c: Color = Look.GOLD if e.gold else [Sprites.CHIP_COLORS[0], Color(0.95, 0.92, 0.84), Look.RED][e.type]
+					Sfx.play(&"kill", [1.0, 0.8, 1.2][Sim.BASE_KIND[e.type]] * _rng.randf_range(0.95, 1.05), -3.0)
+				var c: Color = Look.GOLD if e.gold else [Sprites.CHIP_COLORS[0], Color(0.95, 0.92, 0.84), Look.RED][Sim.BASE_KIND[e.type]]
 				_burst(e.pos, c, 12, 240.0, 0.45, 500.0)
 				_shatter(e.pos, e.type, e.get("row", 0), e.gold)
 				_ring(e.pos, c, 34.0, 0.3)
@@ -464,7 +464,7 @@ func _draw_field_back() -> void:
 		if inv.alive:
 			var ip := s.invader_pos(inv)
 			var look_dir := (ship_pos - ip).normalized()
-			Sprites.invader(ci, ip, inv.kind, inv.gold, frame, inv.hit_t, inv.hp, inv.row, phase, look_dir)
+			Sprites.invader(ci, ip, inv.kind, inv.gold, frame, inv.hit_t, inv.hp, inv.row, phase, look_dir, inv)
 	if s.saucer_on:
 		Sprites.saucer(ci, Vector2(s.saucer_x, Tune.SAUCER_Y), _t)
 	var blink := s.invuln > 0.0 and int(s.invuln * 14.0) % 2 == 0

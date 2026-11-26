@@ -17,6 +17,7 @@ func _init() -> void:
 	_phases()
 	_floors()
 	_formations()
+	_pieces()
 	_cashier()
 	_challenges()
 	_club()
@@ -472,6 +473,121 @@ func _club() -> void:
 	for i in 50:
 		gaps += b._saucer_gap(b._rng)
 	check(gaps / 50.0 < (Tune.SAUCER_GAP.x + Tune.SAUCER_GAP.y) / 2.0 * 0.6, "saucer bait halves the gap")
+
+
+## A Sim whose House is one live piece of `kind`, in the grid's bottom row middle.
+func _lone(kind: int) -> Sim:
+	var s := Sim.create(17)
+	s.form(Formations.GRID, [kind, kind, kind, kind, kind])
+	for inv in s.invaders:
+		inv.alive = false
+	var inv: Sim.Invader = s.invaders[s.invaders.size() - 5]
+	inv.alive = true
+	s.shots.clear()
+	return s
+
+
+## Fires one bolt straight up at the lone piece from below and steps until it lands.
+func _bolt_at(s: Sim, inv: Sim.Invader) -> Sim.Bolt:
+	var b := Sim.Bolt.new()
+	var p := s.invader_pos(inv)
+	b.pos = p + Vector2(0, 60)
+	b.vel = Vector2(0, -Tune.BOLT_SPEED)
+	s.bolts.append(b)
+	s.march_dir = 0.0
+	for i in 10:
+		s.step(0.0, NAN, false)
+	return b
+
+
+## The descent's new pieces do what docs/descent.md says.
+func _pieces() -> void:
+	check(Sim.KIND_NAMES.size() == Sim.Kind.size() and Sim.KIND_HP.size() == Sim.Kind.size() and Sim.KIND_BALLS.size() == Sim.Kind.size() \
+		and Sim.KIND_FIRE.size() == Sim.Kind.size() and Sim.BASE_KIND.size() == Sim.Kind.size(), "every kind has a name, hp, balls, fire weight and base look")
+	# Chip stack: a layer and a ball per hit, broken on the third.
+	var s := _lone(Sim.Kind.STACK)
+	var inv: Sim.Invader = s.invaders[s.invaders.size() - 5]
+	var balls := s.balls.size()
+	_bolt_at(s, inv)
+	check(inv.alive and inv.hp == 2 and s.balls.size() == balls + 1, "a chip stack sheds a layer and a ball")
+	_bolt_at(s, inv)
+	_bolt_at(s, inv)
+	check(not inv.alive, "and breaks on its last layer")
+	# Roulette disc: hit through the gap, glance off the rim.
+	s = _lone(Sim.Kind.DISC)
+	inv = s.invaders[s.invaders.size() - 5]
+	inv.spin = PI / 2.0
+	s.fixtures.clear()
+	var hit_through := false
+	var b := Sim.Bolt.new()
+	check(s.disc_open(inv, Vector2(0, -1)), "a disc's gap facing down lets a bolt from below in")
+	inv.spin = -PI / 2.0
+	check(not s.disc_open(inv, Vector2(0, -1)), "facing up it does not")
+	b = _bolt_at(s, inv)
+	check(inv.alive and absf(b.vel.x) > 100.0, "a bolt off the rim glances sideways (vx %.0f)" % b.vel.x)
+	# Loaded die: rerolls its pips.
+	s = _lone(Sim.Kind.LOADED)
+	inv = s.invaders[s.invaders.size() - 5]
+	var seen := {}
+	for i in roundi(Tune.LOADED_REROLL * 1.3 * 60.0 * 6.0):
+		s.step(0.0, NAN, false)
+		for e in s.events:
+			if e.kind == &"reroll_die":
+				seen[e.hp] = true
+		s.origin.y = Tune.FORMATION_TOP
+	check(seen.size() >= 3 and seen.keys().all(func(h: int) -> bool: return h >= 1 and h <= 6), "a loaded die rerolls its pips 1 to 6 (%s)" % str(seen.keys()))
+	s = _lone(Sim.Kind.LOADED)
+	inv = s.invaders[s.invaders.size() - 5]
+	inv.clock = 99.0
+	_bolt_at(s, inv)
+	_bolt_at(s, inv)
+	check(inv.dmg == 2, "hits on a loaded die stick")
+	var broke := false
+	for i in 200:
+		inv.clock = 0.0
+		s.step(0.0, NAN, false)
+		s.origin.y = Tune.FORMATION_TOP
+		if not inv.alive:
+			broke = true
+			break
+	check(broke, "a loaded die that rolls no more pips than its hits breaks")
+	# Bandit: pulls, and three of a kind fires a volley.
+	s = _lone(Sim.Kind.BANDIT)
+	inv = s.invaders[s.invaders.size() - 5]
+	var pulls := 0
+	var wins := 0
+	for i in 400:
+		inv.clock = 0.0
+		s.shots.clear()
+		s.step(0.0, NAN, false)
+		s.origin.y = Tune.FORMATION_TOP
+		for e in s.events:
+			if e.kind == &"bandit":
+				pulls += 1
+				if e.won:
+					wins += 1
+					check(s.shots.size() >= 3, "a bandit's jackpot is a three-shot volley") if wins == 1 else null
+	check(pulls == 400 and wins > 5 and wins < 60, "about one pull in 16 hits (%d of %d)" % [wins, pulls])
+	# Dealt card: dives through the launcher's row, can hit it, and comes back.
+	s = _lone(Sim.Kind.DEALT)
+	inv = s.invaders[s.invaders.size() - 5]
+	var lowest := 0.0
+	var hits := 0
+	var dived := false
+	s.tray = 1000
+	for i in roundi((Tune.DIVE_GAP * 1.3 + Tune.DIVE_TIME) * 60.0):
+		s.ship_x = s.invader_pos(inv).x
+		s.shots.clear()
+		s.step(0.0, s.ship_x, false)
+		s.origin.y = Tune.FORMATION_TOP
+		lowest = maxf(lowest, s.invader_pos(inv).y)
+		hits = s.stats.hits
+		dived = dived or inv.dive >= 0.0
+		if dived and inv.dive < 0.0:
+			break
+	check(lowest > Tune.SHIP_Y - 20.0, "a dealt card dives to the launcher (lowest %.0f)" % lowest)
+	check(hits >= 1, "and hits it on the way")
+	check(inv.dive < 0.0 and s.phase == Sim.Phase.PLAYING, "then returns to its place without counting as an invasion (dive %.2f, %s)" % [inv.dive, Sim.Phase.keys()[s.phase]])
 
 
 func _settled(seed_value: int, n: int, tray: int) -> Sim:

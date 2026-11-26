@@ -56,6 +56,9 @@ func _run() -> void:
 	main.ui._rules_show(4)
 	await _wait(0.8)
 	await _shot("04b-rules-cashier")
+	main.ui._rules_show(5)
+	await _wait(0.4)
+	await _shot("04c-rules-pieces")
 	main.ui.hide_rules()
 
 	Profile.seen_rules = true
@@ -136,6 +139,14 @@ func _run() -> void:
 			main._cash_out()
 			await _wait(0.5)
 			await _shot("14-cashed-%d" % w)
+
+	# The new pieces at work: the Wheel Room and the Vault.
+	for w in [14, 19]:
+		main.start_arcade()
+		s = main.sim
+		s.start_wave(w)
+		await _wait(2.5)
+		await _shot("18-pieces-%d" % w)
 
 	# Every formation shape, a moment into the wave.
 	for shape in Formations.ALL:

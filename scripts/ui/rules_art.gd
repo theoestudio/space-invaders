@@ -81,6 +81,19 @@ func _draw() -> void:
 			Look.text(self, c + Vector2(120, 48), "RIDE DOWN", 24, Look.PINK)
 			Look.text(self, c + Vector2(120, 70), "buy fixtures · 5 floors", 14, Look.MUTED, Look.sans)
 		5:
+			var kinds := [Sim.Kind.STACK, Sim.Kind.DEALT, Sim.Kind.LOADED, Sim.Kind.DISC, Sim.Kind.BANDIT]
+			var names := ["STACK", "DEALT", "LOADED", "DISC", "BANDIT"]
+			for i in 5:
+				var piece := Sim.Invader.new()
+				piece.spin = _t * Tune.DISC_SPIN
+				piece.reels = PackedInt32Array([int(_t * 3.0) % 4, int(_t * 3.0 + 1.0) % 4, int(_t * 3.0 + 2.0) % 4])
+				var p := c + Vector2(-160 + i * 80, -26)
+				if kinds[i] == Sim.Kind.DEALT:
+					p.y += sin(_t * 2.0) * 14.0
+				var hp := 1 + int(_t * 1.5) % 6 if kinds[i] == Sim.Kind.LOADED else 3 - int(_t) % 3
+				Sprites.invader(self, p, kinds[i], false, frame, 9.0, hp, i, 0.0, Vector2.ZERO, piece)
+				Look.text(self, p + Vector2(-40, 46), names[i], 15, Look.MUTED, Look.sans_bold, HORIZONTAL_ALIGNMENT_CENTER, 80.0)
+		6:
 			for i in 7:
 				var col := GameUI.wave_color([40, 25, 60, -12, 38, 50, 20][i], false)
 				var on := int(_t * 2.0) % 7 >= i

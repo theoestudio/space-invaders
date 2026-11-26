@@ -10,13 +10,22 @@ extends RefCounted
 ## each wave's formation and the reel outcomes do not depend on how you play.
 
 enum Phase { PLAYING, CLEARED, SETTLED, BUST, CASHED }
-enum Kind { CHIP, DIE, CARD }
+## The House's pieces. The first three are the launch game's; the rest arrive on
+## the lower floors (docs/descent.md): a chip stack sheds a layer and a ball per
+## hit, a dealt card dives at the launcher, a loaded die rerolls its pips (its hits
+## left; hits taken stick, so it breaks when it rolls no more pips than it has
+## taken hits), a roulette disc glances bolts off except through its gap, and a bandit
+## spins its reels and fires a volley on three of a kind.
+enum Kind { CHIP, DIE, CARD, STACK, DEALT, LOADED, DISC, BANDIT }
 
-const KIND_NAMES := ["Chip", "Die", "Card"]
-const KIND_HP := [1, 2, 1]
-const KIND_BALLS := [1, 2, 1]
-## How likely the bottom invader of a column is to be the one that fires.
-const KIND_FIRE := [1.0, 1.0, 2.6]
+const KIND_NAMES := ["Chip", "Die", "Card", "Chip stack", "Dealt card", "Loaded die", "Roulette disc", "Bandit"]
+const KIND_HP := [1, 2, 1, 3, 1, 3, 1, 2]
+## Balls a break drops (a chip stack also drops one for each layer it sheds).
+const KIND_BALLS := [1, 2, 1, 1, 1, 2, 2, 2]
+## How likely a piece at the front is to be the one that fires.
+const KIND_FIRE := [1.0, 1.0, 2.6, 1.0, 1.6, 1.0, 1.0, 0.4]
+## The launch piece each new one is drawn and sounded like until it has art.
+const BASE_KIND := [0, 1, 2, 0, 2, 1, 0, 2]
 class Invader:
 	## Where the piece sits from the formation's origin, and on a turning shape the
 	## oval it travels and its angle on it before any turn (Formations.Slot).
@@ -28,6 +37,19 @@ class Invader:
 	var hp: int
 	var gold := false
 	var alive := true
+	## A dealt card's dive: progress 0..1 while diving, -1 in the formation; where
+	## it left from and the launcher x it aims at.
+	var dive := -1.0
+	var dive_from := Vector2.ZERO
+	var dive_x := 0.0
+	## A loaded die's, a disc's and a bandit's clocks: seconds to the next reroll
+	## or pull, and a disc's turn (its gap faces this angle).
+	var clock := 0.0
+	var spin := 0.0
+	## Hits a loaded die has taken: they stick through its rerolls.
+	var dmg := 0
+	## A bandit's last pull, three symbols 0..3.
+	var reels := PackedInt32Array([0, 1, 2])
 	## Seconds since last hit, for the view's flash.
 	var hit_t := 9.0
 
@@ -77,6 +99,8 @@ var march_dir := 1.0
 ## The wave's Formations shape, and how far a turning shape has turned (radians).
 var shape := Formations.GRID
 var turn := 0.0
+## Seconds until the next dealt card dives.
+var _dive_t := 0.0
 var shots := PackedVector2Array()
 var _fire_t := 0.0
 
@@ -191,9 +215,12 @@ func form(shape_id: StringName, plan: Array) -> void:
 		inv.radius = slot.radius
 		inv.angle = slot.angle
 		inv.row = slot.row
-		inv.kind = plan[slot.row]
+		inv.kind = Floors.kind_at(plan[slot.row], slot.col)
 		inv.hp = KIND_HP[inv.kind]
+		inv.clock = _rng.randf_range(0.5, 1.0) * (Tune.BANDIT_GAP if inv.kind == Kind.BANDIT else Tune.LOADED_REROLL)
+		inv.spin = _rng.randf_range(0.0, TAU)
 		invaders.append(inv)
+	_dive_t = Tune.DIVE_GAP
 
 
 func next_wave() -> void:
@@ -377,6 +404,8 @@ func invader_pos(inv: Invader) -> Vector2:
 ## Where a piece will be in `t` seconds if the formation keeps marching and turning
 ## the way it is (no edge in between): for aiming.
 func invader_pos_at(inv: Invader, t: float) -> Vector2:
+	if inv.dive >= 0.0:
+		return _dive_pos(inv)
 	var a := inv.angle + turn
 	var o := origin
 	if t > 0.0:
@@ -449,6 +478,7 @@ func step(move: float, target: float, fire: bool) -> void:
 	_move_bolts(dt)
 	if playing:
 		_march(dt)
+		_tick_pieces(dt)
 		_enemy_fire(dt)
 	_move_shots(dt)
 	if playing:
@@ -551,12 +581,23 @@ func _bolt_hits_invader(b: Bolt) -> bool:
 		var p := invader_pos(inv)
 		if absf(b.pos.x - p.x) < Tune.INVADER_HALF.x + 3.0 and absf(b.pos.y - p.y) < Tune.INVADER_HALF.y + 8.0:
 			b.last_hit = inv
+			if inv.kind == Kind.DISC and not disc_open(inv, b.vel):
+				# Off the rim: the bolt glances away sideways and flies on.
+				var side := signf(b.pos.x - p.x)
+				if side == 0.0:
+					side = 1.0 if _rng.randf() < 0.5 else -1.0
+				b.vel = Vector2(side * 0.8, -0.6).normalized() * b.vel.length()
+				_emit(&"glance", {pos = p})
+				return false
 			inv.hp -= 1
+			inv.dmg += 1
 			inv.hit_t = 0.0
 			if inv.hp <= 0:
 				_kill(inv, p)
 			else:
-				_emit(&"dent", {pos = p})
+				if inv.kind == Kind.STACK:
+					_drop(p + Vector2(0, 6), inv.gold)
+				_emit(&"dent", {pos = p, type = inv.kind, hp = inv.hp})
 			return not b.pierce
 	return false
 
@@ -585,7 +626,7 @@ func _march(dt: float) -> void:
 	# A turning piece counts its whole oval, so the turn alone never bumps the
 	# formation off an edge or over the line.
 	for inv in invaders:
-		if inv.alive:
+		if inv.alive and inv.dive < 0.0:
 			var c := origin + inv.home
 			lo = minf(lo, c.x - inv.radius.x)
 			hi = maxf(hi, c.x + inv.radius.x)
@@ -644,7 +685,7 @@ func _front() -> Array[Invader]:
 	var live: Array[Invader] = []
 	var at: Array[Vector2] = []
 	for inv in invaders:
-		if inv.alive:
+		if inv.alive and inv.dive < 0.0:
 			live.append(inv)
 			at.append(invader_pos(inv))
 	var out: Array[Invader] = []
@@ -667,26 +708,108 @@ func _move_shots(dt: float) -> void:
 		if s.y > Tune.H:
 			continue
 		if phase == Phase.PLAYING and absf(s.x - ship_x) < Tune.SHIP_HALF - 8.0 and absf(s.y - Tune.SHIP_Y) < 16.0:
-			if invuln > 0.0:
-				continue
-			invuln = Tune.HIT_INVULN
-			if shield:
-				shield = false
-				_emit(&"shielded", {pos = s})
-			else:
-				var spill := maxi(Tune.HIT_SPILL, roundi(tray * Tune.HIT_SPILL_SHARE))
-				if level(&"padded_rail") > 0:
-					spill = roundi(spill * Fixtures.PADDED_SHARE)
-				if level(&"insurance") > 0 and not _insured:
-					_insured = true
-					spill = 0
-				var lost := mini(tray, spill)
-				tray -= lost
-				stats.hits += 1
-				_emit(&"hit", {pos = Vector2(ship_x, Tune.SHIP_Y), lost = lost})
+			_hit_ship(s)
 			continue
 		keep.append(s)
 	shots = keep
+
+
+## Something of the House's struck the launcher at `at`: the shield takes it, or
+## the tray spills (unless the launcher is still blinking from the last hit).
+func _hit_ship(at: Vector2) -> void:
+	if invuln > 0.0:
+		return
+	invuln = Tune.HIT_INVULN
+	if shield:
+		shield = false
+		_emit(&"shielded", {pos = at})
+		return
+	var spill := maxi(Tune.HIT_SPILL, roundi(tray * Tune.HIT_SPILL_SHARE))
+	if level(&"padded_rail") > 0:
+		spill = roundi(spill * Fixtures.PADDED_SHARE)
+	if level(&"insurance") > 0 and not _insured:
+		_insured = true
+		spill = 0
+	var lost := mini(tray, spill)
+	tray -= lost
+	stats.hits += 1
+	_emit(&"hit", {pos = Vector2(ship_x, Tune.SHIP_Y), lost = lost})
+
+
+# --- the new pieces ----------------------------------------------------------
+
+## Whether a bolt flying along `vel` meets a disc through its gap.
+func disc_open(inv: Invader, vel: Vector2) -> bool:
+	var toward := (-vel).angle()
+	return absf(angle_difference(inv.spin, toward)) < Tune.DISC_GAP
+
+
+func _tick_pieces(dt: float) -> void:
+	var dealt: Array[Invader] = []
+	for inv in invaders:
+		if not inv.alive:
+			continue
+		match inv.kind:
+			Kind.LOADED:
+				inv.clock -= dt
+				if inv.clock <= 0.0:
+					inv.clock = Tune.LOADED_REROLL * _rng.randf_range(0.8, 1.2)
+					var pips := _rng.randi_range(1, 6)
+					inv.hp = pips - inv.dmg
+					_emit(&"reroll_die", {pos = invader_pos(inv), hp = pips})
+					if inv.hp <= 0:
+						_kill(inv, invader_pos(inv))
+			Kind.DISC:
+				inv.spin = wrapf(inv.spin + Tune.DISC_SPIN * dt, -PI, PI)
+			Kind.BANDIT:
+				inv.clock -= dt
+				if inv.clock <= 0.0:
+					inv.clock = Tune.BANDIT_GAP * _rng.randf_range(0.8, 1.2)
+					for i in 3:
+						inv.reels[i] = _rng.randi_range(0, Tune.BANDIT_SYMBOLS - 1)
+					var p := invader_pos(inv)
+					var won := inv.reels[0] == inv.reels[1] and inv.reels[1] == inv.reels[2]
+					_emit(&"bandit", {pos = p, won = won})
+					if won:
+						for dx in [-16.0, 0.0, 16.0]:
+							shots.append(p + Vector2(dx, Tune.INVADER_HALF.y))
+			Kind.DEALT:
+				if inv.dive >= 0.0:
+					_move_dive(inv, dt)
+				else:
+					dealt.append(inv)
+	_dive_t -= dt
+	if _dive_t <= 0.0 and not dealt.is_empty():
+		_dive_t = Tune.DIVE_GAP * _rng.randf_range(0.7, 1.3)
+		var inv := dealt[_rng.randi_range(0, dealt.size() - 1)]
+		inv.dive_from = invader_pos(inv)
+		inv.dive_x = ship_x
+		inv.dive = 0.0
+		_emit(&"dive", {pos = inv.dive_from})
+
+
+## A diving card's path: a curve from its place in the formation, swinging out and
+## down through the launcher's row, then back up into its place.
+func _dive_pos(inv: Invader) -> Vector2:
+	var t := inv.dive
+	var low := Vector2(inv.dive_x, Tune.SHIP_Y + 10.0)
+	var home := origin + inv.home
+	var swing := Vector2(signf(inv.dive_x - inv.dive_from.x + 0.01) * -140.0, 0.0)
+	if t < 0.5:
+		var u := t * 2.0
+		return inv.dive_from.bezier_interpolate(inv.dive_from + swing, low + Vector2(0, -260), low, u)
+	var v := (t - 0.5) * 2.0
+	return low.bezier_interpolate(low + Vector2(0, 160), home + Vector2(-swing.x, -220), home, v)
+
+
+func _move_dive(inv: Invader, dt: float) -> void:
+	inv.dive += dt / Tune.DIVE_TIME
+	if inv.dive >= 1.0:
+		inv.dive = -1.0
+		return
+	var p := _dive_pos(inv)
+	if phase == Phase.PLAYING and absf(p.x - ship_x) < Tune.SHIP_HALF and absf(p.y - Tune.SHIP_Y) < 18.0:
+		_hit_ship(p)
 
 
 func _move_saucer(dt: float) -> void:

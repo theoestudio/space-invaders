@@ -141,11 +141,26 @@ plays Classic and the base pool, so it stays fair. Records stay in the browser.
 
 ## The House's new pieces
 
-- **Chip stack**: three layers; each hit sheds one and a ball.
-- **Dealt card**: leaves the formation and dives in a curve at the launcher.
-- **Loaded die**: rerolls its pips (hits left, 1 to 6) every few seconds.
-- **Roulette disc**: spins; bolts glance off it except through its gap.
-- **Bandit**: a small slot; three of a kind banks a volley for the House.
+`Sim.Kind` adds five pieces; plan rows (`Floors.PLANS`) can mix kinds column by
+column, so a floor brings them in one in two or three rather than whole rows.
+
+- **Chip stack** (Wheel Room, Vault): three layers; each hit sheds one and a ball.
+- **Dealt card** (Card Room, Vault): every few seconds one leaves the formation,
+  swoops down through the launcher's row (a hit if it touches the launcher) and
+  back to its place. A diving card never counts toward an invasion.
+- **Loaded die** (Dice Pit, Vault): rerolls its pips, 1 to 6, every 3 s. Hits
+  stick, so it breaks when it shows no more pips than the hits it has taken:
+  shoot it while it shows low.
+- **Roulette disc** (Wheel Room, Vault): turns; a bolt that meets its rim glances
+  away sideways, and only one that meets its green gap counts.
+- **Bandit** (Vault): pulls every few seconds; three of a kind (1 in 16) fires a
+  three-shot volley.
+
+They draw as placeholders built from the launch pieces (`Sprites._stack`,
+`_disc`, `_bandit`, a pips badge on the die and a ring on the dealt card) until
+the art pipeline renders them. With them in, riding every wave (36 runs): mid
+skill survives wave 12 in 72% of runs and breaks the Vault in 14%; top skill 67%
+and 19%. The Card Room now costs a few runs; the Wheel Room is the steepest floor.
 
 ## The bosses
 
