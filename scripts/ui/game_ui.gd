@@ -37,6 +37,7 @@ var _between := Control.new()
 var _end := Control.new()
 var _rules := Control.new()
 var _more := Control.new()
+var _records := Control.new()
 
 ## The other Twinspear games, best fit first (MoreGames). Starts with the bundled copy and
 ## is replaced by the blog's feed when it arrives.
@@ -49,6 +50,12 @@ var _daily_title: Label
 var _daily_status: Label
 var _daily_button: Button
 var _arcade_status: Label
+## The last 14 dailies as lamps on the Daily card, and the Records button.
+var _daily_strip: HBoxContainer
+var _records_button: Button
+var _records_list: VBoxContainer
+var _records_scroll: ScrollContainer
+var _records_head: Label
 var _toggles := {}
 
 var _banner: Label
@@ -96,7 +103,7 @@ func _ready() -> void:
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
-	for c in [_menu, _pause, _between, _end, _rules, _more]:
+	for c in [_menu, _pause, _between, _end, _rules, _more, _records]:
 		c.set_anchors_preset(Control.PRESET_FULL_RECT)
 		c.mouse_filter = Control.MOUSE_FILTER_STOP
 		c.visible = false
@@ -107,6 +114,7 @@ func _ready() -> void:
 	_build_end()
 	_build_rules()
 	_build_more()
+	_build_records()
 	_build_banner()
 	_toast = Style.label("", 22, Style.INK, Look.sans_bold)
 	_toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -193,6 +201,10 @@ func _build_menu() -> void:
 	_daily_status = Style.label("", 19, Style.MUTED)
 	_daily_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	daily.add_child(_daily_status)
+	_daily_strip = HBoxContainer.new()
+	_daily_strip.alignment = BoxContainer.ALIGNMENT_CENTER
+	_daily_strip.add_theme_constant_override(&"separation", 5)
+	daily.add_child(_daily_strip)
 	_daily_button = Style.button("Play today's run", Look.GOLD, true)
 	_daily_button.pressed.connect(func() -> void: daily_pressed.emit())
 	daily.add_child(_daily_button)
@@ -219,6 +231,9 @@ func _build_menu() -> void:
 		_toggles[key] = t
 		row.add_child(t)
 	_sync_toggles()
+	_records_button = Style.button("Challenges and records")
+	_records_button.pressed.connect(show_records)
+	col.add_child(_records_button)
 	var more := Style.button("More free games from Twinspear")
 	more.pressed.connect(show_more)
 	col.add_child(more)
@@ -260,6 +275,9 @@ func show_menu() -> void:
 		_daily_status.text += "\nPlayed %d · cashed out %d · best %d" % [totals.played, totals.cashed, totals.best]
 		if streak > 1:
 			_daily_status.text += " · streak %d" % streak
+	_fill_strip(n)
+	var met := Profile.challenges.size()
+	_records_button.text = "Challenges %d/%d · %d comps" % [met, Challenges.ORDER.size(), Profile.comps] if met > 0 else "Challenges and records"
 	var a := Profile.arcade
 	if int(a.runs) > 0:
 		_arcade_status.text = "A fresh board every time. Best payout %d · furthest wave %d · %d runs" % [int(a.best), int(a.best_wave), int(a.runs)]
@@ -280,7 +298,7 @@ func show_game() -> void:
 
 
 func _hide_all() -> void:
-	for c in [_menu, _pause, _between, _end, _rules, _more]:
+	for c in [_menu, _pause, _between, _end, _rules, _more, _records]:
 		c.visible = false
 
 
@@ -795,7 +813,104 @@ func show_more() -> void:
 ## Back from the list to the title menu.
 func show_menu_panel() -> void:
 	_more.visible = false
+	_records.visible = false
 	_menu.visible = true
+
+
+# --- challenges and records ---------------------------------------------------------
+
+## The lamp colour for one daily: gold for a cash-out, red for a bust, dim when
+## unplayed.
+static func daily_lamp(d: Dictionary) -> Color:
+	if not d.played:
+		return Color(Style.FAINT, 0.18)
+	return Look.GOLD if d.payout > 0 else Look.RED
+
+
+func _fill_strip(today: int) -> void:
+	for c in _daily_strip.get_children():
+		c.queue_free()
+	var history := Profile.daily_history(today)
+	_daily_strip.visible = history.any(func(d: Dictionary) -> bool: return d.played)
+	for d in history:
+		var lamp := Panel.new()
+		lamp.custom_minimum_size = Vector2(16, 16)
+		var box := StyleBoxFlat.new()
+		box.bg_color = daily_lamp(d)
+		box.set_corner_radius_all(8)
+		if d.number == today:
+			box.border_color = Style.INK
+			box.set_border_width_all(2)
+		lamp.add_theme_stylebox_override(&"panel", box)
+		lamp.tooltip_text = _history_line(d)
+		_daily_strip.add_child(lamp)
+
+
+## "#21 · cashed out 812 · the Dice Pit".
+static func _history_line(d: Dictionary) -> String:
+	if not d.played:
+		return "#%d · not played" % d.number
+	var res := "cashed out %d" % d.payout if d.payout > 0 else ("bust" if d.outcome != "empty" else "ran dry")
+	var where := ""
+	if d.floor > 0:
+		where = " · %s" % ("broke the Vault" if d.payout > 0 and d.waves >= Tune.VAULT_WAVE else Floors.in_sentence(d.floor))
+	return "#%d · %s%s" % [d.number, res, where]
+
+
+func _build_records() -> void:
+	_shade(_records, 0.78)
+	var v := _panel(_records, Look.GOLD)
+	v.add_child(_centered(Style.label("RECORDS", 34, Look.GOLD, Look.display)))
+	_records_head = _centered(Style.label("", 19, Style.MUTED))
+	v.add_child(_records_head)
+	_records_scroll = ScrollContainer.new()
+	_records_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(_records_scroll)
+	_records_list = VBoxContainer.new()
+	_records_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_records_list.add_theme_constant_override(&"separation", 8)
+	_records_scroll.add_child(_records_list)
+	var back := Style.button("Back", Look.GOLD, true)
+	back.pressed.connect(show_menu_panel)
+	v.add_child(back)
+
+
+func show_records() -> void:
+	for c in _records_list.get_children():
+		c.queue_free()
+	var today := Daily.today_number()
+	_records_head.text = "%d comp points · %d of %d challenges" % [Profile.comps, Profile.challenges.size(), Challenges.ORDER.size()]
+	var streak := Profile.daily_streak(today)
+	if streak > 1:
+		_records_head.text += " · daily streak %d" % streak
+	_records_list.add_child(Style.label("CHALLENGES", 18, Look.CYAN, Look.sans_bold))
+	for id in Challenges.ORDER:
+		var done := Profile.challenges.has(id)
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override(&"separation", 10)
+		var mark := Style.label("✓" if done else "·", 22, Look.GREEN if done else Style.FAINT, Look.sans_bold)
+		mark.custom_minimum_size = Vector2(22, 0)
+		h.add_child(mark)
+		var text := VBoxContainer.new()
+		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text.add_theme_constant_override(&"separation", 0)
+		text.add_child(Style.label(Challenges.name_of(id), 19, Style.INK if done else Style.MUTED, Look.sans_bold))
+		var what := Style.label(Challenges.ALL[id].text, 16, Style.MUTED)
+		what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.add_child(what)
+		h.add_child(text)
+		h.add_child(Style.label("+%d" % Challenges.comps_of(id), 18, Look.GOLD if not done else Style.FAINT, Look.sans_bold))
+		_records_list.add_child(h)
+	_records_list.add_child(_spacer(6))
+	_records_list.add_child(Style.label("LAST 14 DAILIES", 18, Look.CYAN, Look.sans_bold))
+	var history := Profile.daily_history(today)
+	history.reverse()
+	for d in history:
+		var line := Style.label(_history_line(d), 17, daily_lamp(d) if d.played else Style.FAINT)
+		_records_list.add_child(line)
+	_menu.visible = false
+	_records.visible = true
+	_records_scroll.scroll_vertical = 0
 
 
 func is_more_shown() -> bool:
@@ -828,3 +943,4 @@ func _on_resized() -> void:
 	_rules_art.custom_minimum_size.x = w - 60.0
 	_rules_text.custom_minimum_size.x = w - 60.0
 	_more_scroll.custom_minimum_size = Vector2(w - 60.0, minf(size.y * 0.62, 900.0))
+	_records_scroll.custom_minimum_size = Vector2(w - 60.0, minf(size.y * 0.62, 900.0))

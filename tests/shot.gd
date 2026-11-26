@@ -158,4 +158,17 @@ func _run() -> void:
 	main.show_menu()
 	await _wait(0.5)
 	await _shot("11-menu-after")
+	# A player some weeks in: a history strip and a few challenges (not saved).
+	var today := Daily.today_number()
+	for back in [1, 2, 3, 5, 6, 9, 10, 12]:
+		Profile.daily[today - back] = {payout = 0 if back in [3, 9] else 150 + back * 37, waves = 10 - back % 4,
+			outcome = "invaded" if back in [3, 9] else "cashed", floor = 1 + back % 4}
+	Profile.challenges = {&"card_shark": today - 5, &"hot_streak": today - 2, &"untouchable": today - 1}
+	Profile.comps = 140
+	main.show_menu()
+	await _wait(0.3)
+	await _shot("16-menu-history")
+	main.ui.show_records()
+	await _wait(0.3)
+	await _shot("17-records")
 	get_tree().quit()

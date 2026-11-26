@@ -33,6 +33,10 @@ squares.
 **Arcade.** A fresh board every run; past the Vault it goes on into After Hours, up
 to wave 30. Keeps your best payout.
 
+**Challenges.** Twelve goals that outlast a run (two fevers in one wave, a guard
+cleared without a hit, the Vault broken...) pay comp points once each. The menu
+shows the last 14 dailies and every challenge under Records.
+
 Arrow keys or A/D move, Space fires, Esc pauses. Between waves, 1 to 3 buy, X
 rerolls, C cashes out and R rides. On a phone or with a mouse, hold
 anywhere and drag: the launcher follows your finger and fires on its own.

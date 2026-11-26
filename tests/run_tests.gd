@@ -18,6 +18,7 @@ func _init() -> void:
 	_floors()
 	_formations()
 	_cashier()
+	_challenges()
 	_daily()
 	_telemetry()
 	_more_games()
@@ -334,6 +335,87 @@ func _formations() -> void:
 	var front := r._front()
 	var mid := r.origin.y + (Tune.ROWS - 1) * Tune.CELL.y / 2.0
 	check(not front.is_empty() and front.all(func(inv: Sim.Invader) -> bool: return r.invader_pos(inv).y >= mid - 1.0), "only the ring's lower arc fires")
+
+
+## Clears the wave the Sim is on, feeding every step to the tracker; returns what it met.
+func _clear_with(s: Sim, t: Challenges.Tracker) -> Array[StringName]:
+	t.feed(s)
+	for inv in s.invaders:
+		inv.alive = false
+	var got: Array[StringName] = []
+	for i in 5:
+		s.step(0.0, NAN, false)
+		got.append_array(t.feed(s))
+	return got
+
+
+## The challenge tracker meets each goal from what a run does, once a run, and the
+## profile's daily history lines up the last 14 days.
+func _challenges() -> void:
+	for id in Challenges.ORDER:
+		check(Challenges.ALL.has(id) and Challenges.comps_of(id) > 0, "%s has a name and pays comps" % id)
+	check(Challenges.ORDER.size() == Challenges.ALL.size(), "every challenge is in the order")
+	var s := Sim.create(9)
+	var t := Challenges.Tracker.new()
+	t.feed(s)
+	s.events = [{kind = &"prize", prize = "fever"}]
+	check(t.feed(s).is_empty(), "one fever is not a streak")
+	check(t.feed(s) == [&"hot_streak"] and t.feed(s).is_empty(), "two fevers in one wave are, once")
+	s = Sim.create(9)
+	s.start_wave(8)
+	t = Challenges.Tracker.new()
+	var got := _clear_with(s, t)
+	check(&"card_shark" in got and &"untouchable" in got, "clearing the Card Room's guard unhit meets both (%s)" % str(got))
+	s = Sim.create(9)
+	s.start_wave(8)
+	t = Challenges.Tracker.new()
+	t.feed(s)
+	s.stats.hits += 1
+	got = _clear_with(s, t)
+	check(&"card_shark" in got and &"untouchable" not in got, "a hit on the guard wave spoils untouchable")
+	s = Sim.create(9)
+	s.form(Formations.RING, Floors.PLANS[3][0])
+	t = Challenges.Tracker.new()
+	t.feed(s)
+	s.stats.shots += 30
+	s.stats.kills += 25
+	got = _clear_with(s, t)
+	check(&"round_round" in got and &"sharpshooter" in got, "breaking a ring at 83%% meets both (%s)" % str(got))
+	s = Sim.create(9)
+	s.start_wave(Tune.VAULT_WAVE)
+	t = Challenges.Tracker.new()
+	check(&"broke_house" in _clear_with(s, t), "breaking the Vault's guard")
+	s = Sim.create(9)
+	s.start_wave(Tune.VAULT_WAVE + 1)
+	t = Challenges.Tracker.new()
+	check(&"night_shift" in _clear_with(s, t), "a wave After Hours")
+	s = Sim.create(9)
+	s.tray = 600
+	s.phase = Sim.Phase.SETTLED
+	s.cash_out()
+	t = Challenges.Tracker.new()
+	got = t.finish(s)
+	check(&"lobby_roller" in got and &"window_shopper" not in got, "500 from the Lobby, not yet 1,000")
+	s = Sim.create(9)
+	s.start_wave(6)
+	s.tray = 1200
+	s.phase = Sim.Phase.SETTLED
+	s.cash_out()
+	check(Challenges.Tracker.new().finish(s) == [&"window_shopper"], "1,000 without buying")
+	s.stats.bought = 1
+	check(Challenges.Tracker.new().finish(s).is_empty(), "a buy spoils window shopping")
+	s = Sim.create(9)
+	for id in Fixtures.ORDER.slice(0, Fixtures.SLOTS):
+		s.fixtures[id] = 1
+	check(Challenges.Tracker.new().shopped(s) == [&"full_house"], "six fixtures at once")
+	var profile: Node = preload("res://scripts/autoload/profile.gd").new()
+	profile.daily = {20: {payout = 300, waves = 9, outcome = "cashed", floor = 3}, 21: {payout = 0, waves = 2, outcome = "invaded"}}
+	var h: Array[Dictionary] = profile.daily_history(21)
+	check(h.size() == 14 and h[0].number == 8 and h[13].number == 21, "14 days, oldest first")
+	check(h[12].played and h[12].floor == 3 and h[12].payout == 300 and not h[11].played, "a played day keeps its floor")
+	check(h[13].floor == 0 and h[13].outcome == "invaded", "older records have no floor")
+	check(profile.daily_history(3).size() == 3, "no days before daily #1")
+	profile.free()
 
 
 func _settled(seed_value: int, n: int, tray: int) -> Sim:

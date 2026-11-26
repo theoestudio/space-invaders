@@ -109,6 +109,16 @@ is bought by more than two thirds of the runs that reach the Dice Pit. The
 autopilot's skill levels differ less than players do (aim 54% to 58%), so the
 playtest has the last word.
 
+## Challenges and the daily history
+
+Twelve challenges (`Challenges`) pay comp points the first time each is met, in
+either mode: two fevers in one wave, a guard cleared unhit, a 70% wave, 500 from
+the Lobby, clearing the Card Room, the Dice Pit and the Wheel Room, breaking the
+Vault, a wave After Hours, a ring broken, six fixtures at once and 1,000 cashed
+without buying. The Daily card shows the last 14 dailies as lamps; the Records
+panel lists them with payout and floor, and the challenges with what they pay.
+Comp points wait for the players' club to spend them.
+
 ## The players' club
 
 Comp points come from every finished run (payout and floors reached). Tiers,

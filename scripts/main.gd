@@ -19,6 +19,9 @@ var paused := false
 var _demo_bot: Autopilot
 var _rng := RandomNumberGenerator.new()
 var _finished := false
+## This run's challenge watcher, and the challenges it met for the first time ever.
+var _tracker := Challenges.Tracker.new()
+var _met_run: Array[StringName] = []
 ## The finished run was a daily replay, which does not place.
 var _board_practice := false
 var _fever_on := false
@@ -122,6 +125,8 @@ func _begin(s: Sim) -> void:
 	Sfx.music_for(&"run")
 	sim = s
 	_finished = false
+	_tracker = Challenges.Tracker.new()
+	_met_run.clear()
 	stage.show_sim(sim, false)
 	_apply_sky(sim.floor_number(), true)
 	stage.release_pointer()
@@ -231,6 +236,7 @@ func _physics_process(_delta: float) -> void:
 	var i := autopilot.decide(sim) if autopilot else _input_state()
 	sim.step(i.move, i.target, i.fire)
 	stage.consume(sim.events)
+	_meet(_tracker.feed(sim))
 	var fever := sim.fever_t > 0.0
 	if fever != _fever_on:
 		_fever_on = fever
@@ -284,6 +290,7 @@ func _ride() -> void:
 func _buy(i: int) -> void:
 	if sim.buy(i):
 		Sfx.play(&"select", 0.8)
+		_meet(_tracker.shopped(sim))
 		ui.show_between(sim)
 
 
@@ -308,6 +315,16 @@ func _cash_out() -> void:
 	_finish()
 
 
+## Challenges the tracker reports: the ones never met before pay comps, show a toast
+## and are listed on the result.
+func _meet(ids: Array[StringName]) -> void:
+	if ids.is_empty():
+		return
+	for id in Profile.record_challenges(ids, Daily.today_number()):
+		_met_run.append(id)
+		ui.toast("Challenge met: %s · +%d comps" % [Challenges.name_of(id), Challenges.comps_of(id)])
+
+
 func _cleared() -> int:
 	return sim.stats.waves.size() - (1 if sim.phase == Sim.Phase.BUST else 0)
 
@@ -323,6 +340,7 @@ func _finish() -> void:
 	var cashed := sim.phase == Sim.Phase.CASHED
 	var payout := sim.payout()
 	var cleared := _cleared()
+	_meet(_tracker.finish(sim))
 	var title := ("BROKE THE HOUSE" if sim.broke_house() else "CASHED OUT") if cashed else "BUST"
 	var color := Look.GOLD if cashed else Look.RED
 	var sub: String
@@ -337,10 +355,14 @@ func _finish() -> void:
 	var acc: float = 100.0 * st.kills / maxf(st.shots, 1.0)
 	var stats := "%d broken · %d%% accuracy · peak tray %d\n%d pocketed · %d caught · %d spins · %d fever%s" % [
 		st.kills, roundi(acc), st.peak, st.pocketed, st.caught, st.spins, st.fevers, "" if st.fevers == 1 else "s"]
+	if not _met_run.is_empty():
+		stats += "\n\nChallenges: %s" % ", ".join(_met_run.map(func(id: StringName) -> String:
+			return "%s +%d" % [Challenges.name_of(id), Challenges.comps_of(id)]))
 	var nets: Array = st.waves
 	if mode == Mode.DAILY:
 		var official := not practice and Profile.record_daily(daily_number, {
-			payout = payout, waves = cleared, outcome = "cashed" if cashed else sim.bust_reason, nets = nets.duplicate()})
+			payout = payout, waves = cleared, outcome = "cashed" if cashed else sim.bust_reason, nets = nets.duplicate(),
+			floor = sim.floor_number()})
 		var totals := Profile.daily_totals()
 		var streak := Profile.daily_streak(daily_number)
 		stats += "\n\nDaily runs cashed: %d of %d · best %d" % [totals.cashed, totals.played, totals.best]
