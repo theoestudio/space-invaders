@@ -94,6 +94,24 @@ func _run() -> void:
 	await _wait(0.3)
 	await _shot("09b-cashed-board")
 
+	# A floor's guard down, then the House broken.
+	for w in [4, Tune.VAULT_WAVE]:
+		main.start_arcade()
+		s = main.sim
+		s.start_wave(w)
+		main._wave_banner()
+		await _wait(0.6)
+		await _shot("12-floor-%d" % w)
+		for inv in s.invaders:
+			inv.alive = false
+		while not main.ui.is_between_shown():
+			await get_tree().process_frame
+		await _wait(0.3)
+		await _shot("13-cleared-%d" % w)
+		main._cash_out()
+		await _wait(0.5)
+		await _shot("14-cashed-%d" % w)
+
 	main.start_daily()
 	s = main.sim
 	await _wait(1.0)
