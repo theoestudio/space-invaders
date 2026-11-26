@@ -41,9 +41,16 @@ export function runDay(mode: 'daily' | 'arcade', daily: number | undefined, toda
   return daily === n || daily === n - 1 ? dailyDate(daily) : null;
 }
 
-/** WHERE clause and its bindings for one board. */
-export function boardScope(mode: 'daily' | 'arcade', day: string): { where: string; binds: string[] } {
+/** WHERE clause and its bindings for one board: one rules version, and for the daily one
+ * day. The literal terms must match the partial indexes in migrations/0004_rules.sql, or
+ * the board reads become scans. */
+export function boardScope(mode: 'daily' | 'arcade', rules: number, day: string): { where: string; binds: (string | number)[] } {
   return mode === 'daily'
-    ? { where: `mode = 'daily' AND official = 1 AND outcome = 'cashed' AND day = ?`, binds: [day] }
-    : { where: `mode = 'arcade' AND official = 1 AND outcome = 'cashed'`, binds: [] };
+    ? { where: `mode = 'daily' AND official = 1 AND outcome = 'cashed' AND rules = ? AND day = ?`, binds: [rules, day] }
+    : { where: `mode = 'arcade' AND official = 1 AND outcome = 'cashed' AND rules = ?`, binds: [rules] };
+}
+
+/** The key of a board's row in the `boards` totals table: arcade is all time. */
+export function boardKey(mode: 'daily' | 'arcade', rules: number, day: string): [number, string, string] {
+  return [rules, mode, mode === 'daily' ? day : ''];
 }

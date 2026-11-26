@@ -4,17 +4,38 @@ import { parseRunRow } from './run_row.ts';
 
 const good = {
   mode: 'daily', daily: 4, outcome: 'cashed', waves: 4, payout: 212, peak: 240, shots: 260, kills: 180,
-  hits: 3, spins: 9, fevers: 1, pocketed: 70, caught: 40, official: true,
+  hits: 3, spins: 9, fevers: 1, pocketed: 70, caught: 40, official: true, rules: 2, bought: 2,
 };
 
 test('accepts what the game sends', () => {
-  assert.deepEqual(parseRunRow(good), good);
+  assert.deepEqual(parseRunRow(good), { ...good, floor: 1 });
   assert.ok(parseRunRow({ ...good, outcome: 'invaded', payout: 0 }));
-  assert.ok(parseRunRow({ ...good, outcome: 'empty', payout: 0, waves: 0, kills: 20 }));
+  assert.ok(parseRunRow({ ...good, outcome: 'empty', payout: 0, waves: 0, kills: 20, bought: 0 }));
   assert.ok(parseRunRow({ ...good, official: false }), 'daily practice');
   assert.ok(parseRunRow({ ...good, mode: 'arcade', daily: 0 }));
-  const { daily: _d, ...legacy } = good;
+  const { rules: _r, bought: _b, ...launch } = good;
+  assert.deepEqual(parseRunRow(launch), { ...launch, rules: 1, floor: null }, 'builds from before the descent are rules 1');
+  const { daily: _d, ...legacy } = launch;
   assert.ok(parseRunRow(legacy), 'older builds send no daily number');
+});
+
+test('the floor comes from the waves: cleared for a cash-out, plus the bust wave', () => {
+  const floor = (o: object) => parseRunRow({ ...good, ...o })?.floor;
+  assert.equal(floor({ waves: 4 }), 1, 'cashed after the Lobby guard');
+  assert.equal(floor({ waves: 4, outcome: 'invaded', payout: 0 }), 2, 'bust on the first Card Room wave');
+  assert.equal(floor({ waves: 0, outcome: 'empty', payout: 0, kills: 20, bought: 0 }), 1);
+  assert.equal(floor({ waves: 20, kills: 900, peak: 2000, payout: 1900 }), 5, 'broke the Vault');
+  assert.equal(floor({ mode: 'arcade', daily: 0, waves: 30, kills: 1350, peak: 2000, payout: 1900 }), 6, 'After Hours');
+});
+
+test('rules and fixtures', () => {
+  assert.equal(parseRunRow({ ...good, rules: 1 }), null, 'only the current rules name themselves');
+  assert.equal(parseRunRow({ ...good, rules: 3 }), null);
+  assert.equal(parseRunRow({ ...good, bought: undefined }), null, 'rules 2 sends what it bought');
+  const { bought: _b, ...half } = good;
+  assert.equal(parseRunRow(half), null, 'rules without fixtures');
+  assert.equal(parseRunRow({ ...good, bought: -1 }), null);
+  assert.equal(parseRunRow({ ...good, outcome: 'empty', payout: 0, waves: 0, kills: 20 }), null, 'nothing to buy before a clear');
 });
 
 test('the daily number matches the mode', () => {

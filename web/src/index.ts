@@ -13,7 +13,7 @@
  */
 import { parseRunRow } from './run_row.ts';
 import { parsePromo } from './promo.ts';
-import { BOARD_SIZE, boardScope, dailyNumber, runDay, type Board, type BoardEntry } from './board.ts';
+import { BOARD_SIZE, boardKey, boardScope, dailyNumber, runDay, type Board, type BoardEntry } from './board.ts';
 import { ranged } from './ranged.ts';
 
 export interface Env {
@@ -44,23 +44,37 @@ async function ingest(request: Request, env: Env): Promise<Response> {
   const day = runDay(row.mode, row.daily, new Date().toISOString().slice(0, 10));
   if (!day) return empty(400);
   const insert = env.DB.prepare(
-    `INSERT INTO runs (id, day, mode, outcome, waves, payout, peak, shots, kills, hits, spins, fevers, pocketed, caught, official)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO runs (id, day, mode, outcome, waves, payout, peak, shots, kills, hits, spins, fevers, pocketed, caught, official,
+       rules, floor, bought)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       crypto.randomUUID(), day, row.mode, row.outcome, row.waves, row.payout,
       row.peak, row.shots, row.kills, row.hits, row.spins, row.fevers, row.pocketed, row.caught, row.official ? 1 : 0,
+      row.rules, row.floor, row.bought ?? null,
     );
-  const scope = boardScope(row.mode, day);
-  const [, top, count] = await env.DB.batch([
-    insert,
+  const placed = row.official && row.outcome === 'cashed';
+  const scope = boardScope(row.mode, row.rules, day);
+  const key = boardKey(row.mode, row.rules, day);
+  // Every read is an index range: the top ten, the cash-outs above this one, and the
+  // board's total from its counter row.
+  const writes = placed
+    ? [insert, env.DB.prepare(
+      `INSERT INTO boards (rules, mode, day, total) VALUES (?, ?, ?, 1)
+       ON CONFLICT (rules, mode, day) DO UPDATE SET total = total + 1`,
+    ).bind(...key)]
+    : [insert];
+  const results = await env.DB.batch([
+    ...writes,
     env.DB.prepare(`SELECT payout, waves FROM runs WHERE ${scope.where} ORDER BY payout DESC, waves DESC LIMIT ${BOARD_SIZE}`)
       .bind(...scope.binds),
-    env.DB.prepare(`SELECT COUNT(*) AS total, COALESCE(SUM(payout > ?), 0) AS above FROM runs WHERE ${scope.where}`)
-      .bind(row.payout, ...scope.binds),
+    env.DB.prepare(`SELECT COUNT(*) AS above FROM runs WHERE ${scope.where} AND payout > ?`)
+      .bind(...scope.binds, row.payout),
+    env.DB.prepare('SELECT total FROM boards WHERE rules = ? AND mode = ? AND day = ?').bind(...key),
   ]);
-  const { total, above } = count.results[0] as { total: number; above: number };
-  const placed = row.official && row.outcome === 'cashed';
+  const [top, count, totals] = results.slice(writes.length);
+  const { above } = count.results[0] as { above: number };
+  const total = (totals.results[0] as { total: number } | undefined)?.total ?? 0;
   const board: Board = {
     mode: row.mode,
     daily: row.mode === 'daily' ? dailyNumber(day) : 0,

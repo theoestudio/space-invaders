@@ -20,13 +20,30 @@ export interface RunRow {
   pocketed: number;
   caught: number;
   official: boolean;
+  /** The rules version (Tune.RULES). Builds from before the descent send none: rules 1. */
+  rules: number;
+  /** Fixtures bought at the cashier. Absent on rules 1. */
+  bought?: number;
+  /** The floor the run ended on, derived from the waves (not sent). Null on rules 1. */
+  floor: number | null;
 }
 
 /** Must match ROW_KEYS in tests/run_tests.gd and Telemetry.row() in the game. */
 export const KEYS = [
   'mode', 'daily', 'outcome', 'waves', 'payout', 'peak', 'shots', 'kills', 'hits', 'spins', 'fevers',
-  'pocketed', 'caught', 'official',
+  'pocketed', 'caught', 'official', 'rules', 'bought',
 ] as const;
+
+/** The rules the current build plays (Tune.RULES in the game). */
+export const RULES = 2;
+/** Floors under rules 2 (Tune.FLOORS, Tune.WAVES_PER_FLOOR); After Hours is floor 6. */
+const FLOORS = 5;
+const WAVES_PER_FLOOR = 4;
+
+/** The floor wave `n` is on (Floors.floor_of in the game). */
+export function floorOf(n: number): number {
+  return Math.min(Math.floor((Math.max(n, 1) - 1) / WAVES_PER_FLOOR) + 1, FLOORS + 1);
+}
 
 /** Tune.START_BALLS, Tune.MAX_WAVE and the formation size (9 x 5) in the game. */
 const START_BALLS = 60;
@@ -39,8 +56,10 @@ const intIn = (v: unknown, lo: number, hi: number): v is number =>
 export function parseRunRow(body: unknown): RunRow | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
   const o = body as Record<string, unknown>;
-  // Builds from before the leaderboard send no daily number.
-  const want = 'daily' in o ? KEYS : KEYS.filter((k) => k !== 'daily');
+  // Builds from before the leaderboard send no daily number; builds from before the
+  // descent send no rules or fixtures.
+  const legacy = !('rules' in o);
+  const want = KEYS.filter((k) => !(k === 'daily' && !('daily' in o)) && !(legacy && (k === 'rules' || k === 'bought')));
   if (Object.keys(o).length !== want.length || !want.every((k) => k in o)) return null;
   if (o.mode !== 'daily' && o.mode !== 'arcade') return null;
   if ('daily' in o && !(o.mode === 'arcade' ? o.daily === 0 : intIn(o.daily, 1, 99999))) return null;
@@ -61,5 +80,9 @@ export function parseRunRow(body: unknown): RunRow | null {
   const reached = o.waves + (o.outcome === 'cashed' ? 0 : 1);
   if (!intIn(o.kills, 0, reached * PER_WAVE)) return null;
   if (o.fevers > o.spins) return null;
-  return o as unknown as RunRow;
+  if (legacy) return { ...(o as unknown as RunRow), rules: 1, floor: null };
+  if (o.rules !== RULES || !intIn(o.bought, 0, 999)) return null;
+  // The cashier opens only after a cleared wave.
+  if (o.waves === 0 && o.bought !== 0) return null;
+  return { ...(o as unknown as RunRow), floor: floorOf(reached) };
 }
