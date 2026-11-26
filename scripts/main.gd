@@ -23,6 +23,8 @@ var _finished := false
 ## This run's challenge watcher, and the challenges it met for the first time ever.
 var _tracker := Challenges.Tracker.new()
 var _met_run: Array[StringName] = []
+## The club tier when the run began, to welcome a new one at the end.
+var _tier_start := 0
 ## The finished run was a daily replay, which does not place.
 var _board_practice := false
 var _fever_on := false
@@ -115,7 +117,10 @@ func _new_demo() -> void:
 func start_arcade() -> void:
 	mode = Mode.ARCADE
 	practice = false
-	_begin(Sim.create(_rng.randi()))
+	var s := Sim.create(_rng.randi())
+	s.launcher = Profile.arcade_launcher()
+	s.pool = Club.pool(Profile.comps)
+	_begin(s)
 
 
 func start_daily() -> void:
@@ -138,6 +143,7 @@ func _begin(s: Sim) -> void:
 	_finished = false
 	_tracker = Challenges.Tracker.new()
 	_met_run.clear()
+	_tier_start = Club.tier_of(Profile.comps)
 	stage.show_sim(sim, false)
 	_apply_sky(sim.floor_number(), true)
 	stage.release_pointer()
@@ -369,11 +375,18 @@ func _finish() -> void:
 		sub = "Out of balls %s." % where
 	var st := sim.stats
 	var acc: float = 100.0 * st.kills / maxf(st.shots, 1.0)
-	var stats := "%d broken · %d%% accuracy · peak tray %d\n%d pocketed · %d caught · %d spins · %d fever%s" % [
-		st.kills, roundi(acc), st.peak, st.pocketed, st.caught, st.spins, st.fevers, "" if st.fevers == 1 else "s"]
+	var stats := "%d broken · %d%% accuracy · peak tray %d\n%d pocketed · %d caught · %d spin%s · %d fever%s" % [
+		st.kills, roundi(acc), st.peak, st.pocketed, st.caught, st.spins, "" if st.spins == 1 else "s", st.fevers, "" if st.fevers == 1 else "s"]
 	if not _met_run.is_empty():
 		stats += "\n\nChallenges: %s" % ", ".join(_met_run.map(func(id: StringName) -> String:
 			return "%s +%d" % [Challenges.name_of(id), Challenges.comps_of(id)]))
+	var earned := Club.run_comps(sim)
+	Profile.add_comps(earned)
+	var tier := Club.tier_of(Profile.comps)
+	stats += "\n\n+%d comps · %s · %d comp points" % [earned, Club.tier_name(tier), Profile.comps]
+	if tier > _tier_start:
+		stats += "\nWelcome to %s: %s unlocked." % [Club.tier_name(tier), Club.unlocks(tier)]
+		ui.toast("Welcome to %s" % Club.tier_name(tier))
 	var nets: Array = st.waves
 	if mode == Mode.DAILY:
 		var official := not practice and Profile.record_daily(daily_number, {

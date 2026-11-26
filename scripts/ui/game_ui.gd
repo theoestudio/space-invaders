@@ -53,6 +53,7 @@ var _arcade_status: Label
 ## The last 14 dailies as lamps on the Daily card, and the Records button.
 var _daily_strip: HBoxContainer
 var _records_button: Button
+var _launcher_button: Button
 var _records_list: VBoxContainer
 var _records_scroll: ScrollContainer
 var _records_head: Label
@@ -217,6 +218,11 @@ func _build_menu() -> void:
 	var ab := Style.button("Play arcade", Look.CYAN, true)
 	ab.pressed.connect(func() -> void: arcade_pressed.emit())
 	arcade.add_child(ab)
+	_launcher_button = Style.button("")
+	_launcher_button.pressed.connect(func() -> void:
+		Profile.next_launcher()
+		show_menu())
+	arcade.add_child(_launcher_button)
 
 	var row := _row(col)
 	var how := Style.button("How to play")
@@ -278,13 +284,31 @@ func show_menu() -> void:
 	_fill_strip(n)
 	var met := Profile.challenges.size()
 	_records_button.text = "Challenges %d/%d · %d comps" % [met, Challenges.ORDER.size(), Profile.comps] if met > 0 else "Challenges and records"
+	_sync_launcher()
 	var a := Profile.arcade
 	if int(a.runs) > 0:
 		_arcade_status.text = "A fresh board every time. Best payout %d · furthest wave %d · %d runs" % [int(a.best), int(a.best_wave), int(a.runs)]
 	else:
 		_arcade_status.text = "A fresh board every time. Ride as far as you dare."
+	if Profile.arcade_launcher() != &"classic":
+		var l: Dictionary = Club.LAUNCHERS[Profile.arcade_launcher()]
+		_arcade_status.text += "\n%s launcher: %s." % [l.name, l.text.to_lower()]
 	_sync_toggles()
 	_menu.visible = true
+
+
+## The Arcade card's launcher pick: the launcher and what it does, or which tier
+## unlocks the first one while only Classic is open.
+func _sync_launcher() -> void:
+	var id := Profile.arcade_launcher()
+	var open := Club.LAUNCHER_ORDER.filter(func(l: StringName) -> bool: return Club.unlocked(l, Profile.comps)).size()
+	if open > 1:
+		_launcher_button.text = "Launcher: %s ▸" % Club.LAUNCHERS[id].name
+		_launcher_button.tooltip_text = Club.LAUNCHERS[id].text
+		_launcher_button.disabled = false
+	else:
+		_launcher_button.text = "Launcher: Classic · %s unlocks Twin" % Club.tier_name(Club.LAUNCHERS[&"twin"].tier)
+		_launcher_button.disabled = true
 
 
 static func _hm(secs: int) -> String:
@@ -879,7 +903,12 @@ func show_records() -> void:
 	for c in _records_list.get_children():
 		c.queue_free()
 	var today := Daily.today_number()
-	_records_head.text = "%d comp points · %d of %d challenges" % [Profile.comps, Profile.challenges.size(), Challenges.ORDER.size()]
+	var tier := Club.tier_of(Profile.comps)
+	_records_head.text = "%s · %d comp points · %d of %d challenges" % [
+		Club.tier_name(tier), Profile.comps, Profile.challenges.size(), Challenges.ORDER.size()]
+	var nxt := Club.next_tier(Profile.comps)
+	if nxt > 0:
+		_records_head.text += "\n%s at %d unlocks %s" % [Club.tier_name(nxt), Club.TIERS[nxt][1], Club.unlocks(nxt)]
 	var streak := Profile.daily_streak(today)
 	if streak > 1:
 		_records_head.text += " · daily streak %d" % streak

@@ -18,6 +18,8 @@ var daily := {}
 ## points they paid (Challenges).
 var challenges := {}
 var comps := 0
+## The arcade launcher picked on the menu (Club.LAUNCHERS).
+var launcher := &"classic"
 
 var _cfg := ConfigFile.new()
 
@@ -32,6 +34,7 @@ func _ready() -> void:
 	daily = _cfg.get_value("record", "daily", {})
 	challenges = _cfg.get_value("record", "challenges", {})
 	comps = _cfg.get_value("record", "comps", 0)
+	launcher = StringName(_cfg.get_value("settings", "launcher", "classic"))
 
 
 func save() -> void:
@@ -42,6 +45,7 @@ func save() -> void:
 	_cfg.set_value("record", "daily", daily)
 	_cfg.set_value("record", "challenges", challenges)
 	_cfg.set_value("record", "comps", comps)
+	_cfg.set_value("settings", "launcher", String(launcher))
 	var err := _cfg.save(PATH)
 	if err != OK:
 		push_error("could not save profile: %s" % error_string(err))
@@ -121,3 +125,22 @@ func daily_history(today: int, days := 14) -> Array[Dictionary]:
 			outcome = str(r.get("outcome", "")), waves = int(r.get("waves", 0)), floor = int(r.get("floor", 0)),
 		})
 	return out
+
+
+## Adds a finished run's comp points (Club.run_comps).
+func add_comps(n: int) -> void:
+	if n > 0:
+		comps += n
+		save()
+
+
+## The picked launcher if the club still allows it, else Classic.
+func arcade_launcher() -> StringName:
+	return launcher if Club.unlocked(launcher, comps) else &"classic"
+
+
+## Moves the arcade pick to the next unlocked launcher.
+func next_launcher() -> void:
+	var ids := Club.LAUNCHER_ORDER.filter(func(id: StringName) -> bool: return Club.unlocked(id, comps))
+	launcher = ids[(ids.find(arcade_launcher()) + 1) % ids.size()]
+	save()

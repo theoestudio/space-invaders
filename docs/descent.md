@@ -121,17 +121,23 @@ Comp points wait for the players' club to spend them.
 
 ## The players' club
 
-Comp points come from every finished run (payout and floors reached). Tiers,
-Silver, Gold, Platinum and Black, unlock launchers and add fixtures to the
-cashier's pool:
+Comp points (`Club`) come from challenges and from every finished run: 5 for
+each floor below the Lobby it reached, 1 for every 50 balls paid and 25 for
+breaking the House. Tiers by comp points unlock a launcher for arcade (picked on
+the Arcade card) and a fixture for the arcade cashier:
 
-- **Classic**: today's launcher.
-- **Twin**: two barrels, a narrower cup.
-- **Magnet**: a small permanent magnet on the cup, slower reload.
-- **Lancer**: every third bolt pierces, one bolt in the air.
+| Tier | Comps | Launcher | Fixture |
+|---|---|---|---|
+| Member | 0 | **Classic**: two bolts in the air, the standard cup | |
+| Silver | 100 | **Twin**: two bolts a shot for two balls, a narrower cup | Saucer bait: the saucer comes twice as often |
+| Gold | 300 | **Magnet**: a wide magnet cup, a slower reload | Croupier's tip: every spin pays +3 |
+| Platinum | 700 | **Lancer**: every fourth bolt pierces, a narrow cup | Hot rail: a pocketed gold ball banks a spin |
+| Black | 1,500 | | Golden touch: gold balls pay x4 |
 
-The daily always uses Classic and the starting pool, so it stays fair. Records
-stay in the browser.
+Against Classic (13.1 waves cleared at mid skill, `tests/fixture_value.gd` with
+`launcher:<id>`), Twin clears 13.5 with a smaller early tray, Magnet 12.4 with a
+bigger one and Lancer 13.9: a late reward, a little ahead. The daily always
+plays Classic and the base pool, so it stays fair. Records stay in the browser.
 
 ## The House's new pieces
 

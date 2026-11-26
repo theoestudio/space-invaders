@@ -693,7 +693,7 @@ func _draw_fixture_rack(ci: CanvasItem, s: Sim) -> void:
 	if s.fixtures.is_empty():
 		return
 	var owned: Array[StringName] = []
-	for id: StringName in Fixtures.ORDER:
+	for id: StringName in s.pool:
 		if s.fixtures.has(id):
 			owned.append(id)
 	var step := 30.0

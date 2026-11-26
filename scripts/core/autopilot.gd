@@ -22,6 +22,7 @@ const WORTH := {
 	&"loaded_seven": 260, &"deep_holds": 140, &"long_fever": 220, &"sticky_prizes": 80,
 	&"deep_cup": 80, &"wide_cup": 240, &"quick_reload": 280, &"twin_barrel": 260,
 	&"piercing_tips": 400, &"interest": 160, &"comps": 280, &"padded_rail": 40, &"insurance": 40,
+	&"saucer_bait": 90, &"croupier_tip": 120, &"hot_rail": 120, &"golden_touch": 200,
 }
 ## The wave a run expects to reach at skill 0 and at skill 1, for what is left to earn.
 const HORIZON := Vector2(10, 20)

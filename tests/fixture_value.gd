@@ -3,6 +3,7 @@ extends SceneTree
 ## from wave 1 and always rides; prints mean waves cleared and the mean tray after
 ## waves 4, 8 and 12 (a bust counts 0), against a run with none. Guides the
 ## autopilot's buy policy (Autopilot.WORTH) and spots a fixture every run wants.
+## An id of "launcher:twin" plays that launcher instead.
 ##   godot --headless --script tests/fixture_value.gd -- runs skill [ids...]
 
 func _init() -> void:
@@ -15,7 +16,9 @@ func _init() -> void:
 		var cleared := 0.0
 		for r in runs:
 			var s := Sim.create(5000 + r)
-			if id != "none":
+			if id.begins_with("launcher:"):
+				s.launcher = StringName(id.trim_prefix("launcher:"))
+			elif id != "none":
 				s.fixtures[StringName(id)] = 1
 				s.start_wave(1)
 			var bot := Autopilot.new(skill, 300 + r)

@@ -123,6 +123,11 @@ var rerolls := 0
 var _insured := false
 var _volleys := 0
 
+## The launcher (Club.LAUNCHERS) and the cashier's pool (Fixtures.ORDER plus the
+## club's fixtures in arcade). Set before the first step; the daily keeps both.
+var launcher := &"classic"
+var pool: Array[StringName] = Fixtures.ORDER.duplicate()
+
 var _rng := RandomNumberGenerator.new()
 var _reel_rng := RandomNumberGenerator.new()
 var _pin_events := 0
@@ -171,7 +176,7 @@ func start_wave(n: int) -> void:
 		Tune.FORMATION_TOP + Floors.start_drop(n))
 	march_dir = 1.0 if wrng.randf() < 0.5 else -1.0
 	_fire_t = _fire_gap() * 1.5
-	_saucer_t = wrng.randf_range(Tune.SAUCER_GAP.x, Tune.SAUCER_GAP.y)
+	_saucer_t = _saucer_gap(wrng)
 
 
 ## Lays out the House in `shape_id`, kinds by plan row (Floors.plan). start_wave
@@ -307,13 +312,13 @@ func reroll() -> bool:
 func _draw_offers() -> void:
 	var orng := RandomNumberGenerator.new()
 	orng.seed = mix(run_seed, 1000 + wave * 64 + rerolls)
-	var pool: Array[StringName] = []
-	for id in Fixtures.ORDER:
+	var open: Array[StringName] = []
+	for id in pool:
 		if level(id) < Fixtures.ALL[id].stacks:
-			pool.append(id)
+			open.append(id)
 	offers.clear()
-	for i in mini(Fixtures.OFFERS, pool.size()):
-		offers.append(pool.pop_at(orng.randi_range(0, pool.size() - 1)))
+	for i in mini(Fixtures.OFFERS, open.size()):
+		offers.append(open.pop_at(orng.randi_range(0, open.size() - 1)))
 
 
 func max_holds() -> int:
@@ -391,7 +396,11 @@ func alive_count() -> int:
 
 func tray_half() -> float:
 	var half := Tune.TRAY_HALF + Fixtures.WIDE_CUP * level(&"wide_cup")
-	return maxf(half, Tune.TRAY_HALF_MAGNET) if magnet_t > 0.0 else half
+	if launcher == &"twin":
+		half *= Club.TWIN_CUP
+	elif launcher == &"lancer":
+		half *= Club.LANCER_CUP
+	return maxf(half, Tune.TRAY_HALF_MAGNET) if magnet_t > 0.0 or launcher == &"magnet" else half
 
 
 func march_speed() -> float:
@@ -468,32 +477,41 @@ func _tick_powers(dt: float) -> void:
 
 func _fire() -> void:
 	var fever := fever_t > 0.0
+	var twin := launcher == &"twin"
 	var limit := (Tune.MAX_BOLTS_RAPID if fever else Tune.MAX_BOLTS) + level(&"twin_barrel")
+	if twin:
+		limit *= 2
 	var spread := spread_t > 0.0
 	if spread:
 		limit *= 3
 	if cool > 0.0 or bolts.size() >= limit:
 		return
-	if not fever and tray < Tune.SHOT_COST:
+	var cost := Tune.SHOT_COST * (2 if twin else 1)
+	if not fever and tray < cost:
 		if not _dry:
 			_dry = true
 			_emit(&"dry")
 		return
 	if not fever:
-		tray -= Tune.SHOT_COST
+		tray -= cost
 	_volleys += 1
 	var tipped := level(&"piercing_tips") > 0 and _volleys % Fixtures.PIERCE_EVERY == 0
+	tipped = tipped or (launcher == &"lancer" and _volleys % Club.LANCER_EVERY == 0)
 	var muzzle := Vector2(ship_x, Tune.SHIP_Y - 22)
 	var angles := [0.0]
 	if spread:
 		angles = [-0.16, 0.0, 0.16]
+	var offsets := [-Club.TWIN_GAP, Club.TWIN_GAP] if twin else [0.0]
 	for a: float in angles:
-		var b := Bolt.new()
-		b.pos = muzzle
-		b.vel = Vector2(sin(a), -cos(a)) * Tune.BOLT_SPEED
-		b.pierce = pierce_t > 0.0 or tipped
-		bolts.append(b)
+		for dx: float in offsets:
+			var b := Bolt.new()
+			b.pos = muzzle + Vector2(dx, 0)
+			b.vel = Vector2(sin(a), -cos(a)) * Tune.BOLT_SPEED
+			b.pierce = pierce_t > 0.0 or tipped
+			bolts.append(b)
 	cool = (Tune.BOLT_COOLDOWN_RAPID if fever else Tune.BOLT_COOLDOWN) * pow(Fixtures.QUICK_RELOAD, level(&"quick_reload"))
+	if launcher == &"magnet":
+		cool *= Club.MAGNET_COOLDOWN
 	stats.shots += 1
 	_emit(&"fire", {pos = muzzle, free = fever})
 
@@ -683,12 +701,21 @@ func _move_saucer(dt: float) -> void:
 	saucer_x += saucer_dir * Tune.SAUCER_SPEED * dt
 	if saucer_x < Tune.LEFT - 60.0 or saucer_x > Tune.RIGHT + 60.0:
 		saucer_on = false
-		_saucer_t = _rng.randf_range(Tune.SAUCER_GAP.x, Tune.SAUCER_GAP.y)
+		_saucer_t = _saucer_gap(_rng)
+
+
+func _saucer_gap(rng: RandomNumberGenerator) -> float:
+	var gap := rng.randf_range(Tune.SAUCER_GAP.x, Tune.SAUCER_GAP.y)
+	return gap * (Fixtures.SAUCER_BAIT if level(&"saucer_bait") > 0 else 1.0)
+
+
+func gold_mult() -> int:
+	return Tune.GOLD_MULT + level(&"golden_touch")
 
 
 func _kill_saucer() -> void:
 	saucer_on = false
-	_saucer_t = _rng.randf_range(Tune.SAUCER_GAP.x, Tune.SAUCER_GAP.y)
+	_saucer_t = _saucer_gap(_rng)
 	stats.saucers += 1
 	var p := Vector2(saucer_x, Tune.SAUCER_Y)
 	holds = mini(holds + 1, max_holds())
@@ -796,9 +823,11 @@ func _pocketed(ball: Ball, prev: Vector2) -> bool:
 		if pk.kind == Board.Pocket.ATTACKER and not pk.open:
 			continue
 		if prev.y < pk.pos.y and ball.pos.y >= pk.pos.y and absf(ball.pos.x - pk.pos.x) < Board.mouth(pk) and ball.vel.y > 0.0:
-			var pay: int = _pocket_pay(pk) * (Tune.GOLD_MULT if ball.gold else 1)
+			var pay: int = _pocket_pay(pk) * (gold_mult() if ball.gold else 1)
 			tray += pay
 			stats.pocketed += 1
+			if ball.gold and level(&"hot_rail") > 0 and pk.kind != Board.Pocket.START:
+				holds = mini(holds + 1, max_holds())
 			match pk.kind:
 				Board.Pocket.START:
 					var held := holds < max_holds()
@@ -817,7 +846,7 @@ func _pocketed(ball: Ball, prev: Vector2) -> bool:
 func _caught(ball: Ball) -> bool:
 	var top := Tune.SHIP_Y - 16.0
 	if ball.pos.y + Tune.BALL_R >= top and ball.pos.y < Tune.SHIP_Y + 4.0 and absf(ball.pos.x - ship_x) <= tray_half():
-		var pay := (Tune.CATCH_PAY + level(&"deep_cup")) * (Tune.GOLD_MULT if ball.gold else 1)
+		var pay := (Tune.CATCH_PAY + level(&"deep_cup")) * (gold_mult() if ball.gold else 1)
 		tray += pay
 		stats.caught += 1
 		_emit(&"catch", {pos = ball.pos, pay = pay, gold = ball.gold, vel = ball.vel, rel_x = ball.pos.x - ship_x})
@@ -841,6 +870,7 @@ func _run_reels(dt: float) -> void:
 			spin.len = Tune.SPIN_TIME + (Tune.REACH_EXTRA if spin.reach else 0.0)
 			spin.stopped = 0
 			stats.spins += 1
+			tray += Fixtures.CROUPIER_TIP * level(&"croupier_tip")
 			_emit(&"spin")
 		return
 	spin.t += dt

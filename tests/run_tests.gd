@@ -19,6 +19,7 @@ func _init() -> void:
 	_formations()
 	_cashier()
 	_challenges()
+	_club()
 	_daily()
 	_telemetry()
 	_more_games()
@@ -418,6 +419,61 @@ func _challenges() -> void:
 	profile.free()
 
 
+## The players' club: tiers by comp points, what each tier unlocks, comps per run,
+## and the launchers and club fixtures doing what they say.
+func _club() -> void:
+	check([0, 99, 100, 299, 300, 700, 5000].map(Club.tier_of) == [0, 0, 1, 1, 2, 3, 4], "tiers by comp points")
+	check(Club.next_tier(150) == 2 and Club.next_tier(9999) == -1, "the next tier, none past Black")
+	check(Club.unlocked(&"classic", 0) and not Club.unlocked(&"twin", 99) and Club.unlocked(&"twin", 100) and not Club.unlocked(&"lancer", 300), "launchers unlock by tier")
+	check(Club.pool(0) == Fixtures.ORDER and Club.pool(300).size() == Fixtures.ORDER.size() + 2 and &"croupier_tip" in Club.pool(300), "club fixtures join the arcade pool by tier")
+	check(Daily.create(4).launcher == &"classic" and Daily.create(4).pool == Fixtures.ORDER, "the daily plays Classic and the base pool")
+	var r := Sim.create(9)
+	r.start_wave(Tune.VAULT_WAVE)
+	r.tray = 500
+	r.phase = Sim.Phase.SETTLED
+	r.cash_out()
+	check(Club.run_comps(r) == 4 * Club.COMPS_PER_FLOOR + 500 / Club.COMPS_PER_BALLS + Club.COMPS_BROKE, "comps for floors, payout and the broken Vault (%d)" % Club.run_comps(r))
+	# Twin: two bolts a shot for two balls, a narrower cup.
+	var t := Sim.create(9)
+	t.launcher = &"twin"
+	var tray := t.tray
+	t.step(0.0, NAN, true)
+	check(t.bolts.size() == 2 and t.tray == tray - 2 and t.tray_half() < Tune.TRAY_HALF, "twin fires a pair for two balls")
+	# Lancer: every third bolt pierces, a narrow cup.
+	var l := Sim.create(9)
+	l.launcher = &"lancer"
+	var pierced := 0
+	for i in Club.LANCER_EVERY:
+		l.bolts.clear()
+		l.cool = 0.0
+		l.step(0.0, NAN, true)
+		pierced += 1 if l.bolts.size() == 1 and l.bolts[0].pierce else 0
+	l.cool = 0.0
+	l.step(0.0, NAN, true)
+	check(pierced == 1 and l.tray_half() < Tune.TRAY_HALF, "lancer: every fourth bolt pierces, a narrow cup")
+	# Magnet: the wide cup, a slower reload.
+	var m := Sim.create(9)
+	m.launcher = &"magnet"
+	m.step(0.0, NAN, true)
+	check(m.tray_half() >= Tune.TRAY_HALF_MAGNET and m.cool > Tune.BOLT_COOLDOWN, "magnet: wide cup, slower reload")
+	# Club fixtures.
+	var g := Sim.create(9)
+	g.fixtures[&"golden_touch"] = 1
+	check(g.gold_mult() == Tune.GOLD_MULT + 1, "golden touch pays gold x4")
+	var c := Sim.create(9)
+	c.fixtures[&"croupier_tip"] = 1
+	c.holds = 1
+	var before := c.tray
+	c.step(0.0, NAN, false)
+	check(c.stats.spins == 1 and c.tray >= before + Fixtures.CROUPIER_TIP, "the croupier tips on a spin")
+	var b := Sim.create(9)
+	b.fixtures[&"saucer_bait"] = 1
+	var gaps := 0.0
+	for i in 50:
+		gaps += b._saucer_gap(b._rng)
+	check(gaps / 50.0 < (Tune.SAUCER_GAP.x + Tune.SAUCER_GAP.y) / 2.0 * 0.6, "saucer bait halves the gap")
+
+
 func _settled(seed_value: int, n: int, tray: int) -> Sim:
 	var s := Sim.create(seed_value)
 	s.start_wave(n)
@@ -432,7 +488,7 @@ func _settled(seed_value: int, n: int, tray: int) -> Sim:
 
 
 func _cashier() -> void:
-	check(Fixtures.ORDER.size() == Fixtures.ALL.size() and Fixtures.ORDER.all(func(id: StringName) -> bool: return Fixtures.ALL.has(id)), "every fixture is in the draw order once")
+	check(Fixtures.ORDER.size() + Club.FIXTURE_TIERS.size() == Fixtures.ALL.size() and (Fixtures.ORDER + Club.FIXTURE_TIERS.keys()).all(func(id: StringName) -> bool: return Fixtures.ALL.has(id)), "every fixture is in the base pool or the club's, once")
 	var a := _settled(5, 2, 500)
 	var b := _settled(5, 2, 500)
 	check(a.offers.size() == Fixtures.OFFERS and a.offers == b.offers, "the same run and wave offer the same fixtures (%s)" % str(a.offers))

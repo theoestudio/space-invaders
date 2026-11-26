@@ -5,8 +5,9 @@ extends RefCounted
 ## reads the effects through Sim.level().
 
 ## Each fixture: name, what it does, its group, base price in balls and how many
-## times it stacks. ORDER is the draw order, so keep new fixtures at the end: the
-## daily's offers come from it.
+## times it stacks. ORDER is the base pool in draw order, so keep new fixtures at
+## the end: the daily's offers come from it. The club's fixtures are not in ORDER;
+## Club.pool adds them for arcade.
 const ALL := {
 	&"bent_nail": {name = "Bent nail", text = "Start chucker pays +4", group = "Board", price = 35, stacks = 2},
 	&"side_comps": {name = "Side pocket comps", text = "Side pockets pay +1", group = "Board", price = 30, stacks = 2},
@@ -25,6 +26,11 @@ const ALL := {
 	&"comps": {name = "Comps", text = "Clear bonuses x1.5", group = "Tray", price = 60, stacks = 1},
 	&"padded_rail": {name = "Padded rail", text = "Hits spill half as much", group = "Tray", price = 25, stacks = 1},
 	&"insurance": {name = "Insurance", text = "First hit each wave spills nothing", group = "Tray", price = 25, stacks = 1},
+	# The players' club's fixtures (Club.FIXTURE_TIERS): arcade only, by tier.
+	&"saucer_bait": {name = "Saucer bait", text = "The croupier's saucer comes twice as often", group = "Club", price = 40, stacks = 1},
+	&"croupier_tip": {name = "Croupier's tip", text = "Every reel spin pays +3", group = "Club", price = 45, stacks = 2},
+	&"hot_rail": {name = "Hot rail", text = "A pocketed gold ball banks a spin", group = "Club", price = 50, stacks = 1},
+	&"golden_touch": {name = "Golden touch", text = "Gold balls pay x4, not x3", group = "Club", price = 60, stacks = 1},
 }
 const ORDER: Array[StringName] = [
 	&"bent_nail", &"side_comps", &"tulip_bonus", &"gold_leaf",
@@ -54,6 +60,8 @@ const WIDE_CUP := 10.0
 const LONG_FEVER := 4.0
 const STICKY_PRIZES := 2.0
 const DEEP_HOLDS := 2
+const SAUCER_BAIT := 0.5
+const CROUPIER_TIP := 3
 
 
 static func name_of(id: StringName) -> String:
