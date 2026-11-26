@@ -38,7 +38,7 @@ and still served from the `github.io` branch. Pachinko Descent replaced it in 20
 | Path | What |
 | --- | --- |
 | `scripts/core/` | The run as plain data: `Sim` (stepped at 60 Hz), `Board`, `Reels`, `Daily`, `Tune` (every number) and the `Autopilot`. No nodes. |
-| `scripts/view/` | `Stage` draws a Sim: the board, the House, balls, neon glow, effects and the in-board HUD. All primitives, no image files. |
+| `scripts/view/` | `Stage` draws a Sim in depth-sorted layers: the cabinet, the House, balls dropping into pockets, neon glow, effects and the in-board HUD, using 2.5D Cycles miniatures in `assets/art/`. |
 | `scripts/ui/` | Menu, pause, the cash-out choice, results and How to Play, built in code. |
 | `scripts/autoload/` | Local profile (settings, records), sound and music, and the one telemetry call. |
 | `shaders/` | The starfield behind the cabinet. |
@@ -57,6 +57,7 @@ make test       # sim, board, reels, daily and telemetry checks, plus the Worker
 make selfplay   # autopilot at three skill levels: busts and payout per cash-out wave
 make shots      # screenshots of every screen at phone size, on a virtual display
 make music      # re-encode web/music from the Suno WAVs (MUSIC_SRC, default ~/Rime/pachinko/music)
+make art        # re-render the 2.5D miniatures in assets/art/ via Blender Cycles
 make dev        # export and serve through the Worker on localhost:8787
 make deploy     # tests, export, then wrangler deploy
 ```
