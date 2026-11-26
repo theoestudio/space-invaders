@@ -1,8 +1,10 @@
 extends SceneTree
 ## Balance check: the autopilot plays whole runs headless, always letting it ride,
 ## and this prints how far each skill level gets, how the tray moves per wave and
-## what each cash-out policy would have paid.
-##   godot --headless --script tests/selfplay.gd -- [runs] [max_wave]
+## what each cash-out policy would have paid. With "shop" it buys, at each cashier,
+## every offer that costs at most a quarter of the tray (a stand-in until the
+## autopilot learns to shop).
+##   godot --headless --script tests/selfplay.gd -- [runs] [max_wave] [shop]
 
 const SKILLS := [0.4, 0.7, 0.95]
 
@@ -11,12 +13,13 @@ func _init() -> void:
 	var args := OS.get_cmdline_user_args()
 	var runs := int(args[0]) if args.size() > 0 else 24
 	var max_wave := int(args[1]) if args.size() > 1 else 10
+	var shop := args.size() > 2 and args[2] == "shop"
 	for skill: float in SKILLS:
-		_report(skill, runs, max_wave)
+		_report(skill, runs, max_wave, shop)
 	quit()
 
 
-func _report(skill: float, runs: int, max_wave: int) -> void:
+func _report(skill: float, runs: int, max_wave: int, shop: bool) -> void:
 	var t0 := Time.get_ticks_msec()
 	## trays[k] = tray after wave k+1 settled, per run (0 when it never got there).
 	var trays := []
@@ -33,6 +36,7 @@ func _report(skill: float, runs: int, max_wave: int) -> void:
 	var pocketed := 0
 	var caught := 0
 	var drained := 0
+	var bought := {}
 	for r in runs:
 		var s := Sim.create(1000 + r)
 		var bot := Autopilot.new(skill, 77 + r)
@@ -45,7 +49,12 @@ func _report(skill: float, runs: int, max_wave: int) -> void:
 				trays[s.wave - 1].append(s.tray)
 				wave_secs.append(wave_t)
 				wave_t = 0.0
-				if s.wave >= max_wave:
+				if shop:
+					for i in s.offers.size():
+						if s.can_buy(i) and s.price(s.offers[i]) * 4 <= s.tray:
+							bought[s.offers[i]] = bought.get(s.offers[i], 0) + 1
+							s.buy(i)
+				if s.wave >= max_wave or not s.can_ride():
 					s.cash_out()
 				else:
 					s.next_wave()
@@ -82,6 +91,10 @@ func _report(skill: float, runs: int, max_wave: int) -> void:
 	for w: float in wave_secs:
 		secs += w
 	print("mean wave length %.0fs" % (secs / maxf(wave_secs.size(), 1)))
+	if shop:
+		var ids := bought.keys()
+		ids.sort_custom(func(x: StringName, y: StringName) -> bool: return bought[x] > bought[y])
+		print("bought per run: %s" % ", ".join(ids.map(func(id: StringName) -> String: return "%s %.1f" % [id, float(bought[id]) / runs])))
 	print("cash out after wave k: survival, mean payout (bust pays 0)")
 	for k in max_wave:
 		var alive := 0
