@@ -118,6 +118,14 @@ func _run() -> void:
 		await _wait(0.5)
 		await _shot("14-cashed-%d" % w)
 
+	# Every formation shape, a moment into the wave.
+	for shape in Formations.ALL:
+		main.start_arcade()
+		s = main.sim
+		s.form(shape, Floors.PLANS[3][2])
+		await _wait(1.5)
+		await _shot("15-shape-%s" % shape)
+
 	main.start_daily()
 	s = main.sim
 	await _wait(1.0)

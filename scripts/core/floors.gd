@@ -25,6 +25,15 @@ const PLANS := [
 	[[K, K, D, D, D], [K, K, K, D, D], [K, D, K, D, K], [K, K, K, D, D]],
 ]
 
+## Each floor's shapes, wave by wave (Formations); the last is the guard's.
+const SHAPES := [
+	[&"grid", &"diamond", &"v", &"grid"],
+	[&"chevron", &"split", &"diamond", &"grid"],
+	[&"split", &"v", &"chevron", &"grid"],
+	[&"ring", &"diamond", &"split", &"ring"],
+	[&"chevron", &"ring", &"split", &"grid"],
+]
+
 
 ## The floor a wave is on: 1 to Tune.FLOORS, then Tune.FLOORS + 1 for After Hours.
 static func floor_of(wave: int) -> int:
@@ -60,6 +69,14 @@ static func plan(wave: int, rng: RandomNumberGenerator) -> Array:
 	for i in 2:
 		rows[rng.randi_range(1, Tune.ROWS - 1)] = K if rng.randf() < 0.5 else D
 	return rows
+
+
+## The wave's formation shape. After Hours picks any shape.
+static func shape(wave: int, rng: RandomNumberGenerator) -> StringName:
+	var f := floor_of(wave)
+	if f <= Tune.FLOORS:
+		return SHAPES[f - 1][wave_in_floor(wave) - 1]
+	return Formations.ALL[rng.randi_range(0, Formations.ALL.size() - 1)]
 
 
 ## How far below Tune.FORMATION_TOP the wave's formation starts: lower each wave

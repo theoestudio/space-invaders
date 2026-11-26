@@ -16,6 +16,7 @@ func _init() -> void:
 	_economy()
 	_phases()
 	_floors()
+	_formations()
 	_cashier()
 	_daily()
 	_telemetry()
@@ -292,6 +293,49 @@ func _floors() -> void:
 
 
 ## A settled run at wave `n` with `tray` balls, its cashier open.
+## Every shape fits the board, holds no more than the leaderboard allows, can be
+## cleared by the autopilot and can reach the line; the ring turns and only its
+## lower arc fires.
+func _formations() -> void:
+	var plan := [Sim.Kind.CARD, Sim.Kind.DIE, Sim.Kind.CHIP, Sim.Kind.CHIP, Sim.Kind.CHIP]
+	for w in range(1, Tune.MAX_WAVE + 1):
+		check(Floors.shape(w, RandomNumberGenerator.new()) in Formations.ALL, "wave %d has a shape" % w)
+	for shape in Formations.ALL:
+		var s := Sim.create(31)
+		s.form(shape, plan)
+		var n := s.invaders.size()
+		check(n >= 25 and n <= Tune.COLS * Tune.ROWS, "%s holds %d pieces" % [shape, n])
+		var fits := true
+		var bottom := -INF
+		for inv in s.invaders:
+			var p := s.invader_pos(inv)
+			fits = fits and p.x > Tune.LEFT and p.x < Tune.RIGHT
+			bottom = maxf(bottom, p.y)
+		check(fits and bottom <= s.origin.y + (Tune.ROWS - 1) * Tune.CELL.y + 0.5, "%s fits the board and is no taller than the grid" % shape)
+		s.tray = 2000
+		var guard := 0
+		var bot := Autopilot.new(1.0, 5)
+		while s.phase == Sim.Phase.PLAYING and guard < 60 * 240:
+			var d := bot.decide(s)
+			s.step(d.move, d.target, d.fire)
+			guard += 1
+		check(s.phase != Sim.Phase.PLAYING and s.phase != Sim.Phase.BUST, "the autopilot clears a %s (%s after %ds)" % [shape, Sim.Phase.keys()[s.phase], guard / 60])
+		var t := Sim.create(31)
+		t.form(shape, plan)
+		t.origin.y = Tune.INVADED_Y - (Tune.ROWS - 1) * Tune.CELL.y - Tune.INVADER_HALF.y + 1.0
+		t.step(0.0, NAN, false)
+		check(t.phase == Sim.Phase.BUST and t.bust_reason == "invaded", "a %s reaching the line busts the run" % shape)
+	var r := Sim.create(31)
+	r.form(Formations.RING, plan)
+	var before := r.invader_pos(r.invaders[1]) - r.origin
+	for i in 60:
+		r.step(0.0, NAN, false)
+	check((r.invader_pos(r.invaders[1]) - r.origin).distance_to(before) > 10.0, "the ring turns")
+	var front := r._front()
+	var mid := r.origin.y + (Tune.ROWS - 1) * Tune.CELL.y / 2.0
+	check(not front.is_empty() and front.all(func(inv: Sim.Invader) -> bool: return r.invader_pos(inv).y >= mid - 1.0), "only the ring's lower arc fires")
+
+
 func _settled(seed_value: int, n: int, tray: int) -> Sim:
 	var s := Sim.create(seed_value)
 	s.start_wave(n)

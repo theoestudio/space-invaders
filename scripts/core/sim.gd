@@ -18,7 +18,11 @@ const KIND_BALLS := [1, 2, 1]
 ## How likely the bottom invader of a column is to be the one that fires.
 const KIND_FIRE := [1.0, 1.0, 2.6]
 class Invader:
-	var col: int
+	## Where the piece sits from the formation's origin, and on a turning shape the
+	## oval it travels and its angle on it before any turn (Formations.Slot).
+	var home: Vector2
+	var radius := Vector2.ZERO
+	var angle := 0.0
 	var row: int
 	var kind: int
 	var hp: int
@@ -70,6 +74,9 @@ var invaders: Array[Invader] = []
 ## Centre of the column-0, row-0 slot; every invader sits on the grid from here.
 var origin := Vector2()
 var march_dir := 1.0
+## The wave's Formations shape, and how far a turning shape has turned (radians).
+var shape := Formations.GRID
+var turn := 0.0
 var shots := PackedVector2Array()
 var _fire_t := 0.0
 
@@ -156,14 +163,7 @@ func start_wave(n: int) -> void:
 	var wrng := RandomNumberGenerator.new()
 	wrng.seed = mix(run_seed, 100 + n)
 	var plan := Floors.plan(n, wrng)
-	for row in Tune.ROWS:
-		for col in Tune.COLS:
-			var inv := Invader.new()
-			inv.col = col
-			inv.row = row
-			inv.kind = plan[row]
-			inv.hp = KIND_HP[inv.kind]
-			invaders.append(inv)
+	form(Floors.shape(n, wrng), plan)
 	var golds := 2 + n / 3 + (Tune.GUARD_GOLDS if Floors.is_guard(n) else 0) + level(&"gold_leaf")
 	for i in golds:
 		invaders[wrng.randi_range(0, invaders.size() - 1)].gold = true
@@ -172,6 +172,23 @@ func start_wave(n: int) -> void:
 	march_dir = 1.0 if wrng.randf() < 0.5 else -1.0
 	_fire_t = _fire_gap() * 1.5
 	_saucer_t = wrng.randf_range(Tune.SAUCER_GAP.x, Tune.SAUCER_GAP.y)
+
+
+## Lays out the House in `shape_id`, kinds by plan row (Floors.plan). start_wave
+## calls it; the tests call it to try every shape.
+func form(shape_id: StringName, plan: Array) -> void:
+	shape = shape_id
+	turn = 0.0
+	invaders.clear()
+	for slot in Formations.slots(shape):
+		var inv := Invader.new()
+		inv.home = slot.home
+		inv.radius = slot.radius
+		inv.angle = slot.angle
+		inv.row = slot.row
+		inv.kind = plan[slot.row]
+		inv.hp = KIND_HP[inv.kind]
+		invaders.append(inv)
 
 
 func next_wave() -> void:
@@ -337,7 +354,8 @@ func payout() -> int:
 
 
 func invader_pos(inv: Invader) -> Vector2:
-	return origin + Vector2(inv.col * Tune.CELL.x, inv.row * Tune.CELL.y)
+	var a := inv.angle + turn
+	return origin + inv.home + Vector2(cos(a) * inv.radius.x, sin(a) * inv.radius.y)
 
 
 func alive_count() -> int:
@@ -523,14 +541,18 @@ func _march(dt: float) -> void:
 	var lo := INF
 	var hi := -INF
 	var bottom := -INF
+	# A turning piece counts its whole oval, so the turn alone never bumps the
+	# formation off an edge or over the line.
 	for inv in invaders:
 		if inv.alive:
-			var p := invader_pos(inv)
-			lo = minf(lo, p.x)
-			hi = maxf(hi, p.x)
-			bottom = maxf(bottom, p.y)
+			var c := origin + inv.home
+			lo = minf(lo, c.x - inv.radius.x)
+			hi = maxf(hi, c.x + inv.radius.x)
+			bottom = maxf(bottom, c.y + inv.radius.y)
 	if bottom == -INF:
 		return
+	if Formations.turns(shape):
+		turn = fmod(turn + Tune.RING_TURN * march_dir * dt, TAU)
 	origin.x += march_dir * march_speed() * dt
 	var edge := Tune.INVADER_HALF.x + 6.0
 	if (march_dir > 0.0 and hi + march_dir * march_speed() * dt > Tune.RIGHT - edge) or \
@@ -550,27 +572,23 @@ func _enemy_fire(dt: float) -> void:
 	_fire_t = _fire_gap() * _rng.randf_range(0.6, 1.35)
 	if shots.size() >= Tune.SHOTS_MAX_BASE + wave / Tune.SHOTS_PER_WAVES:
 		return
-	# The lowest live invader in each column is the one that can fire.
-	var lowest := {}
-	for inv in invaders:
-		if inv.alive and (not lowest.has(inv.col) or inv.row > lowest[inv.col].row):
-			lowest[inv.col] = inv
+	var lowest := _front()
 	if lowest.is_empty():
 		return
 	var shooter: Invader
 	if _rng.randf() < 0.35:
 		var best := INF
-		for inv: Invader in lowest.values():
+		for inv: Invader in lowest:
 			var d := absf(invader_pos(inv).x - ship_x)
 			if d < best:
 				best = d
 				shooter = inv
 	else:
 		var total := 0.0
-		for inv: Invader in lowest.values():
+		for inv: Invader in lowest:
 			total += KIND_FIRE[inv.kind]
 		var pick := _rng.randf() * total
-		for inv: Invader in lowest.values():
+		for inv: Invader in lowest:
 			pick -= KIND_FIRE[inv.kind]
 			shooter = inv
 			if pick <= 0.0:
@@ -578,6 +596,26 @@ func _enemy_fire(dt: float) -> void:
 	var p := invader_pos(shooter) + Vector2(0, Tune.INVADER_HALF.y)
 	shots.append(p)
 	_emit(&"enemy_fire", {pos = p})
+
+
+## The live pieces with no live piece just below them: the ones that can fire.
+func _front() -> Array[Invader]:
+	var live: Array[Invader] = []
+	var at: Array[Vector2] = []
+	for inv in invaders:
+		if inv.alive:
+			live.append(inv)
+			at.append(invader_pos(inv))
+	var out: Array[Invader] = []
+	for i in live.size():
+		var clear := true
+		for j in live.size():
+			if j != i and at[j].y > at[i].y + 1.0 and absf(at[j].x - at[i].x) < Tune.CELL.x * 0.5:
+				clear = false
+				break
+		if clear:
+			out.append(live[i])
+	return out
 
 
 func _move_shots(dt: float) -> void:

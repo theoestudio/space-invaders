@@ -60,6 +60,9 @@ const MARCH_SPEED_PER_WAVE := 4.0
 ## When few are left they speed up: speed * (1 + RUSH * fraction_dead^2).
 const RUSH := 3.2
 const MARCH_DROP := 28.0
+## How fast a turning formation (Formations.RING) turns, radians per second; it
+## turns with its march, so it reverses at each edge.
+const RING_TURN := 0.45
 const INVADED_Y := 1120.0
 const SHOT_SPEED := 300.0
 const SHOT_SPEED_PER_WAVE := 12.0
