@@ -27,6 +27,7 @@ static var sans_bold: FontVariation
 
 
 static func init() -> void:
+	Art.init()
 	if _glow:
 		return
 	_glow = _radial([Color(1, 1, 1, 1), Color(1, 1, 1, 0.35), Color(1, 1, 1, 0)], [0.0, 0.25, 1.0])

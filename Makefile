@@ -7,7 +7,7 @@ GODOT ?= godot
 # with BadAlloc in X_GLXMakeCurrent.
 XVFB  := __GLX_VENDOR_LIBRARY_NAME=mesa xvfb-run -a -s "-screen 0 1920x1080x24"
 
-.PHONY: help import test selfplay shots shots-wide export sounds music dev deploy
+.PHONY: help import test selfplay shots shots-wide export sounds music art dev deploy
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -42,6 +42,9 @@ sounds: ## Re-render assets/audio from tools/make-sounds.py
 MUSIC_SRC ?= $(HOME)/Rime/pachinko/music
 music: ## Re-encode web/music and data/music.json from the Suno WAVs in MUSIC_SRC
 	lowprio python3 tools/encode-music.py $(MUSIC_SRC)
+
+art: ## Re-render assets/art from tools/art_src via Blender Cycles
+	LOWPRIO_MEM=24G lowprio blender --background --python tools/render-art.py
 
 dev: export ## Serve the web build through the Worker locally on :8787
 	cd web && npm run dev

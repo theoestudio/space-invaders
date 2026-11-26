@@ -38,20 +38,26 @@ func _draw() -> void:
 				for col in 7:
 					Sprites.pin(self, c + Vector2(-150 + col * 50 + (25 if row % 2 else 0), -50 + row * 34))
 			var y := fmod(_t * 90.0, 140.0) - 70.0
+			var kinds := [Board.Pocket.SIDE, Board.Pocket.START, Board.Pocket.TULIP]
+			var cols: Array[Color] = [Look.CYAN, Look.GREEN, Look.PINK]
+			for i in 3:
+				var pk := {kind = kinds[i], pos = c + Vector2(-140 + i * 140, 50), half = 14.0, open = i == 2}
+				Sprites.pocket_back(self, pk, 1.0 if i == 2 else 0.0)
 			Sprites.ball(self, c + Vector2(sin(_t * 5.0) * 18.0, y), int(_t / 1.55) % 3 == 0)
 			for i in 3:
-				var col: Color = [Look.CYAN, Look.GREEN, Look.PINK][i]
-				var p := c + Vector2(-140 + i * 140, 62)
-				draw_rect(Rect2(p + Vector2(-16, 0), Vector2(32, 10)), Color(0, 0, 0, 0.6))
-				draw_rect(Rect2(p + Vector2(-20, 8), Vector2(40, 5)), col)
-				Look.text(self, p + Vector2(0, 34), ["+2", "+3 SPIN", "+5"][i], 16, col)
+				var p := c + Vector2(-140 + i * 140, 50)
+				var pk := {kind = kinds[i], pos = p, half = 14.0, open = i == 2}
+				Sprites.pocket_front(self, pk, 1.0 if i == 2 else 0.0, _t, 0.2)
+				Look.text(self, p + Vector2(0, 34), ["+2", "+3 SPIN", "+5"][i], 16, cols[i])
 		3:
-			var r := Rect2(c - Vector2(110, 46), Vector2(220, 92))
-			draw_rect(r.grow(5), Color(0.55, 0.58, 0.68))
-			draw_rect(r, Color(0.015, 0.01, 0.03))
+			if not Art.draw(self, &"reel_drums", c, Vector2(220, 96)):
+				var r := Rect2(c - Vector2(110, 46), Vector2(220, 92))
+				draw_rect(r.grow(5), Color(0.55, 0.58, 0.68))
+				draw_rect(r, Color(0.015, 0.01, 0.03))
 			for i in 3:
 				var sym := Reels.Sym.SEVEN if fmod(_t, 3.0) > 1.0 + i * 0.5 else (int(_t * 10.0) + i) % Reels.COUNT
 				Sprites.symbol(self, c + Vector2(-72 + i * 72, 0), sym, 1.0)
+			Art.draw(self, &"reel_frame", c, Vector2(256, 128))
 		4:
 			Look.text(self, c + Vector2(-130, -10), "CASH OUT", 28, Look.GOLD)
 			Look.text(self, c + Vector2(-130, 26), "keep the tray", 16, Look.MUTED, Look.sans)
