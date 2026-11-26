@@ -1,0 +1,145 @@
+# The Descent
+
+Pachinko Descent launched (2026-11-06) as one loop: the same 9x5 formation of
+chips, dice and cards every wave, a little lower and faster each time, and a
+choice after each wave to cash out or let it ride. Nothing changed during a run
+and nothing carried between runs. This page turns that loop into a run with an
+arc: a descent through five casino floors to the House's vault, a cashier where
+the tray buys changes to the run, and a players' club that lasts between runs.
+
+Every number here is a starting value for `make selfplay`, not a promise. Any
+change to `Sim`, `Board`, `Reels` or `Tune` reseeds every daily run from the
+deploy onward (see the README), so a balance pass ships as one change.
+
+## The floors
+
+A run goes down five floors. Each floor is three waves and a boss wave, so the
+Vault's boss is wave 20. Each floor has its own mix of House pieces, its own
+formations and, once the art lands, its own pin layout, palette and music.
+
+| # | Floor | The House | Boss |
+|---|---|---|---|
+| 1 | The Lobby | chips, a few dice | the Doorman |
+| 2 | The Card Room | cards lead; dealt cards dive | the Dealer |
+| 3 | The Dice Pit | dice; loaded dice | the Pit Boss |
+| 4 | The Wheel Room | roulette discs, chip stacks | the Wheel |
+| 5 | The Vault | everything, bandits | the House |
+
+- **Pacing.** Within a floor each wave starts lower than the last; a new floor
+  starts the formation back near the top, a little lower each floor. March
+  speed, House fire rate and shot speed climb with the run's wave number, slower
+  than they did when the game ended around wave 8.
+- **The elevator.** Clearing a boss wave clears the floor: the panel between
+  waves says so and names the floor below, and the next wave opens with the
+  floor's banner.
+- **The boss wave.** Until the bosses exist (below), a floor's boss wave is its
+  guard: a formation of the floor's hardest pieces with extra gold, paying a
+  double clear bonus.
+- **The ending.** Clearing the Vault's boss breaks the House: the clear bonus
+  doubles the tray. The daily run ends there; cashing out is the only button.
+  Arcade can ride on into **After Hours**, endless waves on mixed floors, up to
+  wave 30 (`Tune.MAX_WAVE`, which the leaderboard also checks).
+
+## The cashier
+
+After each cleared wave, before the choice to cash out or ride, the cashier
+window offers three fixtures for the rest of the run, priced in tray balls. The
+tray is still the score, so every buy is a bet that it pays for itself before
+you cash out.
+
+- Three offers per visit, drawn from a seeded stream by wave (and by reroll), so
+  the daily's offers are the same for everyone who reaches that wave with the
+  same fixtures. Shopping never changes the board, the formations or the reels.
+- Each buy raises every price by 15%. A reroll costs 10 balls and doubles for
+  each further reroll in the same visit.
+- Six fixture slots. Selling one returns half what was paid for it.
+- Some fixtures stack (up to the count shown).
+
+Starting pool:
+
+| Fixture | Does | Stacks |
+|---|---|---|
+| **Board** | | |
+| Bent nail | Start chucker pays +2 | 2 |
+| Side pocket comps | Side pockets pay +1 | 2 |
+| Tulip bonus | Tulips pay +3 | 2 |
+| Gold leaf | One more gold piece in every formation | 3 |
+| **Reels** | | |
+| Loaded seven | Fever odds up by a third | 2 |
+| Deep holds | Two more held spins | 1 |
+| Long fever | Fever lasts 4 s longer | 2 |
+| Sticky prizes | Reel powers last half again as long | 1 |
+| **Launcher** | | |
+| Deep cup | Caught balls pay +1 | 2 |
+| Wide cup | The catch cup is wider | 2 |
+| Quick reload | A quarter off the shot cooldown | 2 |
+| Twin barrel | One more bolt in the air | 2 |
+| Piercing tips | Every fifth bolt pierces | 1 |
+| **Tray** | | |
+| Interest | 5% of the tray on each clear, up to 40 | 2 |
+| Comps | Clear bonuses x1.5 | 1 |
+| Padded rail | A hit spills 8 balls, not 12 | 1 |
+| Insurance | The first hit on each wave spills nothing | 1 |
+
+Fixture icons are text until the art pipeline draws them.
+
+## The players' club
+
+Comp points come from every finished run (payout and floors reached). Tiers,
+Silver, Gold, Platinum and Black, unlock launchers and add fixtures to the
+cashier's pool:
+
+- **Classic**: today's launcher.
+- **Twin**: two barrels, a narrower cup.
+- **Magnet**: a small permanent magnet on the cup, slower reload.
+- **Lancer**: every third bolt pierces, one bolt in the air.
+
+The daily always uses Classic and the starting pool, so it stays fair. Records
+stay in the browser.
+
+## The House's new pieces
+
+- **Chip stack**: three layers; each hit sheds one and a ball.
+- **Dealt card**: leaves the formation and dives in a curve at the launcher.
+- **Loaded die**: rerolls its pips (hits left, 1 to 6) every few seconds.
+- **Roulette disc**: spins; bolts glance off it except through its gap.
+- **Bandit**: a small slot; three of a kind banks a volley for the House.
+
+## The bosses
+
+- **The Doorman** (Lobby): a tall chip stack pacing the top, shedding a layer
+  per hit.
+- **The Dealer** (Card Room): a shoe that deals new cards into the formation
+  until it breaks.
+- **The Pit Boss** (Dice Pit): two giant dice whose roll sets each volley's
+  size; they take damage only while showing low.
+- **The Wheel** (Wheel Room): takes damage only through its turning green zero.
+- **The House** (Vault): the slot cabinet itself. Its reels spin and a match
+  fires a pattern; hit the reel window while it is lit.
+
+Each boss gets an intro card, a health bar and a ball shower when it breaks.
+
+## Feel
+
+Hit-stop (view only; the sim keeps its 60 Hz step) and shake on breaks and boss
+hits, a tray counter that rolls, a small payout for quick kill chains, longer
+reach drama on the reels and a jackpot sequence when a pocket pays big.
+
+## Sprites the art pipeline owes
+
+The 2.5D rework (Blender plus generated textures, 2026-11-26) draws the current
+pieces. The Descent adds:
+
+- five new pieces: chip stack (3 layers), dealt card, loaded die (pips 1 to 6),
+  roulette disc (with gap), bandit (three small reels);
+- five bosses, each with a hurt state;
+- a palette and cabinet dressing per floor, plus After Hours;
+- four launchers;
+- 17 fixture icons;
+- an elevator transition between floors.
+
+## Tasks
+
+Filed under `pachinko` in Waybill with `ref:descent`: floors, cashier,
+formations, pieces, bosses, floor boards, impact, autopilot, players' club,
+leaderboard versioning, challenges, attract demo, floor music and the playtest.
