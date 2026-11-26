@@ -17,15 +17,6 @@ const KIND_HP := [1, 2, 1]
 const KIND_BALLS := [1, 2, 1]
 ## How likely the bottom invader of a column is to be the one that fires.
 const KIND_FIRE := [1.0, 1.0, 2.6]
-## Rows top to bottom for the first waves; later waves reuse the last with swaps.
-const ROW_PLANS := [
-	[Kind.CARD, Kind.DIE, Kind.CHIP, Kind.CHIP, Kind.CHIP],
-	[Kind.CARD, Kind.DIE, Kind.DIE, Kind.CHIP, Kind.CHIP],
-	[Kind.CARD, Kind.CARD, Kind.DIE, Kind.DIE, Kind.CHIP],
-	[Kind.CARD, Kind.CARD, Kind.DIE, Kind.DIE, Kind.DIE],
-]
-
-
 class Invader:
 	var col: int
 	var row: int
@@ -58,6 +49,9 @@ class Bolt:
 var run_seed := 0
 var board: Board
 var wave := 0
+## The last wave this run may ride to: Tune.VAULT_WAVE for the daily, which ends
+## when the House breaks; Tune.MAX_WAVE for arcade, which goes on into After Hours.
+var last_wave := Tune.MAX_WAVE
 var tray := 0
 var phase := Phase.PLAYING
 ## "invaded" or "empty" once the run is bust.
@@ -147,11 +141,7 @@ func start_wave(n: int) -> void:
 	saucer_on = false
 	var wrng := RandomNumberGenerator.new()
 	wrng.seed = mix(run_seed, 100 + n)
-	var plan: Array = ROW_PLANS[mini(n - 1, ROW_PLANS.size() - 1)].duplicate()
-	if n > ROW_PLANS.size():
-		# Later waves: one or two rows harden.
-		for i in mini(n - ROW_PLANS.size(), 2):
-			plan[wrng.randi_range(1, Tune.ROWS - 1)] = Kind.CARD if wrng.randf() < 0.5 else Kind.DIE
+	var plan := Floors.plan(n, wrng)
 	for row in Tune.ROWS:
 		for col in Tune.COLS:
 			var inv := Invader.new()
@@ -160,19 +150,48 @@ func start_wave(n: int) -> void:
 			inv.kind = plan[row]
 			inv.hp = KIND_HP[inv.kind]
 			invaders.append(inv)
-	var golds := 2 + n / 3
+	var golds := 2 + n / 3 + (Tune.GUARD_GOLDS if Floors.is_guard(n) else 0)
 	for i in golds:
 		invaders[wrng.randi_range(0, invaders.size() - 1)].gold = true
 	origin = Vector2((Tune.W - (Tune.COLS - 1) * Tune.CELL.x) / 2.0,
-		Tune.FORMATION_TOP + minf((n - 1) * Tune.WAVE_DROP, Tune.WAVE_DROP_MAX))
+		Tune.FORMATION_TOP + Floors.start_drop(n))
 	march_dir = 1.0 if wrng.randf() < 0.5 else -1.0
 	_fire_t = _fire_gap() * 1.5
 	_saucer_t = wrng.randf_range(Tune.SAUCER_GAP.x, Tune.SAUCER_GAP.y)
 
 
 func next_wave() -> void:
-	if phase == Phase.SETTLED and wave < Tune.MAX_WAVE:
+	if can_ride():
 		start_wave(wave + 1)
+
+
+## Whether the settled run may go on to another wave.
+func can_ride() -> bool:
+	return phase == Phase.SETTLED and wave < mini(last_wave, Tune.MAX_WAVE)
+
+
+func floor_number() -> int:
+	return Floors.floor_of(wave)
+
+
+func wave_in_floor() -> int:
+	return Floors.wave_in_floor(wave)
+
+
+## The settled wave was its floor's guard: the floor is cleared.
+func floor_cleared() -> bool:
+	return Floors.is_guard(wave) and phase in [Phase.CLEARED, Phase.SETTLED, Phase.CASHED]
+
+
+## The Vault's guard is down: the House is broken.
+func broke_house() -> bool:
+	return wave == Tune.VAULT_WAVE and phase in [Phase.CLEARED, Phase.SETTLED, Phase.CASHED]
+
+
+## What clearing wave `n` pays, before the Vault doubles the tray.
+static func clear_bonus_for(n: int) -> int:
+	var bonus := Tune.CLEAR_BONUS + Tune.CLEAR_BONUS_PER_WAVE * (n - 1)
+	return bonus * (Tune.GUARD_BONUS_MULT if Floors.is_guard(n) else 1)
 
 
 func cash_out() -> void:
@@ -398,7 +417,7 @@ func _enemy_fire(dt: float) -> void:
 	if _fire_t > 0.0:
 		return
 	_fire_t = _fire_gap() * _rng.randf_range(0.6, 1.35)
-	if shots.size() >= 3 + wave / 2:
+	if shots.size() >= Tune.SHOTS_MAX_BASE + wave / Tune.SHOTS_PER_WAVES:
 		return
 	# The lowest live invader in each column is the one that can fire.
 	var lowest := {}
@@ -672,11 +691,16 @@ func _check_phase() -> void:
 		Phase.PLAYING:
 			if alive_count() == 0:
 				phase = Phase.CLEARED
-				clear_bonus = Tune.CLEAR_BONUS + Tune.CLEAR_BONUS_PER_WAVE * (wave - 1)
+				clear_bonus = clear_bonus_for(wave)
 				tray += clear_bonus
 				shots.clear()
 				saucer_on = false
 				_emit(&"clear", {bonus = clear_bonus})
+				if wave == Tune.VAULT_WAVE:
+					# Breaking the House doubles the tray.
+					clear_bonus += tray
+					tray *= 2
+					_emit(&"broke_house", {bonus = clear_bonus})
 			elif tray < Tune.SHOT_COST and fever_t <= 0.0 and balls.is_empty() and bolts.is_empty() \
 					and holds == 0 and spin.is_empty():
 				phase = Phase.BUST

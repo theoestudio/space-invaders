@@ -15,6 +15,7 @@ func _init() -> void:
 	_reel_odds()
 	_economy()
 	_phases()
+	_floors()
 	_daily()
 	_telemetry()
 	_more_games()
@@ -245,6 +246,48 @@ func _phases() -> void:
 	var w5 := Sim.create(11)
 	w5.start_wave(5)
 	check(w5.origin.y > w1.origin.y and w5.march_speed() > w1.march_speed(), "later waves start lower and march faster")
+
+
+func _floors() -> void:
+	check([1, 4, 5, 8, 17, 20, 21, 30].map(Floors.floor_of) == [1, 1, 2, 2, 5, 5, 6, 6], "four waves a floor, five floors, then After Hours")
+	check(Floors.is_guard(4) and Floors.is_guard(20) and not Floors.is_guard(3) and not Floors.is_guard(24), "each floor's fourth wave is its guard, until After Hours")
+	check(Sim.clear_bonus_for(4) == 2 * (Tune.CLEAR_BONUS + 3 * Tune.CLEAR_BONUS_PER_WAVE), "a guard pays double")
+	for w in range(1, Tune.MAX_WAVE + 1):
+		check(Floors.plan(w, RandomNumberGenerator.new()).size() == Tune.ROWS, "wave %d has a full plan" % w)
+	# A new floor starts the formation back near the top.
+	var w4 := Sim.create(11)
+	w4.start_wave(4)
+	var w5 := Sim.create(11)
+	w5.start_wave(5)
+	check(w5.origin.y < w4.origin.y and w5.origin.y > Sim.create(11).origin.y, "a new floor starts higher than the last guard, lower than floor 1")
+	check(w5.march_speed() > w4.march_speed(), "but marches faster")
+	# The lowest start still leaves room to play.
+	var deep := Sim.create(11)
+	deep.start_wave(Tune.MAX_WAVE)
+	check(deep.origin.y + (Tune.ROWS - 1) * Tune.CELL.y + Tune.INVADER_HALF.y < Tune.INVADED_Y - 4 * Tune.MARCH_DROP, "the deepest wave starts at least four drops above the line")
+	# Breaking the House: the Vault's guard doubles the tray; the daily ends there.
+	for daily in [true, false]:
+		var s := Daily.create(9) if daily else Sim.create(9)
+		s.start_wave(Tune.VAULT_WAVE)
+		s.tray = 100
+		for inv in s.invaders:
+			inv.alive = false
+		s.step(0.0, NAN, false)
+		check(s.tray == 2 * (100 + Sim.clear_bonus_for(Tune.VAULT_WAVE)) and s.broke_house(), "breaking the House doubles the tray (%d)" % s.tray)
+		var guard := 0
+		while s.phase != Sim.Phase.SETTLED and guard < 2000:
+			s.step(0.0, NAN, false)
+			guard += 1
+		check(s.can_ride() != daily, "the daily ends at the Vault; arcade rides on into After Hours")
+		s.next_wave()
+		check(s.wave == (Tune.VAULT_WAVE if daily else Tune.VAULT_WAVE + 1), "riding past the Vault only in arcade")
+	var last := Sim.create(9)
+	last.start_wave(Tune.MAX_WAVE)
+	for inv in last.invaders:
+		inv.alive = false
+	for i in 2000:
+		last.step(0.0, NAN, false)
+	check(last.phase == Sim.Phase.SETTLED and not last.can_ride(), "the House closes at wave %d" % Tune.MAX_WAVE)
 
 
 func _daily() -> void:

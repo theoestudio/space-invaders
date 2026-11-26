@@ -31,5 +31,8 @@ static func seed_for(number: int) -> int:
 	return Sim.mix(number, 0xDA1)
 
 
+## The daily ends at the Vault: no After Hours.
 static func create(number: int) -> Sim:
-	return Sim.create(seed_for(number))
+	var s := Sim.create(seed_for(number))
+	s.last_wave = Tune.VAULT_WAVE
+	return s

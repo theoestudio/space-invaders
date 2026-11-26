@@ -22,8 +22,8 @@ const RULE_PAGES := [
 	["Balls are everything", "Your tray of balls is your ammunition and your score. Every shot costs one ball, and a hit from the House spills twelve.\n\nRun the tray dry with nothing left in play and you are bust."],
 	["Wrecks fall through the pins", "Every invader you break drops a ball through the pin field. Dice drop two. Gold invaders drop gold balls that pay triple.\n\nPockets pay into your tray: side +2, tulip +5, and the green start chucker +3. Catch a ball in the cup on your launcher for +1. A bolt through a shut tulip springs it open."],
 	["Spin the reels", "Each ball in the start chucker banks a spin, up to four. Three of a kind pays:\n\nSevens: FEVER. Free rapid fire, the gold attacker opens (+10) and balls shower down.\nCherries: spread shot  ·  Bars: piercing bolts\nBells: a shield  ·  Stars: a wide catch cup  ·  Chips: +20 balls\n\nShoot the croupier's saucer for a free spin and five balls."],
-	["Cash out or let it ride", "After each wave the House offers a choice. Cash out and your tray is your score. Let it ride and the next wave pays a bigger clear bonus, but marches faster, starts lower and shoots more.\n\nBust and the House keeps everything."],
-	["The daily run", "One run a day, the same for everyone: the same board, the same formations and the same reel draws in the same order. Your first finished run counts; replays are practice.\n\nArcade deals a fresh board every time and keeps your best payout."],
+	["Cash out or ride down", "After each wave the House offers a choice. Cash out and your tray is your score. Let it ride and the next wave pays a bigger clear bonus, but marches faster, starts lower and shoots more.\n\nFive floors of four waves each, the last a guard worth double. Break the Vault's guard and the tray doubles. Bust and the House keeps everything."],
+	["The daily run", "One run a day, the same for everyone: the same board, the same formations and the same reel draws in the same order. Your first finished run counts; replays are practice. The daily ends at the Vault.\n\nArcade deals a fresh board every time and keeps your best payout."],
 ]
 
 var _root := Control.new()
@@ -305,6 +305,12 @@ func banner(text: String, sub := "", hold := 1.1, color := Look.GOLD) -> void:
 	_banner_tween.tween_property(_banner_box, "modulate:a", 0.0, 0.35)
 
 
+func hide_banner() -> void:
+	if _banner_tween:
+		_banner_tween.kill()
+	_banner_box.modulate.a = 0.0
+
+
 func toast(text: String) -> void:
 	_toast.text = text
 	var tw := create_tween()
@@ -371,14 +377,39 @@ func _build_between() -> void:
 
 
 func show_between(s: Sim) -> void:
-	_between_title.text = "WAVE %d CLEARED" % s.wave
+	hide_banner()
+	var f := s.floor_number()
+	if s.broke_house():
+		_between_title.text = "YOU BROKE THE HOUSE"
+	elif s.floor_cleared():
+		_between_title.text = "FLOOR %d CLEARED" % f
+	elif f > Tune.FLOORS:
+		_between_title.text = "WAVE %d CLEARED" % s.wave
+	else:
+		_between_title.text = "WAVE %d CLEARED" % s.wave_in_floor()
 	var net: int = s.stats.waves[-1]
-	var next_bonus := Tune.CLEAR_BONUS + Tune.CLEAR_BONUS_PER_WAVE * s.wave
-	_between_lines.text = "Clear bonus +%d   ·   this wave %s%d\nTray: %d balls\n\nWave %d marches faster and starts lower.\nIts clear bonus is +%d." % [
-		s.clear_bonus, "+" if net >= 0 else "", net, s.tray, s.wave + 1, next_bonus]
+	var lines := "Clear bonus +%d   ·   this wave %s%d\nTray: %d balls" % [s.clear_bonus, "+" if net >= 0 else "", net, s.tray]
+	var next := s.wave + 1
+	if not s.can_ride():
+		lines += "\n\nThe daily ends at the Vault. Cash out your winnings." if s.broke_house() else "\n\nThe House is closing. Cash out."
+	elif s.broke_house():
+		lines += "\n\nAfter Hours: endless waves on mixed floors.\nWave %d's clear bonus is +%d." % [next, Sim.clear_bonus_for(next)]
+	elif s.floor_cleared():
+		lines += "\n\nNext: %s, floor %d of %d.\nThe House starts back near the top. Clear bonus +%d." % [
+			Floors.in_sentence(f + 1), f + 1, Tune.FLOORS, Sim.clear_bonus_for(next)]
+	elif Floors.is_guard(next):
+		lines += "\n\nNext: the floor's guard, with extra gold.\nIts clear bonus is doubled: +%d." % Sim.clear_bonus_for(next)
+	else:
+		lines += "\n\nWave %d marches faster and starts lower.\nIts clear bonus is +%d." % [Floors.wave_in_floor(next), Sim.clear_bonus_for(next)]
+	_between_lines.text = lines
 	_cash.text = "Cash out %d" % s.tray
-	_ride.text = "Let it ride: wave %d" % (s.wave + 1)
-	_ride.disabled = s.wave >= Tune.MAX_WAVE
+	if s.floor_cleared() and not s.broke_house():
+		_ride.text = "Ride down to %s" % Floors.floor_name(f + 1).to_lower()
+	elif s.broke_house():
+		_ride.text = "Stay for After Hours"
+	else:
+		_ride.text = "Let it ride: wave %d" % Floors.wave_in_floor(next) if f <= Tune.FLOORS else "Let it ride: wave %d" % next
+	_ride.visible = s.can_ride()
 	_between.visible = true
 
 

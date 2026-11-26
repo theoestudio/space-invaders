@@ -490,9 +490,11 @@ func _draw_hud() -> void:
 	ci.draw_string(Look.display, Vector2(Tune.LEFT + 34, 66), str(s.tray), HORIZONTAL_ALIGNMENT_LEFT, -1, 40, tc)
 	ci.draw_string(Look.sans_bold, Vector2(Tune.LEFT + 36, 86), "BALLS", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Look.MUTED)
 	# Wave.
-	Look.text(ci, Vector2(Tune.W / 2.0, 58), "WAVE %d" % s.wave, 28, Look.GOLD)
-	var bonus := Tune.CLEAR_BONUS + Tune.CLEAR_BONUS_PER_WAVE * (s.wave - 1)
-	Look.text(ci, Vector2(Tune.W / 2.0, 80), "clear bonus +%d" % bonus, 14, Look.MUTED, Look.sans)
+	var head := "FLOOR %d · %s" % [s.floor_number(), "GUARD" if Floors.is_guard(s.wave) else "WAVE %d" % s.wave_in_floor()]
+	if s.floor_number() > Tune.FLOORS:
+		head = "AFTER HOURS · WAVE %d" % s.wave
+	Look.text(ci, Vector2(Tune.W / 2.0, 58), head, 24, Look.GOLD)
+	Look.text(ci, Vector2(Tune.W / 2.0, 80), "%s · clear bonus +%d" % [Floors.floor_name(s.floor_number()).to_lower(), Sim.clear_bonus_for(s.wave)], 14, Look.MUTED, Look.sans)
 	# Pause button.
 	Look.rounded(ci, PAUSE_RECT, 10, Color(1, 1, 1, 0.06))
 	Look.rounded(ci, PAUSE_RECT, 10, Color(Look.INK, 0.3), false, 1)

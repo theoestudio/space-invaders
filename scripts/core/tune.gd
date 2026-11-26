@@ -51,21 +51,34 @@ const ROWS := 5
 const CELL := Vector2(58, 50)
 const INVADER_HALF := Vector2(19, 15)
 const FORMATION_TOP := 150.0
-## Each wave starts this much lower, up to WAVE_DROP_MAX.
+## Each wave of a floor starts this much lower than the last (Floors.start_drop);
+## each floor starts FLOOR_DROP lower than the floor above.
 const WAVE_DROP := 34.0
-const WAVE_DROP_MAX := 200.0
+const FLOOR_DROP := 14.0
 const MARCH_SPEED := 34.0
-const MARCH_SPEED_PER_WAVE := 8.0
+const MARCH_SPEED_PER_WAVE := 4.0
 ## When few are left they speed up: speed * (1 + RUSH * fraction_dead^2).
 const RUSH := 3.2
 const MARCH_DROP := 28.0
 const INVADED_Y := 1120.0
 const SHOT_SPEED := 300.0
-const SHOT_SPEED_PER_WAVE := 22.0
+const SHOT_SPEED_PER_WAVE := 12.0
 ## Seconds between House volleys at wave 1, and the floor.
 const FIRE_GAP := 1.1
-const FIRE_GAP_PER_WAVE := 0.12
+const FIRE_GAP_PER_WAVE := 0.04
 const FIRE_GAP_MIN := 0.3
+## House shots in the air: SHOTS_MAX_BASE + wave / SHOTS_PER_WAVES.
+const SHOTS_MAX_BASE := 3
+const SHOTS_PER_WAVES := 4
+
+# --- the floors (docs/descent.md) ---------------------------------------------
+const FLOORS := 5
+const WAVES_PER_FLOOR := 4
+## Clearing this wave, the Vault's guard, breaks the House. The daily ends here.
+const VAULT_WAVE := FLOORS * WAVES_PER_FLOOR
+## A floor's guard wave pays this times the clear bonus and carries more gold.
+const GUARD_BONUS_MULT := 2
+const GUARD_GOLDS := 3
 
 # --- the croupier (the bonus saucer) ------------------------------------------
 const SAUCER_Y := 112.0

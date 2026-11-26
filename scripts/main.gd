@@ -127,7 +127,18 @@ func _wave_banner() -> void:
 	var label := "Daily #%d" % daily_number if mode == Mode.DAILY else "Arcade"
 	if mode == Mode.DAILY and practice:
 		label += " · practice"
-	ui.banner("WAVE %d" % sim.wave, label, 0.9)
+	var f := sim.floor_number()
+	if f > Tune.FLOORS:
+		if sim.wave == Tune.VAULT_WAVE + 1:
+			ui.banner("AFTER HOURS", "endless, mixed floors · %s" % label, 1.3, Look.PINK)
+		else:
+			ui.banner("WAVE %d" % sim.wave, "After Hours · %s" % label, 0.9)
+	elif sim.wave_in_floor() == 1:
+		ui.banner(Floors.floor_name(f).to_upper(), "floor %d of %d · %s" % [f, Tune.FLOORS, label], 1.3, Look.CYAN)
+	elif Floors.is_guard(sim.wave):
+		ui.banner("FLOOR GUARD", "double clear bonus · %s" % label, 1.1, Look.PINK)
+	else:
+		ui.banner("WAVE %d" % sim.wave_in_floor(), "%s · %s" % [Floors.floor_name(f), label], 0.9)
 
 
 func set_paused(on: bool) -> void:
@@ -203,7 +214,12 @@ func _physics_process(_delta: float) -> void:
 	for e in sim.events:
 		match e.kind:
 			&"clear":
-				ui.banner("WAVE %d CLEARED" % sim.wave, "clear bonus +%d" % e.bonus, 1.0, Look.GREEN)
+				if Floors.is_guard(sim.wave):
+					ui.banner("FLOOR %d CLEARED" % sim.floor_number(), "clear bonus +%d" % e.bonus, 1.2, Look.GREEN)
+				else:
+					ui.banner("WAVE CLEARED", "clear bonus +%d" % e.bonus, 1.0, Look.GREEN)
+			&"broke_house":
+				ui.banner("YOU BROKE THE HOUSE", "the tray doubles", 1.8, Look.GOLD)
 			&"settled":
 				stage.release_pointer()
 				ui.show_between(sim)
@@ -260,15 +276,16 @@ func _finish() -> void:
 	var cashed := sim.phase == Sim.Phase.CASHED
 	var payout := sim.payout()
 	var cleared := _cleared()
-	var title := "CASHED OUT" if cashed else "BUST"
+	var title := ("BROKE THE HOUSE" if sim.broke_house() else "CASHED OUT") if cashed else "BUST"
 	var color := Look.GOLD if cashed else Look.RED
 	var sub: String
+	var where := _where()
 	if cashed:
-		sub = "%d balls after %d wave%s" % [payout, cleared, "" if cleared == 1 else "s"]
+		sub = "%d balls after %d wave%s, %s" % [payout, cleared, "" if cleared == 1 else "s", where]
 	elif sim.bust_reason == "invaded":
-		sub = "The House reached your rail on wave %d.\nIt keeps the tray." % sim.wave
+		sub = "The House reached your rail %s.\nIt keeps the tray." % where
 	else:
-		sub = "Out of balls on wave %d." % sim.wave
+		sub = "Out of balls %s." % where
 	var st := sim.stats
 	var acc: float = 100.0 * st.kills / maxf(st.shots, 1.0)
 	var stats := "%d broken · %d%% accuracy · peak tray %d\n%d pocketed · %d caught · %d spins · %d fever%s" % [
@@ -296,6 +313,16 @@ func _finish() -> void:
 		ui.show_end(title, color, sub, stats, nets, not cashed, false, "Play again")
 		_board_practice = false
 		Telemetry.run_finished("arcade", sim, true)
+
+
+## Where the run ended, for the result: "in the Dice Pit, wave 2".
+func _where() -> String:
+	var f := sim.floor_number()
+	if f > Tune.FLOORS:
+		return "After Hours, wave %d" % sim.wave
+	if sim.broke_house():
+		return "with the Vault broken"
+	return "in %s, %s" % [Floors.in_sentence(f), "its guard" if Floors.is_guard(sim.wave) else "wave %d" % sim.wave_in_floor()]
 
 
 ## The site's reply to the finished run: the leaderboard, under the result.
