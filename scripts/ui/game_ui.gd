@@ -63,9 +63,12 @@ var _cash: Button
 var _ride: Button
 var _cashier: VBoxContainer
 var _offer_buttons: Array[Button] = []
+var _offer_frames: Array[PanelContainer] = []
+var _offer_icons: Array[TextureRect] = []
 var _offer_names: Array[Label] = []
 var _offer_texts: Array[Label] = []
 var _offer_prices: Array[Label] = []
+var _offer_balls: Array[TextureRect] = []
 var _owned_label: Label
 var _owned: HFlowContainer
 var _reroll: Button
@@ -396,14 +399,33 @@ func _build_cashier(parent: Control) -> void:
 	_cashier.add_child(_centered(Style.label("THE CASHIER · fixtures for the rest of the run", 16, Look.CYAN, Look.sans_bold)))
 	for i in Fixtures.OFFERS:
 		var b := Style.button("", Look.CYAN)
-		b.custom_minimum_size = Vector2(0, 62)
+		b.custom_minimum_size = Vector2(0, 70)
 		b.pressed.connect(func() -> void: buy_pressed.emit(i))
 		var row := HBoxContainer.new()
 		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		row.offset_left = 18
-		row.offset_right = -18
+		row.offset_left = 14
+		row.offset_right = -16
+		row.add_theme_constant_override(&"separation", 12)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(row)
+		var frame := PanelContainer.new()
+		var fbox := StyleBoxFlat.new()
+		fbox.bg_color = Color(0.04, 0.03, 0.09, 0.92)
+		fbox.border_color = Color(Look.CYAN, 0.65)
+		fbox.set_border_width_all(2)
+		fbox.set_corner_radius_all(10)
+		fbox.set_content_margin_all(3)
+		frame.add_theme_stylebox_override(&"panel", fbox)
+		frame.custom_minimum_size = Vector2(48, 48)
+		frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ico := TextureRect.new()
+		ico.custom_minimum_size = Vector2(40, 40)
+		ico.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ico.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ico.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(ico)
+		row.add_child(frame)
 		var words := VBoxContainer.new()
 		words.add_theme_constant_override(&"separation", 0)
 		words.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -414,15 +436,30 @@ func _build_cashier(parent: Control) -> void:
 		words.add_child(n)
 		var t := Style.label("", 15, Style.MUTED)
 		words.add_child(t)
+		var cost_box := HBoxContainer.new()
+		cost_box.add_theme_constant_override(&"separation", 6)
+		cost_box.alignment = BoxContainer.ALIGNMENT_END
+		cost_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cost_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(cost_box)
 		var pr := Style.label("", 20, Look.GOLD, Look.display)
-		pr.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pr.size_flags_vertical = Control.SIZE_FILL
-		row.add_child(pr)
+		cost_box.add_child(pr)
+		var ball_ico := TextureRect.new()
+		ball_ico.texture = Art.tex(&"ball_chrome")
+		ball_ico.custom_minimum_size = Vector2(18, 18)
+		ball_ico.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ball_ico.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ball_ico.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ball_ico.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cost_box.add_child(ball_ico)
 		_cashier.add_child(b)
 		_offer_buttons.append(b)
+		_offer_frames.append(frame)
+		_offer_icons.append(ico)
 		_offer_names.append(n)
 		_offer_texts.append(t)
 		_offer_prices.append(pr)
+		_offer_balls.append(ball_ico)
 	var row2 := _row(_cashier)
 	_owned_label = Style.label("", 15, Style.MUTED)
 	_owned_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -458,19 +495,27 @@ func _show_cashier(s: Sim) -> void:
 		var id: StringName = s.offers[i] if i < s.offers.size() else &""
 		b.visible = i < s.offers.size()
 		if id == &"":
+			_offer_icons[i].modulate = Color(1, 1, 1, 0.25)
+			(_offer_frames[i].get_theme_stylebox(&"panel") as StyleBoxFlat).border_color = Color(Look.CYAN, 0.22)
 			_offer_names[i].text = "Sold"
 			_offer_texts[i].text = ""
 			_offer_prices[i].text = ""
+			_offer_balls[i].visible = false
 			b.disabled = true
 			continue
 		var f: Dictionary = Fixtures.ALL[id]
+		var can := s.can_buy(i)
+		_offer_icons[i].texture = Art.fixture(id)
+		_offer_icons[i].modulate = Color.WHITE if can else Color(1, 1, 1, 0.55)
+		(_offer_frames[i].get_theme_stylebox(&"panel") as StyleBoxFlat).border_color = Color(Look.group_color(f.group), 0.85 if can else 0.40)
+		_offer_balls[i].visible = true
 		var stacks := ""
 		if f.stacks > 1:
 			stacks = "  %d/%d" % [s.level(id) + 1, f.stacks]
 		_offer_names[i].text = f.name + stacks
 		_offer_texts[i].text = "%s · %s" % [f.group, f.text]
 		_offer_prices[i].text = str(s.price(id))
-		b.disabled = not s.can_buy(i)
+		b.disabled = not can
 	_owned_label.text = "Yours %d/%d%s" % [s.fixtures.size(), Fixtures.SLOTS, "" if s.fixtures.is_empty() else " · sells for half"]
 	for c in _owned.get_children():
 		c.queue_free()
@@ -478,6 +523,8 @@ func _show_cashier(s: Sim) -> void:
 		var lv := s.level(id)
 		var label: String = Fixtures.name_of(id) + (" x%d" % lv if lv > 1 else "")
 		var b := _small_button("%s · sell %d" % [label, s.sell_price(id)], Look.PINK)
+		b.icon = Art.fixture(id)
+		b.add_theme_constant_override(&"icon_max_width", 22)
 		b.pressed.connect(func() -> void: sell_pressed.emit(id))
 		_owned.add_child(b)
 	_reroll.text = "Reroll %d" % s.reroll_price()

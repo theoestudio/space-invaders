@@ -16,6 +16,25 @@ const CHROME := Color(0.8, 0.83, 0.9)
 const INK := Color(0.93, 0.92, 0.98)
 const MUTED := Color(0.93, 0.92, 0.98, 0.6)
 
+const FLOOR_THEMES := [
+	{edge = PINK, inner = CYAN, nebula = Color(0.16, 0.05, 0.28), mist = Color(0.0, 0.25, 0.32)},
+	{edge = Color(0.20, 0.92, 0.56), inner = GOLD, nebula = Color(0.04, 0.22, 0.14), mist = Color(0.26, 0.06, 0.10)},
+	{edge = Color(1.0, 0.42, 0.24), inner = Color(1.0, 0.86, 0.52), nebula = Color(0.26, 0.06, 0.08), mist = Color(0.28, 0.14, 0.03)},
+	{edge = Color(1.0, 0.24, 0.32), inner = Color(0.20, 0.90, 0.50), nebula = Color(0.22, 0.04, 0.12), mist = Color(0.04, 0.24, 0.16)},
+	{edge = GOLD, inner = Color(1.0, 0.32, 0.26), nebula = Color(0.24, 0.16, 0.03), mist = Color(0.26, 0.04, 0.06)},
+	{edge = Color(0.76, 0.36, 1.0), inner = CYAN, nebula = Color(0.18, 0.04, 0.34), mist = Color(0.06, 0.26, 0.36)},
+]
+
+const GROUP_COLORS := {"Board": GREEN, "Reels": PINK, "Launcher": CYAN, "Tray": GOLD}
+
+
+static func floor_theme(floor_num: int) -> Dictionary:
+	return FLOOR_THEMES[clampi(floor_num, 1, FLOOR_THEMES.size()) - 1]
+
+
+static func group_color(group: String) -> Color:
+	return GROUP_COLORS.get(group, CYAN)
+
 const DISPLAY_FILE := preload("res://fonts/Bungee-Regular.ttf")
 const SANS_FILE := preload("res://fonts/Outfit.ttf")
 

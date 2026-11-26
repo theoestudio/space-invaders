@@ -53,6 +53,9 @@ func _run() -> void:
 	main.ui._rules_show(3)
 	await _wait(1.6)
 	await _shot("04-rules-reels")
+	main.ui._rules_show(4)
+	await _wait(0.8)
+	await _shot("04b-rules-cashier")
 	main.ui.hide_rules()
 
 	Profile.seen_rules = true
@@ -100,23 +103,39 @@ func _run() -> void:
 	await _wait(0.3)
 	await _shot("09b-cashed-board")
 
-	# A floor's guard down, then the House broken.
-	for w in [4, Tune.VAULT_WAVE]:
+	# Live 6-slot fixture hardware showcase (bent nail x2, deep cup, twin barrel, piercing glint, padded rail, insurance).
+	main.start_arcade()
+	s = main.sim
+	s.fixtures = {&"bent_nail": 2, &"deep_cup": 1, &"twin_barrel": 1, &"piercing_tips": 1, &"padded_rail": 1, &"insurance": 1}
+	s._volleys = Fixtures.PIERCE_EVERY - 1
+	await _wait(0.5)
+	await _shot("08c-fixtures-play")
+
+	# Floor themes, floor guards, elevator dial and the Vault broken.
+	for w in [4, 5, 9, 13, Tune.VAULT_WAVE, Tune.VAULT_WAVE + 1]:
 		main.start_arcade()
 		s = main.sim
 		s.start_wave(w)
-		main._wave_banner()
+		if w == 5:
+			main.stage.play_elevator(1, 2)
+			main._wave_banner()
+			await _wait(0.28)
+			await _shot("12-elevator-2")
+			await _wait(0.65)
+		else:
+			main._wave_banner()
 		await _wait(0.6)
 		await _shot("12-floor-%d" % w)
-		for inv in s.invaders:
-			inv.alive = false
-		while not main.ui.is_between_shown():
-			await get_tree().process_frame
-		await _wait(0.3)
-		await _shot("13-cleared-%d" % w)
-		main._cash_out()
-		await _wait(0.5)
-		await _shot("14-cashed-%d" % w)
+		if w in [4, Tune.VAULT_WAVE]:
+			for inv in s.invaders:
+				inv.alive = false
+			while not main.ui.is_between_shown():
+				await get_tree().process_frame
+			await _wait(0.3)
+			await _shot("13-cleared-%d" % w)
+			main._cash_out()
+			await _wait(0.5)
+			await _shot("14-cashed-%d" % w)
 
 	# Every formation shape, a moment into the wave.
 	for shape in Formations.ALL:

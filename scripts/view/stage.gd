@@ -40,6 +40,12 @@ var _cup_half := Tune.TRAY_HALF
 var _barrel_recoil := 0.0
 var _cup_bounce := 0.0
 
+const ELEV_LEN := 0.85
+var _face_state: Array = []
+var _elev_t := 0.0
+var _elev_from := 1
+var _elev_to := 1
+
 
 func _ready() -> void:
 	Look.init()
@@ -65,10 +71,18 @@ func show_sim(s: Sim, is_demo: bool) -> void:
 	_pops.clear()
 	_pocket_lit.clear()
 	_tulip_open.clear()
+	_face_state.clear()
+	_elev_t = 0.0
 	_cup_half = s.tray_half() if s else Tune.TRAY_HALF
 	_barrel_recoil = 0.0
 	_cup_bounce = 0.0
 	_face.queue_redraw()
+
+
+func play_elevator(from_floor: int, to_floor: int) -> void:
+	_elev_from = clampi(from_floor, 1, Tune.FLOORS + 1)
+	_elev_to = clampi(to_floor, 1, Tune.FLOORS + 1)
+	_elev_t = ELEV_LEN
 
 
 func _layout() -> void:
@@ -88,6 +102,7 @@ func _process(delta: float) -> void:
 	_flash = maxf(_flash - delta * 2.5, 0.0)
 	_barrel_recoil = maxf(_barrel_recoil - delta * 7.5, 0.0)
 	_cup_bounce = maxf(_cup_bounce - delta * 6.0, 0.0)
+	_elev_t = maxf(_elev_t - delta, 0.0)
 	position = _base + (Vector2(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * 9.0 * _shake * _shake if _shake > 0.0 else Vector2.ZERO)
 
 	if sim != null:
@@ -97,6 +112,17 @@ func _process(delta: float) -> void:
 			if pk.kind == Board.Pocket.TULIP:
 				var cur: float = _tulip_open.get(i, 1.0 if pk.open else 0.0)
 				_tulip_open[i] = lerpf(cur, 1.0 if pk.open else 0.0, clampf(delta * 14.0, 0.0, 1.0))
+		var want := [
+			sim.floor_number(),
+			Floors.is_guard(sim.wave),
+			sim.level(&"bent_nail"),
+			sim.level(&"side_comps"),
+			sim.level(&"tulip_bonus"),
+			sim.level(&"padded_rail"),
+		]
+		if want != _face_state:
+			_face_state = want
+			_face.queue_redraw()
 
 	var keep: Array[Dictionary] = []
 	for f in _fx:
@@ -193,14 +219,20 @@ func consume(events: Array[Dictionary]) -> void:
 				_shatter(e.pos, e.type, e.get("row", 0), e.gold)
 				_ring(e.pos, c, 34.0, 0.3)
 			&"hit":
-				if loud:
-					Sfx.play(&"hit")
-				_shake = 1.0
-				_flash = 0.6
-				_flash_color = Look.RED
-				_pop(e.pos + Vector2(0, -50), "-%d" % e.lost, Look.RED, 34)
-				for i in mini(e.lost, 12):
-					_fx.append({kind = &"ball", pos = e.pos + Vector2(0, -20), vel = Vector2(_rng.randf_range(-220, 220), _rng.randf_range(-420, -160)), t = 0.0, life = 1.4, grav = 1100.0})
+				if int(e.lost) == 0:
+					if loud:
+						Sfx.play(&"shield")
+					_ring(Vector2(sim.ship_x, Tune.SHIP_Y), Look.GOLD, 64.0, 0.4)
+					_pop(e.pos + Vector2(0, -46), "INSURED!", Look.GOLD, 28)
+				else:
+					if loud:
+						Sfx.play(&"hit")
+					_shake = 1.0
+					_flash = 0.6
+					_flash_color = Look.RED
+					_pop(e.pos + Vector2(0, -50), "-%d" % e.lost, Look.RED, 34)
+					for i in mini(e.lost, 12):
+						_fx.append({kind = &"ball", pos = e.pos + Vector2(0, -20), vel = Vector2(_rng.randf_range(-220, 220), _rng.randf_range(-420, -160)), t = 0.0, life = 1.4, grav = 1100.0, gold = false})
 			&"shielded":
 				if loud:
 					Sfx.play(&"shield")
@@ -260,6 +292,24 @@ func consume(events: Array[Dictionary]) -> void:
 			&"clear":
 				if loud:
 					Sfx.play(&"clear")
+			&"broke_house":
+				if loud:
+					Sfx.play(&"jackpot")
+				_shake = 0.7
+				_flash = 1.0
+				_flash_color = Look.GOLD
+				var center := Vector2(Tune.W * 0.5, 420.0)
+				_ring(center, Look.GOLD, 240.0, 0.9)
+				_ring(center, Look.PINK, 175.0, 0.7)
+				_ring(center, Look.CYAN, 115.0, 0.5)
+				_burst(center, Look.GOLD, 48, 360.0, 1.1, 320.0)
+				for i in 24:
+					var a := -PI * 0.5 + _rng.randf_range(-0.95, 0.95)
+					var spd := _rng.randf_range(260.0, 520.0)
+					_fx.append({
+						kind = &"ball", pos = center + Vector2(_rng.randf_range(-120, 120), _rng.randf_range(-30, 30)),
+						vel = Vector2(cos(a), sin(a)) * spd, t = 0.0, life = 1.6, grav = 900.0, gold = i % 2 == 0,
+					})
 			&"bust":
 				if loud:
 					Sfx.play(&"bust")
@@ -320,14 +370,21 @@ func _pop(p: Vector2, s: String, c: Color, size := 24) -> void:
 
 func _draw_face() -> void:
 	var ci := _face
-	if not Art.draw(ci, &"cabinet", Vector2(Tune.W * 0.5, 690.0), Vector2(720.0, 1200.0)):
+	var floor_num := sim.floor_number() if sim else 1
+	var is_guard := sim != null and Floors.is_guard(sim.wave)
+	var th := Look.floor_theme(floor_num)
+	var bg_drawn := Art.draw(ci, Art.backglass(floor_num), Vector2(Tune.W * 0.5, 690.0), Vector2(720.0, 1200.0))
+	var frame_drawn := Art.draw(ci, &"cabinet_frame", Vector2(Tune.W * 0.5, 690.0), Vector2(720.0, 1200.0))
+	if not bg_drawn or not frame_drawn:
 		var outer := Rect2(6, 96, Tune.W - 12, Tune.H - 104)
 		Look.rounded(ci, outer.grow(4), 30, Color(0.02, 0.015, 0.05))
 		var r := Rect2(Tune.LEFT - 6, 100, Tune.RIGHT - Tune.LEFT + 12, Tune.H - 112)
 		ci.draw_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]),
 			PackedColorArray([Look.FACE_TOP, Look.FACE_TOP, Look.FACE_BOTTOM, Look.FACE_BOTTOM]))
-		Look.rounded(ci, outer, 26, Look.PINK, false, 3)
-		Look.rounded(ci, outer.grow(-7), 22, Color(Look.CYAN, 0.55), false, 2)
+	var edge_col: Color = Look.GOLD if is_guard else th.edge
+	var inner_col: Color = Look.RED if is_guard else th.inner
+	Look.rounded(ci, Rect2(19, 109, 682, 1150), 22, Color(edge_col, 0.92), false, 3.0)
+	Look.rounded(ci, Rect2(25, 115, 670, 1138), 20, Color(inner_col, 0.72), false, 2.0)
 	if sim == null:
 		return
 	var b := sim.board
@@ -336,9 +393,20 @@ func _draw_face() -> void:
 	while x < Tune.RIGHT - 10.0:
 		ci.draw_line(Vector2(x, Tune.INVADED_Y), Vector2(x + 10.0, Tune.INVADED_Y), Color(Look.RED, 0.42), 2.2)
 		x += 20.0
-	# The ship's metallic rail.
-	ci.draw_line(Vector2(Tune.LEFT + 4.0, Tune.SHIP_Y + 21), Vector2(Tune.RIGHT - 4.0, Tune.SHIP_Y + 21), Color(0, 0, 0, 0.45), 4.0)
-	ci.draw_line(Vector2(Tune.LEFT + 4.0, Tune.SHIP_Y + 20), Vector2(Tune.RIGHT - 4.0, Tune.SHIP_Y + 20), Color(Look.CYAN, 0.35), 2.0)
+	# The ship's metallic rail (cushioned with cyan bumper pads if Padded rail is owned).
+	if sim.level(&"padded_rail") > 0:
+		var rr_pad := Rect2(Tune.LEFT + 6.0, Tune.SHIP_Y + 15.0, Tune.RIGHT - Tune.LEFT - 12.0, 10.0)
+		Look.rounded(ci, rr_pad, 5.0, Color(0.08, 0.36, 0.48, 0.92))
+		Look.rounded(ci, rr_pad, 5.0, Color(Look.CYAN, 0.65), false, 1.5)
+		var sx := Tune.LEFT + 44.0
+		while sx < Tune.RIGHT - 20.0:
+			ci.draw_line(Vector2(sx, rr_pad.position.y + 1.0), Vector2(sx, rr_pad.end.y - 1.0), Color(0.02, 0.04, 0.08, 0.7), 2.0)
+			sx += 38.0
+		for bx in [Tune.LEFT + 9.0, Tune.RIGHT - 9.0]:
+			ci.draw_rect(Rect2(bx - 3.0, rr_pad.position.y - 1.0, 6.0, rr_pad.size.y + 2.0), Look.BRASS)
+	else:
+		ci.draw_line(Vector2(Tune.LEFT + 4.0, Tune.SHIP_Y + 21), Vector2(Tune.RIGHT - 4.0, Tune.SHIP_Y + 21), Color(0, 0, 0, 0.45), 4.0)
+		ci.draw_line(Vector2(Tune.LEFT + 4.0, Tune.SHIP_Y + 20), Vector2(Tune.RIGHT - 4.0, Tune.SHIP_Y + 20), Color(Look.CYAN, 0.35), 2.0)
 	# Guide rails & shoulder walls (index 6+ skip the reel box and its roof).
 	for w in b.walls.slice(6):
 		Sprites.rail_brass(ci, w[0], w[1], w[2])
@@ -351,13 +419,23 @@ func _draw_face() -> void:
 		Look.rounded(ci, rr, 8, Color(0.015, 0.01, 0.03))
 	for p in b.pins:
 		Sprites.pin(ci, p)
-	# Outlined pay labels under the pockets.
+	if sim.level(&"bent_nail") > 0:
+		var spk := b.pockets[0]
+		var lip_x: float = spk.half + Tune.PIN_R + 1.0
+		for s_dir in [-1.0, 1.0]:
+			var lp: Vector2 = spk.pos + Vector2(s_dir * lip_x, 0.0)
+			ci.draw_arc(lp, 8.5, 0.0, TAU, 16, Color(Look.GREEN, 0.85), 2.0, true)
+			ci.draw_line(lp, lp + Vector2(s_dir * 5.0, -5.0), Look.GOLD, 2.5, true)
+	# Outlined pay labels under the pockets (reflecting bought fixture bonuses).
 	for pk in b.pockets:
-		var label: String = "+%d" % pk.pay
-		var c := _pocket_color(pk.kind)
+		var pay := sim.pocket_pay(pk)
+		var boosted := pay > int(pk.pay)
+		var label: String = "+%d" % pay
+		var c := Look.GOLD if boosted else _pocket_color(pk.kind)
+		var fsz := 14 if boosted else 13
 		var off := Vector2(0, 38) if pk.kind != Board.Pocket.ATTACKER else Vector2(0, 36)
-		_label_outlined(ci, pk.pos + off, label, 13, Color(c, 0.88))
-	_label_outlined(ci, b.pockets[0].pos + Vector2(0, 52), "SPIN", 10, Color(Look.GREEN, 0.78))
+		_label_outlined(ci, pk.pos + off, label, fsz, Color(c, 0.96 if boosted else 0.88))
+	_label_outlined(ci, b.pockets[0].pos + Vector2(0, 54), "SPIN", 10, Color(Look.GREEN, 0.78))
 
 
 func _label_outlined(ci: CanvasItem, pos: Vector2, text: String, size: int, color: Color) -> void:
@@ -390,9 +468,12 @@ func _draw_field_back() -> void:
 	if s.saucer_on:
 		Sprites.saucer(ci, Vector2(s.saucer_x, Tune.SAUCER_Y), _t)
 	var blink := s.invuln > 0.0 and int(s.invuln * 14.0) % 2 == 0
+	var barrels := 1 + s.level(&"twin_barrel")
+	var p_primed := s.pierce_primed() or s.pierce_t > 0.0
+	var deep_cup := s.level(&"deep_cup")
 	if s.phase != Sim.Phase.BUST or s.bust_reason != "invaded":
 		Sprites.ship_back(ci, s.ship_x, Tune.SHIP_Y, clampf(s.ship_vx / Tune.SHIP_SPEED, -1, 1),
-			_cup_half, s.fever_t > 0.0, blink, _barrel_recoil, _cup_bounce)
+			_cup_half, s.fever_t > 0.0, blink, _barrel_recoil, _cup_bounce, barrels, p_primed, deep_cup)
 
 
 func _reels(ci: CanvasItem) -> void:
@@ -481,7 +562,7 @@ func _draw_field_front() -> void:
 	var blink := s.invuln > 0.0 and int(s.invuln * 14.0) % 2 == 0
 	if s.phase != Sim.Phase.BUST or s.bust_reason != "invaded":
 		Sprites.ship_front(ci, s.ship_x, Tune.SHIP_Y, clampf(s.ship_vx / Tune.SHIP_SPEED, -1, 1),
-			_cup_half, s.shield, blink, _cup_bounce)
+			_cup_half, s.shield, blink, _cup_bounce, s.level(&"deep_cup"), s.insurance_ready())
 	for f in _fx:
 		var k: float = 1.0 - f.t / f.life
 		match f.kind:
@@ -492,7 +573,7 @@ func _draw_field_front() -> void:
 			&"ring":
 				ci.draw_arc(f.pos, f.r * (0.3 + 0.7 * (1.0 - k)), 0, TAU, 32, Color(f.color, k), 3.0, true)
 			&"ball":
-				Sprites.ball(ci, f.pos, false, 0.95, clampf(k * 1.5, 0.0, 1.0))
+				Sprites.ball(ci, f.pos, f.get("gold", false), 0.95, clampf(k * 1.5, 0.0, 1.0))
 	for p in _pops:
 		var a := clampf(1.6 - p.t * 1.6, 0.0, 1.0)
 		var at: Vector2 = p.pos + Vector2(0, -40.0 * p.t)
@@ -506,8 +587,16 @@ func _draw_glow() -> void:
 	var ci := _glow
 	var pulse := 0.5 + 0.5 * sin(_t * 2.0)
 	var fever := sim != null and sim.fever_t > 0.0
-	var edge := Look.PINK if not fever else Color.from_hsv(fmod(_t * 0.6, 1.0), 0.7, 1.0)
-	var a := (0.20 if fever else 0.11) + 0.05 * pulse
+	var floor_num := sim.floor_number() if sim else 1
+	var guard := sim != null and Floors.is_guard(sim.wave)
+	var th := Look.floor_theme(floor_num)
+	var edge: Color = th.edge
+	if fever:
+		edge = Color.from_hsv(fmod(_t * 0.6, 1.0), 0.7, 1.0)
+	elif guard:
+		var alert: Color = Look.RED if floor_num >= Tune.FLOORS else Look.GOLD
+		edge = edge.lerp(alert, 0.45 + 0.55 * pulse)
+	var a := (0.20 if fever else (0.16 if guard else 0.11)) + (0.08 if guard else 0.05) * pulse
 	Look.glow_rect(ci, Rect2(0, 86, 22, Tune.H - 86), Color(edge, a))
 	Look.glow_rect(ci, Rect2(Tune.W - 22, 86, 22, Tune.H - 86), Color(edge, a))
 	Look.glow_rect(ci, Rect2(20, 88, Tune.W - 40, 22), Color(edge, a))
@@ -542,6 +631,9 @@ func _draw_glow() -> void:
 	if s.phase != Sim.Phase.BUST or s.bust_reason != "invaded":
 		var thr := Vector2(s.ship_x, Tune.SHIP_Y + 18)
 		Look.glow(ci, thr, 24.0 + 4.0 * sin(_t * 30.0), Color(Look.PINK if fever else Look.CYAN, 0.40))
+		if s.pierce_primed() or s.pierce_t > 0.0:
+			var lean := clampf(s.ship_vx / Tune.SHIP_SPEED, -1, 1) * 3.5
+			Look.glow(ci, Vector2(s.ship_x + lean, Tune.SHIP_Y - 31.0), 16.0 + 3.0 * pulse, Color(Look.PINK, 0.52))
 	for f in _fx:
 		if f.kind == &"spark":
 			Look.glow(ci, f.pos, 8.0, Color(f.color, 0.5 * (1.0 - f.t / f.life)))
@@ -559,10 +651,14 @@ func _draw_hud() -> void:
 	var tc := Look.RED if low and int(_t * 4.0) % 2 == 0 else Look.INK
 	ci.draw_string(Look.display, Vector2(Tune.LEFT + 34, 66), str(s.tray), HORIZONTAL_ALIGNMENT_LEFT, -1, 40, tc)
 	ci.draw_string(Look.sans_bold, Vector2(Tune.LEFT + 36, 86), "BALLS", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Look.MUTED)
-	var head := "FLOOR %d · %s" % [s.floor_number(), "GUARD" if Floors.is_guard(s.wave) else "WAVE %d" % s.wave_in_floor()]
+	var is_guard := Floors.is_guard(s.wave)
+	var head := "FLOOR %d · %s" % [s.floor_number(), "GUARD" if is_guard else "WAVE %d" % s.wave_in_floor()]
 	if s.floor_number() > Tune.FLOORS:
 		head = "AFTER HOURS · WAVE %d" % s.wave
-	Look.text(ci, Vector2(Tune.W / 2.0, 58), head, 24, Look.GOLD)
+	var head_col: Color = Look.PINK if is_guard else Look.GOLD
+	Look.text(ci, Vector2(Tune.W / 2.0, 58), head, 24, head_col)
+	if is_guard:
+		ci.draw_line(Vector2(Tune.W * 0.5 - 92, 32), Vector2(Tune.W * 0.5 + 92, 32), Color(Look.GOLD, 0.72), 2.0, true)
 	Look.text(ci, Vector2(Tune.W / 2.0, 80), "%s · clear bonus +%d" % [Floors.floor_name(s.floor_number()).to_lower(), s.clear_bonus_at(s.wave)], 14, Look.MUTED, Look.sans)
 	Look.rounded(ci, PAUSE_RECT, 10, Color(0.08, 0.08, 0.16, 0.75))
 	Look.rounded(ci, PAUSE_RECT, 10, Color(0.55, 0.60, 0.78, 0.45), false, 1.5)
@@ -580,9 +676,75 @@ func _draw_hud() -> void:
 		powers.append(["WIDE", s.magnet_t / s.power_len(), Look.CYAN])
 	if s.shield:
 		powers.append(["SHIELD", 1.0, Look.GOLD])
+	if s.insurance_ready():
+		powers.append(["INSURED", 1.0, Look.GOLD])
 	var y := 34.0
 	for p in powers:
 		ci.draw_string(Look.display, Vector2(x - 120, y + 12), p[0], HORIZONTAL_ALIGNMENT_RIGHT, 160, 13, p[2])
 		ci.draw_rect(Rect2(x + 46, y + 2, 26, 8), Color(p[2], 0.2))
 		ci.draw_rect(Rect2(x + 46, y + 2, 26 * p[1], 8), p[2])
 		y += 18.0
+	_draw_fixture_rack(ci, s)
+	if _elev_t > 0.0:
+		_draw_elevator(ci)
+
+
+func _draw_fixture_rack(ci: CanvasItem, s: Sim) -> void:
+	if s.fixtures.is_empty():
+		return
+	var owned: Array[StringName] = []
+	for id: StringName in Fixtures.ORDER:
+		if s.fixtures.has(id):
+			owned.append(id)
+	var step := 30.0
+	var w := owned.size() * step + 14.0
+	var rect := Rect2(Tune.W * 0.5 - w * 0.5, 1215.0, w, 30.0)
+	Look.rounded(ci, rect, 9.0, Color(0.03, 0.025, 0.08, 0.88))
+	Look.rounded(ci, rect, 9.0, Color(Look.BRASS, 0.55), false, 1.4)
+	for i in owned.size():
+		var id: StringName = owned[i]
+		var pos := Vector2(rect.position.x + 7.0 + step * (i + 0.5), 1230.0)
+		var alpha := 0.32 if (id == &"insurance" and not s.insurance_ready()) else 1.0
+		Art.draw(ci, StringName("fix_" + String(id)), pos, Vector2(24, 24), 0.0, Vector2.ONE, Color(1, 1, 1, alpha))
+		var lv := s.level(id)
+		if lv > 1:
+			_label_outlined(ci, pos + Vector2(9, 10), str(lv), 10, Look.GOLD)
+
+
+func _draw_elevator(ci: CanvasItem) -> void:
+	var k := clampf(1.0 - _elev_t / ELEV_LEN, 0.0, 1.0)
+	var fade := clampf(minf(k * 5.0, (1.0 - k) * 3.0), 0.0, 1.0)
+	var sweep := ease(clampf(k / 0.72, 0.0, 1.0), -2.0)
+	# Brief parting brass doors along the cabinet inner flanks.
+	var door_w := (1.0 - clampf(k / 0.55, 0.0, 1.0)) * 78.0
+	if door_w > 1.0:
+		ci.draw_rect(Rect2(Tune.LEFT, 118.0, door_w, 1130.0), Color(0.06, 0.045, 0.11, 0.55 * fade))
+		ci.draw_rect(Rect2(Tune.RIGHT - door_w, 118.0, door_w, 1130.0), Color(0.06, 0.045, 0.11, 0.55 * fade))
+		ci.draw_line(Vector2(Tune.LEFT + door_w, 118.0), Vector2(Tune.LEFT + door_w, 1248.0), Color(Look.BRASS, 0.8 * fade), 2.5)
+		ci.draw_line(Vector2(Tune.RIGHT - door_w, 118.0), Vector2(Tune.RIGHT - door_w, 1248.0), Color(Look.BRASS, 0.8 * fade), 2.5)
+	# Semicircular brass art-deco elevator floor dial at top center.
+	var dc := Vector2(Tune.W * 0.5, 214.0)
+	var r := 84.0
+	var pts := PackedVector2Array([dc])
+	for i in 25:
+		var ang := PI + (i / 24.0) * PI
+		pts.append(dc + Vector2(cos(ang), sin(ang)) * r)
+	ci.draw_colored_polygon(pts, Color(0.04, 0.03, 0.09, 0.92 * fade))
+	ci.draw_arc(dc, r, PI, TAU, 28, Color(Look.BRASS, 0.95 * fade), 3.0, true)
+	ci.draw_arc(dc, r - 6.0, PI, TAU, 28, Color(Look.floor_theme(_elev_to).edge, 0.65 * fade), 1.5, true)
+	for idx in 6:
+		var f_num := idx + 1
+		var ang := lerpf(PI * 1.12, PI * 1.88, idx / 5.0)
+		var tp := dc + Vector2(cos(ang), sin(ang)) * (r - 20.0)
+		var lit := f_num == _elev_to
+		if f_num <= Tune.FLOORS:
+			Look.text(ci, tp + Vector2(0, 5), str(f_num), 14 if lit else 12,
+				Color(Look.GOLD if lit else Look.INK, (1.0 if lit else 0.55) * fade), Look.display)
+		else:
+			var dp := PackedVector2Array([tp + Vector2(0, -6), tp + Vector2(5, 0), tp + Vector2(0, 6), tp + Vector2(-5, 0)])
+			ci.draw_colored_polygon(dp, Color(Look.GOLD if lit else Look.PINK, (1.0 if lit else 0.7) * fade))
+	var a_from := lerpf(PI * 1.12, PI * 1.88, (_elev_from - 1) / 5.0)
+	var a_to := lerpf(PI * 1.12, PI * 1.88, (_elev_to - 1) / 5.0)
+	var ang := lerpf(a_from, a_to, sweep)
+	ci.draw_line(dc, dc + Vector2(cos(ang), sin(ang)) * (r - 30.0), Color(Look.GOLD, 0.98 * fade), 3.0, true)
+	ci.draw_circle(dc, 5.5, Color(Look.BRASS, fade))
