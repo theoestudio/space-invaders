@@ -46,6 +46,9 @@ func _ready() -> void:
 	ui.share_pressed.connect(_share)
 	ui.cash_pressed.connect(_cash_out)
 	ui.ride_pressed.connect(_ride)
+	ui.buy_pressed.connect(_buy)
+	ui.sell_pressed.connect(_sell)
+	ui.reroll_pressed.connect(_reroll)
 	ui.resume_pressed.connect(func() -> void: set_paused(false))
 	ui.rules_closed.connect(_on_rules_closed)
 	ui.promo_pressed.connect(_promo)
@@ -165,6 +168,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_cash_out()
 		elif key == KEY_R or key == KEY_ENTER:
 			_ride()
+		elif key >= KEY_1 and key < KEY_1 + Fixtures.OFFERS:
+			_buy(key - KEY_1)
+		elif key == KEY_X:
+			_reroll()
 		return
 	if key == KEY_ESCAPE or key == KEY_P:
 		if ui.is_rules_shown():
@@ -250,6 +257,24 @@ func _ride() -> void:
 	ui.hide_between()
 	sim.next_wave()
 	_wave_banner()
+
+
+func _buy(i: int) -> void:
+	if sim.buy(i):
+		Sfx.play(&"select", 0.8)
+		ui.show_between(sim)
+
+
+func _sell(id: StringName) -> void:
+	if sim.sell(id):
+		Sfx.play(&"select", 0.6)
+		ui.show_between(sim)
+
+
+func _reroll() -> void:
+	if sim.reroll():
+		Sfx.play(&"select", 1.2)
+		ui.show_between(sim)
 
 
 func _cash_out() -> void:

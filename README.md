@@ -15,17 +15,26 @@ field of brass pins:
 - **Your tray is everything.** Every shot costs a ball and a hit from the House
   spills twelve. Catch falling balls in the cup on your launcher for +1.
 
-After each wave you choose: **cash out** (the tray is your score) or **let it ride**
-into a faster, lower, harder wave with a bigger clear bonus. Bust (the House reaches
-your rail, or the tray runs dry) and the House keeps everything.
+The run descends five casino floors (the Lobby, the Card Room, the Dice Pit, the
+Wheel Room and the Vault), four waves each, the last a guard worth a double clear
+bonus. Breaking the Vault's guard doubles the tray.
 
-**Daily run.** One seed a day, the same for everyone: the same board, formations and
-reel draws in the same order. The first finished run counts; replays are practice.
-Results copy as a spoiler-free row of squares.
+After each wave the **cashier** sells fixtures for the rest of the run with tray
+balls (a bent nail, a twin barrel, interest on the tray and so on), and then you
+choose: **cash out** (the tray is your score) or **let it ride** into a faster,
+harder wave with a bigger clear bonus. Bust (the House reaches your rail, or the
+tray runs dry) and the House keeps everything. See `docs/descent.md`.
 
-**Arcade.** A fresh board every run; keeps your best payout.
+**Daily run.** One seed a day, the same for everyone: the same board, formations,
+reel draws and cashier offers in the same order. It ends at the Vault. The first
+finished run counts; replays are practice. Results copy as a spoiler-free row of
+squares.
 
-Arrow keys or A/D move, Space fires, Esc pauses. On a phone or with a mouse, hold
+**Arcade.** A fresh board every run; past the Vault it goes on into After Hours, up
+to wave 30. Keeps your best payout.
+
+Arrow keys or A/D move, Space fires, Esc pauses. Between waves, 1 to 3 buy, X
+rerolls, C cashes out and R rides. On a phone or with a mouse, hold
 anywhere and drag: the launcher follows your finger and fires on its own.
 
 This repo started in 2016 as a small Space Invaders-style demo for my ion-cloud
@@ -37,7 +46,7 @@ and still served from the `github.io` branch. Pachinko Descent replaced it in 20
 
 | Path | What |
 | --- | --- |
-| `scripts/core/` | The run as plain data: `Sim` (stepped at 60 Hz), `Board`, `Reels`, `Daily`, `Tune` (every number) and the `Autopilot`. No nodes. |
+| `scripts/core/` | The run as plain data: `Sim` (stepped at 60 Hz), `Board`, `Reels`, `Floors`, `Fixtures` (the cashier), `Daily`, `Tune` (every number) and the `Autopilot`. No nodes. |
 | `scripts/view/` | `Stage` draws a Sim in depth-sorted layers: the cabinet, the House, balls dropping into pockets, neon glow, effects and the in-board HUD, using 2.5D Cycles miniatures in `assets/art/`. |
 | `scripts/ui/` | Menu, pause, the cash-out choice, results and How to Play, built in code. |
 | `scripts/autoload/` | Local profile (settings, records), sound and music, and the one telemetry call. |

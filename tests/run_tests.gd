@@ -16,6 +16,7 @@ func _init() -> void:
 	_economy()
 	_phases()
 	_floors()
+	_cashier()
 	_daily()
 	_telemetry()
 	_more_games()
@@ -288,6 +289,98 @@ func _floors() -> void:
 	for i in 2000:
 		last.step(0.0, NAN, false)
 	check(last.phase == Sim.Phase.SETTLED and not last.can_ride(), "the House closes at wave %d" % Tune.MAX_WAVE)
+
+
+## A settled run at wave `n` with `tray` balls, its cashier open.
+func _settled(seed_value: int, n: int, tray: int) -> Sim:
+	var s := Sim.create(seed_value)
+	s.start_wave(n)
+	for inv in s.invaders:
+		inv.alive = false
+	var guard := 0
+	while s.phase != Sim.Phase.SETTLED and guard < 2000:
+		s.step(0.0, NAN, false)
+		guard += 1
+	s.tray = tray
+	return s
+
+
+func _cashier() -> void:
+	check(Fixtures.ORDER.size() == Fixtures.ALL.size() and Fixtures.ORDER.all(func(id: StringName) -> bool: return Fixtures.ALL.has(id)), "every fixture is in the draw order once")
+	var a := _settled(5, 2, 500)
+	var b := _settled(5, 2, 500)
+	check(a.offers.size() == Fixtures.OFFERS and a.offers == b.offers, "the same run and wave offer the same fixtures (%s)" % str(a.offers))
+	check(_settled(5, 3, 500).offers != a.offers or _settled(6, 2, 500).offers != a.offers, "offers change with the wave or the seed")
+	var seen := {}
+	for o in a.offers:
+		seen[o] = true
+	check(seen.size() == Fixtures.OFFERS, "offers do not repeat in one visit")
+	# Buying costs the price, raises prices, and takes the offer off the counter.
+	var id := a.offers[0]
+	var cost := a.price(id)
+	check(a.buy(0) and a.tray == 500 - cost and a.level(id) == 1 and a.offers[0] == &"", "a buy costs its price")
+	check(not a.buy(0), "a bought offer is gone")
+	check(a.price(a.offers[1]) == roundi(Fixtures.ALL[a.offers[1]].price * Fixtures.PRICE_GROWTH), "each buy raises prices")
+	# Rerolls double and draw new offers.
+	var before := a.offers.duplicate()
+	var t := a.tray
+	check(a.reroll() and a.tray == t - Fixtures.REROLL_PRICE and a.reroll_price() == Fixtures.REROLL_PRICE * 2, "a reroll costs 10, then 20")
+	check(a.offers != before, "a reroll draws new offers")
+	# Selling returns half what was paid.
+	t = a.tray
+	check(a.sell(id) and a.tray == t + cost / 2 and a.level(id) == 0, "a sale returns half")
+	# No buying mid-wave, nothing unaffordable, six slots.
+	var c := Sim.create(5)
+	c.offers = [&"comps"]
+	check(not c.can_buy(0), "the cashier only opens between waves")
+	var d := _settled(5, 2, 3)
+	check(not d.can_buy(0) and not d.can_buy(1) and not d.reroll(), "nothing the tray cannot pay for")
+	var e := _settled(5, 2, 9999)
+	for i in Fixtures.SLOTS:
+		e.fixtures[Fixtures.ORDER[i]] = 1
+	e.offers = [Fixtures.ORDER[Fixtures.SLOTS], Fixtures.ORDER[0]]
+	check(not e.can_buy(0), "six slots at most")
+	check(e.can_buy(1) == (Fixtures.ALL[Fixtures.ORDER[0]].stacks > 1), "an owned fixture still stacks")
+	# The daily's last wave and a closed House open no cashier.
+	var f := _settled(5, Tune.MAX_WAVE, 500)
+	check(f.offers.is_empty(), "no cashier when there is no next wave")
+	# Effects.
+	var g := Sim.create(5)
+	g.fixtures = {&"twin_barrel": 1, &"quick_reload": 1}
+	for i in 30:
+		g.step(0.0, NAN, true)
+	check(g.bolts.size() <= Tune.MAX_BOLTS + 1 and g.cool <= Tune.BOLT_COOLDOWN * Fixtures.QUICK_RELOAD, "twin barrel and quick reload")
+	var h := Sim.create(5)
+	h.fixtures = {&"insurance": 1, &"padded_rail": 1}
+	h.tray = 100
+	h.shots.append(Vector2(h.ship_x, Tune.SHIP_Y - 2.0))
+	h.step(0.0, NAN, false)
+	check(h.tray == 100 and h.stats.hits == 1, "insurance takes the first hit of the wave")
+	h.invuln = 0.0
+	h.shots.append(Vector2(h.ship_x, Tune.SHIP_Y - 2.0))
+	h.step(0.0, NAN, false)
+	check(h.tray == 100 - Fixtures.PADDED_SPILL, "the padded rail spills 8")
+	var k := Sim.create(5)
+	k.fixtures = {&"comps": 1, &"interest": 1}
+	k.tray = 200
+	for inv in k.invaders:
+		inv.alive = false
+	k.step(0.0, NAN, false)
+	var bonus := roundi(Tune.CLEAR_BONUS * Fixtures.COMPS_MULT)
+	var interest := mini(roundi((200 + bonus) * Fixtures.INTEREST_RATE), Fixtures.INTEREST_CAP)
+	check(k.tray == 200 + bonus + interest, "comps and interest on a clear (%d)" % k.tray)
+	var m := Sim.create(5)
+	m.fixtures = {&"bent_nail": 2, &"deep_cup": 1, &"wide_cup": 1, &"deep_holds": 1, &"long_fever": 1}
+	check(m._pocket_pay(m.board.pockets[0]) == Tune.POCKET_START_PAY + 4, "two bent nails pay +4 in the chucker")
+	check(m.tray_half() == Tune.TRAY_HALF + Fixtures.WIDE_CUP and m.max_holds() == Tune.MAX_HOLDS + 2 and m.fever_len() == Tune.FEVER_TIME + 4.0, "wide cup, deep holds, long fever")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var fevers := 0
+	for i in 20000:
+		var r := Reels.roll(rng, 140)
+		if r.triple and r.symbols[0] == Reels.Sym.SEVEN:
+			fevers += 1
+	check(absf(fevers / 20000.0 - 0.14) < 0.01, "loaded reels raise the fever odds (%.3f)" % (fevers / 20000.0))
 
 
 func _daily() -> void:

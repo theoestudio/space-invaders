@@ -431,8 +431,9 @@ func _reels(ci: CanvasItem) -> void:
 	if not Art.draw(ci, &"reel_frame", center, Vector2(256, 128)):
 		Look.rounded(ci, rr.grow(4), 10, Color(0.55, 0.58, 0.68), false, 4)
 	# Hold lamps: banked spins.
-	for i in Tune.MAX_HOLDS:
-		var lp := Vector2(center.x - 27 + i * 18, rr.end.y + 20)
+	var lamps := s.max_holds()
+	for i in lamps:
+		var lp := Vector2(center.x - (lamps - 1) * 9.0 + i * 18, rr.end.y + 20)
 		ci.draw_circle(lp, 5.2, Color(0.04, 0.06, 0.08))
 		ci.draw_circle(lp, 4.0, Look.GREEN if i < s.holds else Color(Look.GREEN, 0.18))
 
@@ -562,7 +563,7 @@ func _draw_hud() -> void:
 	if s.floor_number() > Tune.FLOORS:
 		head = "AFTER HOURS · WAVE %d" % s.wave
 	Look.text(ci, Vector2(Tune.W / 2.0, 58), head, 24, Look.GOLD)
-	Look.text(ci, Vector2(Tune.W / 2.0, 80), "%s · clear bonus +%d" % [Floors.floor_name(s.floor_number()).to_lower(), Sim.clear_bonus_for(s.wave)], 14, Look.MUTED, Look.sans)
+	Look.text(ci, Vector2(Tune.W / 2.0, 80), "%s · clear bonus +%d" % [Floors.floor_name(s.floor_number()).to_lower(), s.clear_bonus_at(s.wave)], 14, Look.MUTED, Look.sans)
 	Look.rounded(ci, PAUSE_RECT, 10, Color(0.08, 0.08, 0.16, 0.75))
 	Look.rounded(ci, PAUSE_RECT, 10, Color(0.55, 0.60, 0.78, 0.45), false, 1.5)
 	ci.draw_rect(Rect2(PAUSE_RECT.position + Vector2(16, 14), Vector2(5, 18)), Look.INK)
@@ -570,13 +571,13 @@ func _draw_hud() -> void:
 	var x := Tune.RIGHT - 130.0
 	var powers := []
 	if s.fever_t > 0.0:
-		powers.append(["FEVER", s.fever_t / Tune.FEVER_TIME, Look.PINK])
+		powers.append(["FEVER", s.fever_t / s.fever_len(), Look.PINK])
 	if s.spread_t > 0.0:
-		powers.append(["SPREAD", s.spread_t / Tune.POWER_TIME, Look.RED])
+		powers.append(["SPREAD", s.spread_t / s.power_len(), Look.RED])
 	if s.pierce_t > 0.0:
-		powers.append(["PIERCE", s.pierce_t / Tune.POWER_TIME, Look.PINK])
+		powers.append(["PIERCE", s.pierce_t / s.power_len(), Look.PINK])
 	if s.magnet_t > 0.0:
-		powers.append(["WIDE", s.magnet_t / Tune.POWER_TIME, Look.CYAN])
+		powers.append(["WIDE", s.magnet_t / s.power_len(), Look.CYAN])
 	if s.shield:
 		powers.append(["SHIELD", 1.0, Look.GOLD])
 	var y := 34.0

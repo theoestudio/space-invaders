@@ -11,6 +11,10 @@ signal again_pressed
 signal share_pressed
 signal cash_pressed
 signal ride_pressed
+## The cashier: buy offer `index`, sell a fixture, reroll the offers.
+signal buy_pressed(index: int)
+signal sell_pressed(id: StringName)
+signal reroll_pressed
 signal resume_pressed
 signal rules_closed
 ## A "More from Twinspear" game tapped: `where` is "menu" (the list) or "end" (the
@@ -22,7 +26,7 @@ const RULE_PAGES := [
 	["Balls are everything", "Your tray of balls is your ammunition and your score. Every shot costs one ball, and a hit from the House spills twelve.\n\nRun the tray dry with nothing left in play and you are bust."],
 	["Wrecks fall through the pins", "Every invader you break drops a ball through the pin field. Dice drop two. Gold invaders drop gold balls that pay triple.\n\nPockets pay into your tray: side +2, tulip +5, and the green start chucker +3. Catch a ball in the cup on your launcher for +1. A bolt through a shut tulip springs it open."],
 	["Spin the reels", "Each ball in the start chucker banks a spin, up to four. Three of a kind pays:\n\nSevens: FEVER. Free rapid fire, the gold attacker opens (+10) and balls shower down.\nCherries: spread shot  ·  Bars: piercing bolts\nBells: a shield  ·  Stars: a wide catch cup  ·  Chips: +20 balls\n\nShoot the croupier's saucer for a free spin and five balls."],
-	["Cash out or ride down", "After each wave the House offers a choice. Cash out and your tray is your score. Let it ride and the next wave pays a bigger clear bonus, but marches faster, starts lower and shoots more.\n\nFive floors of four waves each, the last a guard worth double. Break the Vault's guard and the tray doubles. Bust and the House keeps everything."],
+	["Cash out or ride down", "After each wave the cashier sells fixtures for the rest of the run, paid from your tray. Then choose. Cash out and your tray is your score. Let it ride and the next wave pays a bigger clear bonus, but marches faster, starts lower and shoots more.\n\nFive floors of four waves each, the last a guard worth double. Break the Vault's guard and the tray doubles. Bust and the House keeps everything."],
 	["The daily run", "One run a day, the same for everyone: the same board, the same formations and the same reel draws in the same order. Your first finished run counts; replays are practice. The daily ends at the Vault.\n\nArcade deals a fresh board every time and keeps your best payout."],
 ]
 
@@ -57,6 +61,14 @@ var _between_title: Label
 var _between_lines: Label
 var _cash: Button
 var _ride: Button
+var _cashier: VBoxContainer
+var _offer_buttons: Array[Button] = []
+var _offer_names: Array[Label] = []
+var _offer_texts: Array[Label] = []
+var _offer_prices: Array[Label] = []
+var _owned_label: Label
+var _owned: HFlowContainer
+var _reroll: Button
 
 var _end_title: Label
 var _end_sub: Label
@@ -364,9 +376,10 @@ func _build_between() -> void:
 	var v := _panel(_between, Look.GOLD)
 	_between_title = _centered(Style.label("", 42, Look.GOLD, Look.display))
 	v.add_child(_between_title)
-	_between_lines = _centered(Style.label("", 22, Style.INK))
+	_between_lines = _centered(Style.label("", 20, Style.INK))
 	v.add_child(_between_lines)
-	v.add_child(_spacer(4))
+	_build_cashier(v)
+	v.add_child(_spacer(2))
 	_cash = Style.button("", Look.GOLD, true)
 	_cash.pressed.connect(func() -> void: cash_pressed.emit())
 	v.add_child(_cash)
@@ -374,6 +387,101 @@ func _build_between() -> void:
 	_ride.pressed.connect(func() -> void: ride_pressed.emit())
 	v.add_child(_ride)
 	v.add_child(_centered(Style.label("Bust and the House keeps everything.", 18, Style.FAINT)))
+
+
+func _build_cashier(parent: Control) -> void:
+	_cashier = VBoxContainer.new()
+	_cashier.add_theme_constant_override(&"separation", 8)
+	parent.add_child(_cashier)
+	_cashier.add_child(_centered(Style.label("THE CASHIER · fixtures for the rest of the run", 16, Look.CYAN, Look.sans_bold)))
+	for i in Fixtures.OFFERS:
+		var b := Style.button("", Look.CYAN)
+		b.custom_minimum_size = Vector2(0, 62)
+		b.pressed.connect(func() -> void: buy_pressed.emit(i))
+		var row := HBoxContainer.new()
+		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		row.offset_left = 18
+		row.offset_right = -18
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(row)
+		var words := VBoxContainer.new()
+		words.add_theme_constant_override(&"separation", 0)
+		words.alignment = BoxContainer.ALIGNMENT_CENTER
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(words)
+		var n := Style.label("", 18, Style.INK, Look.display)
+		words.add_child(n)
+		var t := Style.label("", 15, Style.MUTED)
+		words.add_child(t)
+		var pr := Style.label("", 20, Look.GOLD, Look.display)
+		pr.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pr.size_flags_vertical = Control.SIZE_FILL
+		row.add_child(pr)
+		_cashier.add_child(b)
+		_offer_buttons.append(b)
+		_offer_names.append(n)
+		_offer_texts.append(t)
+		_offer_prices.append(pr)
+	var row2 := _row(_cashier)
+	_owned_label = Style.label("", 15, Style.MUTED)
+	_owned_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row2.add_child(_owned_label)
+	_reroll = _small_button("", Look.CYAN)
+	_reroll.pressed.connect(func() -> void: reroll_pressed.emit())
+	row2.add_child(_reroll)
+	_owned = HFlowContainer.new()
+	_owned.add_theme_constant_override(&"h_separation", 6)
+	_owned.add_theme_constant_override(&"v_separation", 6)
+	_cashier.add_child(_owned)
+
+
+func _small_button(text: String, tone: Color) -> Button:
+	var b := Style.button(text, tone)
+	b.add_theme_font_size_override(&"font_size", 14)
+	for state in [&"normal", &"hover", &"pressed", &"disabled"]:
+		var box: StyleBoxFlat = b.get_theme_stylebox(state).duplicate()
+		box.content_margin_left = 10
+		box.content_margin_right = 10
+		box.content_margin_top = 6
+		box.content_margin_bottom = 6
+		b.add_theme_stylebox_override(state, box)
+	return b
+
+
+func _show_cashier(s: Sim) -> void:
+	_cashier.visible = s.can_ride() and not s.offers.is_empty()
+	if not _cashier.visible:
+		return
+	for i in Fixtures.OFFERS:
+		var b := _offer_buttons[i]
+		var id: StringName = s.offers[i] if i < s.offers.size() else &""
+		b.visible = i < s.offers.size()
+		if id == &"":
+			_offer_names[i].text = "Sold"
+			_offer_texts[i].text = ""
+			_offer_prices[i].text = ""
+			b.disabled = true
+			continue
+		var f: Dictionary = Fixtures.ALL[id]
+		var stacks := ""
+		if f.stacks > 1:
+			stacks = "  %d/%d" % [s.level(id) + 1, f.stacks]
+		_offer_names[i].text = f.name + stacks
+		_offer_texts[i].text = "%s · %s" % [f.group, f.text]
+		_offer_prices[i].text = str(s.price(id))
+		b.disabled = not s.can_buy(i)
+	_owned_label.text = "Yours %d/%d%s" % [s.fixtures.size(), Fixtures.SLOTS, "" if s.fixtures.is_empty() else " · sells for half"]
+	for c in _owned.get_children():
+		c.queue_free()
+	for id: StringName in s.fixtures:
+		var lv := s.level(id)
+		var label: String = Fixtures.name_of(id) + (" x%d" % lv if lv > 1 else "")
+		var b := _small_button("%s · sell %d" % [label, s.sell_price(id)], Look.PINK)
+		b.pressed.connect(func() -> void: sell_pressed.emit(id))
+		_owned.add_child(b)
+	_reroll.text = "Reroll %d" % s.reroll_price()
+	_reroll.disabled = s.reroll_price() > s.tray
 
 
 func show_between(s: Sim) -> void:
@@ -393,14 +501,14 @@ func show_between(s: Sim) -> void:
 	if not s.can_ride():
 		lines += "\n\nThe daily ends at the Vault. Cash out your winnings." if s.broke_house() else "\n\nThe House is closing. Cash out."
 	elif s.broke_house():
-		lines += "\n\nAfter Hours: endless waves on mixed floors.\nWave %d's clear bonus is +%d." % [next, Sim.clear_bonus_for(next)]
+		lines += "\n\nAfter Hours: endless waves on mixed floors.\nWave %d's clear bonus is +%d." % [next, s.clear_bonus_at(next)]
 	elif s.floor_cleared():
 		lines += "\n\nNext: %s, floor %d of %d.\nThe House starts back near the top. Clear bonus +%d." % [
-			Floors.in_sentence(f + 1), f + 1, Tune.FLOORS, Sim.clear_bonus_for(next)]
+			Floors.in_sentence(f + 1), f + 1, Tune.FLOORS, s.clear_bonus_at(next)]
 	elif Floors.is_guard(next):
-		lines += "\n\nNext: the floor's guard, with extra gold.\nIts clear bonus is doubled: +%d." % Sim.clear_bonus_for(next)
+		lines += "\n\nNext: the floor's guard, with extra gold.\nIts clear bonus is doubled: +%d." % s.clear_bonus_at(next)
 	else:
-		lines += "\n\nWave %d marches faster and starts lower.\nIts clear bonus is +%d." % [Floors.wave_in_floor(next), Sim.clear_bonus_for(next)]
+		lines += "\n\nWave %d marches faster and starts lower.\nIts clear bonus is +%d." % [Floors.wave_in_floor(next), s.clear_bonus_at(next)]
 	_between_lines.text = lines
 	_cash.text = "Cash out %d" % s.tray
 	if s.floor_cleared() and not s.broke_house():
@@ -410,6 +518,7 @@ func show_between(s: Sim) -> void:
 	else:
 		_ride.text = "Let it ride: wave %d" % Floors.wave_in_floor(next) if f <= Tune.FLOORS else "Let it ride: wave %d" % next
 	_ride.visible = s.can_ride()
+	_show_cashier(s)
 	_between.visible = true
 
 

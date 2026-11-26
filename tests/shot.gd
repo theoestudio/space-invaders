@@ -82,6 +82,12 @@ func _run() -> void:
 	await _wait(0.3)
 	await _shot("08-between")
 	if main.ui.is_between_shown():
+		s.tray += 300
+		main._buy(0)
+		main._buy(1)
+		await _wait(0.3)
+		await _shot("08b-bought")
+	if main.ui.is_between_shown():
 		main._cash_out()
 		await _wait(0.5)
 	await _shot("09-cashed")

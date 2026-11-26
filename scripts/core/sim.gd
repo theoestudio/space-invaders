@@ -98,11 +98,23 @@ var events: Array[Dictionary] = []
 var stats := {
 	shots = 0, kills = 0, hits = 0, spins = 0, fevers = 0, prizes = 0,
 	pocketed = 0, caught = 0, drained = 0, peak = 0, saucers = 0,
+	bought = 0, spent = 0,
 	## Tray change over each finished wave, bonus included.
 	waves = [],
 }
 var clear_bonus := 0
 var wave_start_tray := 0
+
+## The cashier (Fixtures): what this run has bought, id -> stacks, and what it
+## paid for each; buys so far (prices grow with them); this visit's offers (an
+## empty StringName once bought) and rerolls.
+var fixtures := {}
+var paid := {}
+var buys := 0
+var offers: Array[StringName] = []
+var rerolls := 0
+var _insured := false
+var _volleys := 0
 
 var _rng := RandomNumberGenerator.new()
 var _reel_rng := RandomNumberGenerator.new()
@@ -136,6 +148,8 @@ func start_wave(n: int) -> void:
 	phase = Phase.PLAYING
 	wave_start_tray = tray
 	clear_bonus = 0
+	offers.clear()
+	_insured = false
 	invaders.clear()
 	shots.clear()
 	saucer_on = false
@@ -150,7 +164,7 @@ func start_wave(n: int) -> void:
 			inv.kind = plan[row]
 			inv.hp = KIND_HP[inv.kind]
 			invaders.append(inv)
-	var golds := 2 + n / 3 + (Tune.GUARD_GOLDS if Floors.is_guard(n) else 0)
+	var golds := 2 + n / 3 + (Tune.GUARD_GOLDS if Floors.is_guard(n) else 0) + level(&"gold_leaf")
 	for i in golds:
 		invaders[wrng.randi_range(0, invaders.size() - 1)].gold = true
 	origin = Vector2((Tune.W - (Tune.COLS - 1) * Tune.CELL.x) / 2.0,
@@ -188,10 +202,124 @@ func broke_house() -> bool:
 	return wave == Tune.VAULT_WAVE and phase in [Phase.CLEARED, Phase.SETTLED, Phase.CASHED]
 
 
-## What clearing wave `n` pays, before the Vault doubles the tray.
+## What clearing wave `n` pays, before Comps, interest and the Vault.
 static func clear_bonus_for(n: int) -> int:
 	var bonus := Tune.CLEAR_BONUS + Tune.CLEAR_BONUS_PER_WAVE * (n - 1)
 	return bonus * (Tune.GUARD_BONUS_MULT if Floors.is_guard(n) else 1)
+
+
+## What clearing wave `n` pays this run, Comps included (interest comes on top).
+func clear_bonus_at(n: int) -> int:
+	var bonus := clear_bonus_for(n)
+	if level(&"comps") > 0:
+		bonus = roundi(bonus * Fixtures.COMPS_MULT)
+	return bonus
+
+
+# --- the cashier ---------------------------------------------------------------
+
+## Stacks of a fixture this run has bought.
+func level(id: StringName) -> int:
+	return fixtures.get(id, 0)
+
+
+func price(id: StringName) -> int:
+	return roundi(Fixtures.ALL[id].price * pow(Fixtures.PRICE_GROWTH, buys))
+
+
+func reroll_price() -> int:
+	return Fixtures.REROLL_PRICE << rerolls
+
+
+func sell_price(id: StringName) -> int:
+	return int(paid.get(id, 0) * Fixtures.SELL_SHARE)
+
+
+## Whether offer `i` can be bought now: settled, on sale, affordable, a slot free
+## (or already owned and not maxed).
+func can_buy(i: int) -> bool:
+	if phase != Phase.SETTLED or i < 0 or i >= offers.size() or offers[i] == &"":
+		return false
+	var id := offers[i]
+	if level(id) >= Fixtures.ALL[id].stacks or price(id) > tray:
+		return false
+	return fixtures.has(id) or fixtures.size() < Fixtures.SLOTS
+
+
+func buy(i: int) -> bool:
+	if not can_buy(i):
+		return false
+	var id := offers[i]
+	var cost := price(id)
+	tray -= cost
+	fixtures[id] = level(id) + 1
+	paid[id] = paid.get(id, 0) + cost
+	buys += 1
+	offers[i] = &""
+	stats.bought += 1
+	stats.spent += cost
+	_emit(&"bought", {id = id, cost = cost})
+	return true
+
+
+func sell(id: StringName) -> bool:
+	if phase != Phase.SETTLED or not fixtures.has(id):
+		return false
+	var back := sell_price(id)
+	tray += back
+	fixtures.erase(id)
+	paid.erase(id)
+	_emit(&"sold", {id = id, back = back})
+	return true
+
+
+func reroll() -> bool:
+	if phase != Phase.SETTLED or reroll_price() > tray:
+		return false
+	var cost := reroll_price()
+	tray -= cost
+	stats.spent += cost
+	rerolls += 1
+	_draw_offers()
+	_emit(&"reroll")
+	return true
+
+
+## This visit's offers, from a stream seeded by the run, the wave and the reroll,
+## so everyone on the same daily sees the same first offers at each wave.
+func _draw_offers() -> void:
+	var orng := RandomNumberGenerator.new()
+	orng.seed = mix(run_seed, 1000 + wave * 64 + rerolls)
+	var pool: Array[StringName] = []
+	for id in Fixtures.ORDER:
+		if level(id) < Fixtures.ALL[id].stacks:
+			pool.append(id)
+	offers.clear()
+	for i in mini(Fixtures.OFFERS, pool.size()):
+		offers.append(pool.pop_at(orng.randi_range(0, pool.size() - 1)))
+
+
+func max_holds() -> int:
+	return Tune.MAX_HOLDS + Fixtures.DEEP_HOLDS * level(&"deep_holds")
+
+
+func fever_len() -> float:
+	return Tune.FEVER_TIME + Fixtures.LONG_FEVER * level(&"long_fever")
+
+
+func power_len() -> float:
+	return Tune.POWER_TIME * (Fixtures.STICKY_PRIZES if level(&"sticky_prizes") > 0 else 1.0)
+
+
+func _pocket_pay(pk: Dictionary) -> int:
+	match pk.kind:
+		Board.Pocket.START:
+			return pk.pay + 2 * level(&"bent_nail")
+		Board.Pocket.SIDE:
+			return pk.pay + level(&"side_comps")
+		Board.Pocket.TULIP:
+			return pk.pay + 3 * level(&"tulip_bonus")
+	return pk.pay
 
 
 func cash_out() -> void:
@@ -221,7 +349,8 @@ func alive_count() -> int:
 
 
 func tray_half() -> float:
-	return Tune.TRAY_HALF_MAGNET if magnet_t > 0.0 else Tune.TRAY_HALF
+	var half := Tune.TRAY_HALF + Fixtures.WIDE_CUP * level(&"wide_cup")
+	return maxf(half, Tune.TRAY_HALF_MAGNET) if magnet_t > 0.0 else half
 
 
 func march_speed() -> float:
@@ -298,7 +427,7 @@ func _tick_powers(dt: float) -> void:
 
 func _fire() -> void:
 	var fever := fever_t > 0.0
-	var limit := Tune.MAX_BOLTS_RAPID if fever else Tune.MAX_BOLTS
+	var limit := (Tune.MAX_BOLTS_RAPID if fever else Tune.MAX_BOLTS) + level(&"twin_barrel")
 	var spread := spread_t > 0.0
 	if spread:
 		limit *= 3
@@ -311,6 +440,8 @@ func _fire() -> void:
 		return
 	if not fever:
 		tray -= Tune.SHOT_COST
+	_volleys += 1
+	var tipped := level(&"piercing_tips") > 0 and _volleys % Fixtures.PIERCE_EVERY == 0
 	var muzzle := Vector2(ship_x, Tune.SHIP_Y - 22)
 	var angles := [0.0]
 	if spread:
@@ -319,9 +450,9 @@ func _fire() -> void:
 		var b := Bolt.new()
 		b.pos = muzzle
 		b.vel = Vector2(sin(a), -cos(a)) * Tune.BOLT_SPEED
-		b.pierce = pierce_t > 0.0
+		b.pierce = pierce_t > 0.0 or tipped
 		bolts.append(b)
-	cool = Tune.BOLT_COOLDOWN_RAPID if fever else Tune.BOLT_COOLDOWN
+	cool = (Tune.BOLT_COOLDOWN_RAPID if fever else Tune.BOLT_COOLDOWN) * pow(Fixtures.QUICK_RELOAD, level(&"quick_reload"))
 	stats.shots += 1
 	_emit(&"fire", {pos = muzzle, free = fever})
 
@@ -464,7 +595,11 @@ func _move_shots(dt: float) -> void:
 				shield = false
 				_emit(&"shielded", {pos = s})
 			else:
-				var lost := mini(tray, Tune.HIT_SPILL)
+				var spill := Fixtures.PADDED_SPILL if level(&"padded_rail") > 0 else Tune.HIT_SPILL
+				if level(&"insurance") > 0 and not _insured:
+					_insured = true
+					spill = 0
+				var lost := mini(tray, spill)
 				tray -= lost
 				stats.hits += 1
 				_emit(&"hit", {pos = Vector2(ship_x, Tune.SHIP_Y), lost = lost})
@@ -493,7 +628,7 @@ func _kill_saucer() -> void:
 	_saucer_t = _rng.randf_range(Tune.SAUCER_GAP.x, Tune.SAUCER_GAP.y)
 	stats.saucers += 1
 	var p := Vector2(saucer_x, Tune.SAUCER_Y)
-	holds = mini(holds + 1, Tune.MAX_HOLDS)
+	holds = mini(holds + 1, max_holds())
 	_emit(&"saucer_kill", {pos = p})
 	for i in Tune.SAUCER_BALLS:
 		_drop(p + Vector2((i - 2) * 9.0, 0), false)
@@ -598,13 +733,13 @@ func _pocketed(ball: Ball, prev: Vector2) -> bool:
 		if pk.kind == Board.Pocket.ATTACKER and not pk.open:
 			continue
 		if prev.y < pk.pos.y and ball.pos.y >= pk.pos.y and absf(ball.pos.x - pk.pos.x) < Board.mouth(pk) and ball.vel.y > 0.0:
-			var pay: int = pk.pay * (Tune.GOLD_MULT if ball.gold else 1)
+			var pay: int = _pocket_pay(pk) * (Tune.GOLD_MULT if ball.gold else 1)
 			tray += pay
 			stats.pocketed += 1
 			match pk.kind:
 				Board.Pocket.START:
-					var held := holds < Tune.MAX_HOLDS
-					holds = mini(holds + 1, Tune.MAX_HOLDS)
+					var held := holds < max_holds()
+					holds = mini(holds + 1, max_holds())
 					_emit(&"pocket", {pos = pk.pos, pocket = pk.kind, pay = pay, gold = ball.gold, held = held, ball_pos = ball.pos, vel = ball.vel})
 				Board.Pocket.TULIP:
 					pk.open = not pk.open
@@ -619,7 +754,7 @@ func _pocketed(ball: Ball, prev: Vector2) -> bool:
 func _caught(ball: Ball) -> bool:
 	var top := Tune.SHIP_Y - 16.0
 	if ball.pos.y + Tune.BALL_R >= top and ball.pos.y < Tune.SHIP_Y + 4.0 and absf(ball.pos.x - ship_x) <= tray_half():
-		var pay := Tune.CATCH_PAY * (Tune.GOLD_MULT if ball.gold else 1)
+		var pay := (Tune.CATCH_PAY + level(&"deep_cup")) * (Tune.GOLD_MULT if ball.gold else 1)
 		tray += pay
 		stats.caught += 1
 		_emit(&"catch", {pos = ball.pos, pay = pay, gold = ball.gold, vel = ball.vel, rel_x = ball.pos.x - ship_x})
@@ -638,7 +773,7 @@ func _run_reels(dt: float) -> void:
 	if spin.is_empty():
 		if holds > 0:
 			holds -= 1
-			spin = Reels.roll(_reel_rng)
+			spin = Reels.roll(_reel_rng, roundi(Reels.FEVER_ODDS * (1.0 + level(&"loaded_seven") / 3.0)))
 			spin.t = 0.0
 			spin.len = Tune.SPIN_TIME + (Tune.REACH_EXTRA if spin.reach else 0.0)
 			spin.stopped = 0
@@ -667,18 +802,18 @@ func _award(sym: int) -> void:
 	match prize:
 		"fever":
 			stats.fevers += 1
-			fever_t = Tune.FEVER_TIME
+			fever_t = fever_len()
 			board.attacker().open = true
 			for i in Tune.FEVER_SHOWER:
 				_drop(Vector2(_rng.randf_range(Tune.LEFT + 30, Tune.RIGHT - 30), _rng.randf_range(330, 410)), false)
 		"pierce":
-			pierce_t = Tune.POWER_TIME
+			pierce_t = power_len()
 		"spread":
-			spread_t = Tune.POWER_TIME
+			spread_t = power_len()
 		"shield":
 			shield = true
 		"magnet":
-			magnet_t = Tune.POWER_TIME
+			magnet_t = power_len()
 		"chips":
 			tray += Reels.CHIPS_PAY
 	_emit(&"prize", {prize = prize, symbol = sym})
@@ -691,8 +826,13 @@ func _check_phase() -> void:
 		Phase.PLAYING:
 			if alive_count() == 0:
 				phase = Phase.CLEARED
-				clear_bonus = clear_bonus_for(wave)
+				clear_bonus = clear_bonus_at(wave)
 				tray += clear_bonus
+				var lv := level(&"interest")
+				if lv > 0:
+					var interest := mini(roundi(tray * Fixtures.INTEREST_RATE * lv), Fixtures.INTEREST_CAP * lv)
+					clear_bonus += interest
+					tray += interest
 				shots.clear()
 				saucer_on = false
 				_emit(&"clear", {bonus = clear_bonus})
@@ -709,6 +849,9 @@ func _check_phase() -> void:
 			if balls.is_empty() and bolts.is_empty():
 				phase = Phase.SETTLED
 				stats.waves.append(tray - wave_start_tray)
+				rerolls = 0
+				if can_ride():
+					_draw_offers()
 				_emit(&"settled")
 	if phase == Phase.BUST and stats.waves.size() < wave:
 		stats.waves.append(tray - wave_start_tray)

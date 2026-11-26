@@ -26,16 +26,17 @@ const REACH_ODDS := 220
 
 ## Returns {symbols: PackedInt32Array(3), triple: bool, reach: bool}. A reach is
 ## when the first two reels match, which holds the third reel longer for suspense.
-static func roll(rng: RandomNumberGenerator) -> Dictionary:
+## `fever_odds` (out of 1000) is raised by the Loaded seven fixture.
+static func roll(rng: RandomNumberGenerator, fever_odds := FEVER_ODDS) -> Dictionary:
 	var r := rng.randi_range(0, 999)
 	var a: int
 	var c: int
-	if r < FEVER_ODDS:
+	if r < fever_odds:
 		return {symbols = PackedInt32Array([Sym.SEVEN, Sym.SEVEN, Sym.SEVEN]), triple = true, reach = true}
-	if r < FEVER_ODDS + PRIZE_ODDS:
+	if r < fever_odds + PRIZE_ODDS:
 		a = rng.randi_range(1, COUNT - 1)
 		return {symbols = PackedInt32Array([a, a, a]), triple = true, reach = true}
-	if r < FEVER_ODDS + PRIZE_ODDS + REACH_ODDS:
+	if r < fever_odds + PRIZE_ODDS + REACH_ODDS:
 		a = rng.randi_range(0, COUNT - 1)
 		c = (a + rng.randi_range(1, COUNT - 1)) % COUNT
 		return {symbols = PackedInt32Array([a, a, c]), triple = false, reach = true}
