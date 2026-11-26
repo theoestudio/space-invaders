@@ -1,10 +1,10 @@
 extends SceneTree
 ## Balance check: the autopilot plays whole runs headless, always letting it ride,
 ## and this prints how far each skill level gets, how the tray moves per wave and
-## what each cash-out policy would have paid. With "shop" it buys, at each cashier,
-## every offer that costs at most a quarter of the tray (a stand-in until the
-## autopilot learns to shop).
-##   godot --headless --script tests/selfplay.gd -- [runs] [max_wave] [shop]
+## what each cash-out policy would have paid. With "shop" the autopilot buys at
+## each cashier (Autopilot.shop), and a second pass plays the same runs cashing out
+## when the autopilot would (Autopilot.ride) to show where its runs end.
+##   godot --headless --script tests/selfplay.gd -- [runs] [max_wave] [shop|none] [skill,skill]
 
 const SKILLS := [0.4, 0.7, 0.95]
 
@@ -14,7 +14,8 @@ func _init() -> void:
 	var runs := int(args[0]) if args.size() > 0 else 24
 	var max_wave := int(args[1]) if args.size() > 1 else 10
 	var shop := args.size() > 2 and args[2] == "shop"
-	for skill: float in SKILLS:
+	var skills: Array = Array(args[3].split(",")).map(func(x: String) -> float: return float(x)) if args.size() > 3 else SKILLS
+	for skill: float in skills:
 		_report(skill, runs, max_wave, shop)
 	quit()
 
@@ -50,10 +51,8 @@ func _report(skill: float, runs: int, max_wave: int, shop: bool) -> void:
 				wave_secs.append(wave_t)
 				wave_t = 0.0
 				if shop:
-					for i in s.offers.size():
-						if s.can_buy(i) and s.price(s.offers[i]) * 4 <= s.tray:
-							bought[s.offers[i]] = bought.get(s.offers[i], 0) + 1
-							s.buy(i)
+					for id in bot.shop(s):
+						bought[id] = bought.get(id, 0) + 1
 				if s.wave >= max_wave or not s.can_ride():
 					s.cash_out()
 				else:
@@ -104,3 +103,44 @@ func _report(skill: float, runs: int, max_wave: int, shop: bool) -> void:
 				alive += 1
 			total += v
 		print("  %2d  %3.0f%%  %6.1f" % [k + 1, 100.0 * alive / runs, total / runs])
+	if shop:
+		_policy(skill, runs)
+
+
+## The same runs, cashing out when the autopilot would: where they end, by floor,
+## and what they pay. Also how many runs that reached floor 3 bought each fixture.
+func _policy(skill: float, runs: int) -> void:
+	var ends := {}
+	var paid := 0.0
+	var deep := 0
+	var owned := {}
+	for r in runs:
+		var s := Sim.create(1000 + r)
+		var bot := Autopilot.new(skill, 77 + r)
+		var had := {}
+		while not s.is_over():
+			var d := bot.decide(s)
+			s.step(d.move, d.target, d.fire)
+			if s.phase == Sim.Phase.SETTLED:
+				for id in bot.shop(s):
+					had[id] = true
+				if bot.ride(s):
+					s.next_wave()
+				else:
+					s.cash_out()
+			if s.time > 3600.0:
+				break
+		var f := Floors.floor_of(s.wave)
+		var key := "%s %s" % ["cashed" if s.phase == Sim.Phase.CASHED else "bust", Floors.floor_name(f)]
+		ends[key] = ends.get(key, 0) + 1
+		paid += s.payout()
+		if f >= 3:
+			deep += 1
+			for id: StringName in had:
+				owned[id] = owned.get(id, 0) + 1
+	var keys := ends.keys()
+	keys.sort()
+	print("autopilot policy: mean payout %.0f; ends %s" % [paid / runs, ", ".join(keys.map(func(k: String) -> String: return "%s %d" % [k, ends[k]]))])
+	var ids := owned.keys()
+	ids.sort_custom(func(x: StringName, y: StringName) -> bool: return owned[x] > owned[y])
+	print("runs reaching floor 3 (%d) that bought: %s" % [deep, ", ".join(ids.map(func(id: StringName) -> String: return "%s %d%%" % [id, 100 * owned[id] / maxi(deep, 1)]))])

@@ -354,8 +354,19 @@ func payout() -> int:
 
 
 func invader_pos(inv: Invader) -> Vector2:
+	return invader_pos_at(inv, 0.0)
+
+
+## Where a piece will be in `t` seconds if the formation keeps marching and turning
+## the way it is (no edge in between): for aiming.
+func invader_pos_at(inv: Invader, t: float) -> Vector2:
 	var a := inv.angle + turn
-	return origin + inv.home + Vector2(cos(a) * inv.radius.x, sin(a) * inv.radius.y)
+	var o := origin
+	if t > 0.0:
+		o.x += march_dir * march_speed() * t
+		if Formations.turns(shape):
+			a += Tune.RING_TURN * march_dir * t
+	return o + inv.home + Vector2(cos(a) * inv.radius.x, sin(a) * inv.radius.y)
 
 
 func alive_count() -> int:

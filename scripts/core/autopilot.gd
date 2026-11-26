@@ -2,13 +2,31 @@ class_name Autopilot
 extends RefCounted
 ## A simple player for the attract screen and the balance tests: dodge House shots,
 ## catch balls that are about to land, otherwise line up under the lowest invader
-## and fire. `skill` (0..1) sets aim error and reaction time.
+## and fire. `skill` (0..1) sets aim error and reaction time. Between waves it
+## shops at the cashier (shop) and decides whether to ride down or cash out (ride).
 
 var skill := 0.7
 var _rng := RandomNumberGenerator.new()
 var _target := NAN
 var _think := 0.0
 var _aim_error := 0.0
+## How close the House came to the line this wave and last (board pixels).
+var _closest := INF
+var _last_closest := INF
+
+## What one stack of a fixture is worth over the rest of a run, in balls, measured
+## by tests/fixture_value.gd (mid skill given it free from wave 1: the tray after
+## wave 12 against none, survival included). Rough on purpose: a guide, not a solver.
+const WORTH := {
+	&"bent_nail": 60, &"side_comps": 60, &"tulip_bonus": 170, &"gold_leaf": 60,
+	&"loaded_seven": 260, &"deep_holds": 140, &"long_fever": 220, &"sticky_prizes": 80,
+	&"deep_cup": 80, &"wide_cup": 240, &"quick_reload": 280, &"twin_barrel": 260,
+	&"piercing_tips": 400, &"interest": 160, &"comps": 280, &"padded_rail": 40, &"insurance": 40,
+}
+## The wave a run expects to reach at skill 0 and at skill 1, for what is left to earn.
+const HORIZON := Vector2(10, 20)
+## Balls kept back from shopping: every bolt costs one.
+const RESERVE := 40
 
 
 func _init(skill_level := 0.7, rng_seed := 1) -> void:
@@ -18,6 +36,7 @@ func _init(skill_level := 0.7, rng_seed := 1) -> void:
 
 ## Returns {move: float, target: float, fire: bool} for Sim.step.
 func decide(s: Sim) -> Dictionary:
+	watch(s)
 	_think -= Tune.STEP
 	var danger := _danger(s)
 	if not is_nan(danger):
@@ -32,6 +51,65 @@ func decide(s: Sim) -> Dictionary:
 	if s.fever_t > 0.0:
 		fire = true
 	return {move = 0.0, target = _target, fire = fire}
+
+
+## Buys at the cashier between waves: the offer with the best worth for its price
+## while one pays back at least its price, keeping a reserve. Low skill misjudges
+## worth; high skill rerolls once when nothing is worth it. Returns what it bought.
+func shop(s: Sim) -> Array[StringName]:
+	var out: Array[StringName] = []
+	var rerolled := false
+	while s.phase == Sim.Phase.SETTLED:
+		var best := -1
+		var best_gain := 0.0
+		for i in s.offers.size():
+			if not s.can_buy(i) or s.tray - s.price(s.offers[i]) < RESERVE:
+				continue
+			var gain := _worth(s, s.offers[i]) / float(s.price(s.offers[i]))
+			if gain > best_gain:
+				best_gain = gain
+				best = i
+		if best >= 0 and best_gain >= 1.0:
+			out.append(s.offers[best])
+			s.buy(best)
+			continue
+		if skill >= 0.8 and not rerolled and s.reroll_price() * 20 <= s.tray and s.fixtures.size() < Fixtures.SLOTS:
+			rerolled = true
+			s.reroll()
+			continue
+		break
+	return out
+
+
+func _worth(s: Sim, id: StringName) -> float:
+	var horizon := lerpf(HORIZON.x, HORIZON.y, skill)
+	var left := clampf((horizon - s.wave) / 12.0, 0.0, 1.5)
+	var w: float = WORTH[id]
+	if id == &"interest":
+		w = maxf(w, s.tray * Fixtures.INTEREST_RATE * (horizon - s.wave))
+	var judged := 1.0 + _rng.randf_range(-1.0, 1.0) * lerpf(0.6, 0.1, skill)
+	return w * left * judged
+
+
+## Whether to ride down to another wave rather than cash out: on, unless the House
+## came closer to the line last wave than this skill level is comfortable with and
+## the tray is worth keeping.
+func ride(s: Sim) -> bool:
+	if not s.can_ride():
+		return false
+	var comfort := lerpf(3.0, 1.5, skill) * Tune.CELL.y
+	return _last_closest > comfort or s.tray < 150
+
+
+## Call each step: tracks how close the House comes to the line.
+func watch(s: Sim) -> void:
+	if s.phase == Sim.Phase.PLAYING:
+		for inv in s.invaders:
+			if inv.alive:
+				_closest = minf(_closest, Tune.INVADED_Y - (s.invader_pos(inv).y + Tune.INVADER_HALF.y))
+	elif _closest != INF:
+		_last_closest = _closest
+		_closest = INF
 
 
 func _danger(s: Sim) -> float:
@@ -81,4 +159,4 @@ func _choose(s: Sim) -> float:
 		return NAN
 	var p := s.invader_pos(pick)
 	var t := (Tune.SHIP_Y - p.y) / Tune.BOLT_SPEED
-	return p.x + s.march_dir * s.march_speed() * t + _aim_error
+	return s.invader_pos_at(pick, t).x + _aim_error
