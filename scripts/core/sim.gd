@@ -355,7 +355,7 @@ func _bolt_hits_invader(b: Bolt) -> bool:
 func _kill(inv: Invader, p: Vector2) -> void:
 	inv.alive = false
 	stats.kills += 1
-	_emit(&"kill", {pos = p, type = inv.kind, gold = inv.gold})
+	_emit(&"kill", {pos = p, type = inv.kind, gold = inv.gold, row = inv.row})
 	for i in KIND_BALLS[inv.kind]:
 		_drop(p + Vector2(_rng.randf_range(-8, 8), _rng.randf_range(-4, 4)), inv.gold)
 
@@ -586,13 +586,13 @@ func _pocketed(ball: Ball, prev: Vector2) -> bool:
 				Board.Pocket.START:
 					var held := holds < Tune.MAX_HOLDS
 					holds = mini(holds + 1, Tune.MAX_HOLDS)
-					_emit(&"pocket", {pos = pk.pos, pocket = pk.kind, pay = pay, gold = ball.gold, held = held})
+					_emit(&"pocket", {pos = pk.pos, pocket = pk.kind, pay = pay, gold = ball.gold, held = held, ball_pos = ball.pos, vel = ball.vel})
 				Board.Pocket.TULIP:
 					pk.open = not pk.open
-					_emit(&"pocket", {pos = pk.pos, pocket = pk.kind, pay = pay, gold = ball.gold})
+					_emit(&"pocket", {pos = pk.pos, pocket = pk.kind, pay = pay, gold = ball.gold, ball_pos = ball.pos, vel = ball.vel})
 					_emit(&"tulip", {pos = pk.pos, open = pk.open})
 				_:
-					_emit(&"pocket", {pos = pk.pos, pocket = pk.kind, pay = pay, gold = ball.gold})
+					_emit(&"pocket", {pos = pk.pos, pocket = pk.kind, pay = pay, gold = ball.gold, ball_pos = ball.pos, vel = ball.vel})
 			return true
 	return false
 
@@ -603,7 +603,7 @@ func _caught(ball: Ball) -> bool:
 		var pay := Tune.CATCH_PAY * (Tune.GOLD_MULT if ball.gold else 1)
 		tray += pay
 		stats.caught += 1
-		_emit(&"catch", {pos = ball.pos, pay = pay, gold = ball.gold})
+		_emit(&"catch", {pos = ball.pos, pay = pay, gold = ball.gold, vel = ball.vel, rel_x = ball.pos.x - ship_x})
 		return true
 	return false
 
