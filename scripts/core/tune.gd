@@ -95,6 +95,11 @@ const GOLD_MULT := 3
 const CLEAR_BONUS := 15
 const CLEAR_BONUS_PER_WAVE := 10
 const MAX_WAVE := 30
+## The rules version sent with each run. The leaderboard ranks a run only against
+## runs under the same rules, so bump it (and RULES in web/src/run_row.ts) when a
+## change makes payouts incomparable with the old ones. 1 was the launch game, 2
+## the descent (floors and the cashier).
+const RULES := 2
 
 # --- pockets ------------------------------------------------------------------
 const POCKET_START_PAY := 3

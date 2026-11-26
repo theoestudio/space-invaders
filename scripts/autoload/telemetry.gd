@@ -41,6 +41,8 @@ static func row(mode: String, s: Sim, official: bool, daily := 0) -> Dictionary:
 		pocketed = clampi(int(s.stats.pocketed), 0, 9999),
 		caught = clampi(int(s.stats.caught), 0, 9999),
 		official = official,
+		rules = Tune.RULES,
+		bought = clampi(int(s.stats.bought), 0, 999),
 	}
 
 

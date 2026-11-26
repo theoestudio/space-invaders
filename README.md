@@ -73,12 +73,18 @@ make deploy     # tests, export, then wrangler deploy
 
 Changing anything in `Tune`, `Board`, `Reels` or `Sim` changes every daily run from
 then on. Run `make selfplay` to see what it does to the cash-out curve.
+When a change makes payouts incomparable with the old ones, bump `Tune.RULES` and
+`RULES` in `web/src/run_row.ts`: the leaderboard ranks runs only against runs under
+the same rules. Apply new D1 migrations with `cd web && npm run db:migrate` before
+deploying a build that writes their columns.
 
 ## Privacy
 
 The game sends one row per finished run from the production site: mode, outcome,
 waves cleared, payout, peak tray, shots, kills, hits taken, spins, fevers, balls
-pocketed and caught, and whether a daily was a replay. No identifier, no timestamp
+pocketed and caught, fixtures bought, the rules version and whether a daily was a
+replay. The server adds the floor the run ended on (from the waves) and the date
+the row arrived. No identifier, no timestamp
 from the device, no seed. Two rows cannot be tied to the same person. Records stay
 in the browser.
 

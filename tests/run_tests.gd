@@ -391,7 +391,7 @@ func _daily() -> void:
 
 
 ## Must match web/src/run_row.ts.
-const ROW_KEYS := ["mode", "daily", "outcome", "waves", "payout", "peak", "shots", "kills", "hits", "spins", "fevers", "pocketed", "caught", "official"]
+const ROW_KEYS := ["mode", "daily", "outcome", "waves", "payout", "peak", "shots", "kills", "hits", "spins", "fevers", "pocketed", "caught", "official", "rules", "bought"]
 
 
 func _telemetry() -> void:
@@ -411,6 +411,10 @@ func _telemetry() -> void:
 	check(row.outcome in ["cashed", "invaded", "empty"], "outcome is one of three")
 	check(row.payout == 0 or row.outcome == "cashed", "only a cash-out pays")
 	check(row.kills <= row.shots * 3 + 20, "kills are bounded by shots")
+	check(row.rules == Tune.RULES, "the row names its rules version")
+	var worker := FileAccess.get_file_as_string("res://web/src/run_row.ts")
+	check(worker.contains("export const RULES = %d;" % Tune.RULES), "web/src/run_row.ts accepts Tune.RULES")
+	check(row.waves > 0 or row.bought == 0, "nothing is bought before a clear")
 	for k in ROW_KEYS:
 		if k not in ["mode", "outcome", "official"]:
 			check(row[k] is int and row[k] >= 0, "%s is a non-negative integer" % k)
