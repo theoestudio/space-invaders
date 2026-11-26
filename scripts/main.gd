@@ -17,6 +17,7 @@ var daily_number := 0
 var practice := false
 var paused := false
 var _demo_bot: Autopilot
+var _demo_first := 1
 var _rng := RandomNumberGenerator.new()
 var _finished := false
 ## This run's challenge watcher, and the challenges it met for the first time ever.
@@ -94,8 +95,18 @@ func _apply_sky(floor_num: int, instant: bool, delta := 0.0) -> void:
 	sm.set_shader_parameter(&"mist_col", Vector3(_sky_mist.r, _sky_mist.g, _sky_mist.b))
 
 
+## The attract demo behind the menu: a silent autopilot run from the top of a
+## random floor, shopping and riding down until it busts, cashes out or has seen
+## DEMO_WAVES waves.
+const DEMO_WAVES := 6
+
+
 func _new_demo() -> void:
 	sim = Sim.create(_rng.randi())
+	var first := 1 + _rng.randi_range(0, Tune.FLOORS - 1) * Tune.WAVES_PER_FLOOR
+	if first > 1:
+		sim.start_wave(first)
+	_demo_first = first
 	_demo_bot = Autopilot.new(0.85, _rng.randi())
 	stage.show_sim(sim, true)
 	_apply_sky(sim.floor_number(), true)
@@ -229,7 +240,7 @@ func _physics_process(_delta: float) -> void:
 	if sim == null:
 		return
 	if mode == Mode.MENU:
-		_demo_step()
+		_demo_step(_delta)
 		return
 	if paused or _finished:
 		return
@@ -262,15 +273,20 @@ func _physics_process(_delta: float) -> void:
 				_finish()
 
 
-func _demo_step() -> void:
+func _demo_step(delta: float) -> void:
 	var d := _demo_bot.decide(sim)
 	sim.step(d.move, d.target, d.fire)
 	stage.consume(sim.events)
+	_apply_sky(sim.floor_number(), false, delta)
 	if sim.phase == Sim.Phase.SETTLED:
-		if sim.wave >= 4:
+		_demo_bot.shop(sim)
+		if sim.wave - _demo_first + 1 >= DEMO_WAVES or not _demo_bot.ride(sim):
 			_new_demo()
 		else:
+			var prev_f := sim.floor_number()
 			sim.next_wave()
+			if sim.floor_number() != prev_f:
+				stage.play_elevator(prev_f, sim.floor_number())
 	elif sim.is_over():
 		_new_demo()
 
